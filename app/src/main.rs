@@ -11,6 +11,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, PgPool};
 use std::{fmt, sync::Arc};
 use tower_http::services::ServeDir;
+use tracing::{info, debug};
 
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 
@@ -68,7 +69,7 @@ async fn main() {
 
     // Initialize tracing
     tracing_subscriber::registry()
-        .with(tracing_subscriber::EnvFilter::new("info,tower_http=debug"))
+        .with(tracing_subscriber::EnvFilter::new("info,debug,tower_http=debug"))
         .with(tracing_subscriber::fmt::layer())
         .init();
 
@@ -79,7 +80,9 @@ async fn main() {
         .layer(TraceLayer::new_for_http())
         .with_state(state);
 
-    println!("Server running on http://0.0.0.0:2000");
+    info!("Starting server on http://0.0.0.0:2000");
+    debug!("Server running");
+    //println!("Server running on http://0.0.0.0:2000");
     axum::serve(listener, app).await.unwrap();
 }
 
