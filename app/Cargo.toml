@@ -19,3 +19,4 @@ dotenv = "0.15"
 [dev-dependencies]
 anyhow = "1.0"
 httpc-test = "0.1"
+sqlx-cli = { version = "0.8", default-features = false, features = ["rustls", "postgres"] }

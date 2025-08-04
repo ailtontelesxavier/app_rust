@@ -21,6 +21,8 @@ struct AppState {
     db_pool: Arc<PgPool>,
 }
 
+const SECRET: &[u8] = b"super-secret-key";
+
 #[derive(Debug)]
 enum AppError {
     InvalidInput(String),
