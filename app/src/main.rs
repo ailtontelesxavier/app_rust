@@ -45,7 +45,7 @@ impl IntoResponse for AppError {
 }
 
 async fn hello_world() -> &'static str {
-    "Welcome to the Task API with Metrics!"
+    "Welcome!"
 }
 
 #[tokio::main]
@@ -73,10 +73,21 @@ async fn main() {
     let listener = tokio::net::TcpListener::bind("0.0.0.0:2000").await.unwrap();
 
     let app = Router::new()
-        .route("/", get(hello_world))
+        .route("/hello", get(hello_world))
         .layer(TraceLayer::new_for_http())
         .with_state(state);
 
     println!("Server running on http://0.0.0.0:2000");
     axum::serve(listener, app).await.unwrap();
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_soma() {
+        assert_eq!(1 + 1, 2);
+    }
 }
