@@ -5,6 +5,8 @@ edition = "2024"
 
 [dependencies]
 blog = {path="../blog"}
+permissao = {path="../permissao"}
+shared = {path="../shared"}
 axum = "0.8"
 tokio = { version = "1.47", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }

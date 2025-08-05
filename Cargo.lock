@@ -113,8 +113,10 @@ dependencies = [
  "dotenv",
  "httpc-test",
  "minijinja",
+ "permissao",
  "prometheus",
  "serde",
+ "shared",
  "sqlx",
  "sqlx-cli",
  "tokio",
@@ -1633,6 +1635,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e3148f5046208a5d56bcfc03053e3ca6334e51da8dfb19b6cdc8b306fae3283e"
 
 [[package]]
+name = "permissao"
+version = "0.1.0"
+dependencies = [
+ "axum",
+ "minijinja",
+ "shared",
+]
+
+[[package]]
 name = "pin-project-lite"
 version = "0.2.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2128,6 +2139,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f40ca3c46823713e0d4209592e8d6e826aa57e928f09752619fc696c499637f6"
 dependencies = [
  "lazy_static",
+]
+
+[[package]]
+name = "shared"
+version = "0.1.0"
+dependencies = [
+ "axum",
+ "minijinja",
+ "serde",
+ "sqlx",
 ]
 
 [[package]]
@@ -2886,6 +2907,10 @@ dependencies = [
  "idna",
  "percent-encoding",
 ]
+
+[[package]]
+name = "users"
+version = "0.1.0"
 
 [[package]]
 name = "utf8_iter"

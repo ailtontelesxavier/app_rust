@@ -1,5 +1,5 @@
 [workspace]
 resolver = "3"
 members = [
-    "app", "blog",
+    "app", "blog", "permissao", "shared", "users",
 ]

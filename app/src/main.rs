@@ -5,6 +5,7 @@ use axum::{
     response::{IntoResponse, Response},
     routing::{get, post},
 };
+use minijinja::{path_loader, Environment};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use tower_http::trace::TraceLayer;
 use serde::{Deserialize, Serialize};
@@ -17,10 +18,10 @@ use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 
 use dotenv::dotenv;
 
-#[derive(Clone)]
-struct AppState {
-    db_pool: Arc<PgPool>,
-}
+use permissao::index;
+
+
+use shared::{AppState, SharedState};
 
 const SECRET: &[u8] = b"super-secret-key";
 
@@ -63,9 +64,15 @@ async fn main() {
         .await
         .expect("Failed to connect to the database");
 
-    let state = AppState { 
-        db_pool: Arc::new(db_pool) 
-    };
+    // Carrega os templates
+    let mut env = Environment::new();
+    env.set_loader(path_loader("templates"));
+    let templates = Arc::new(env);
+
+    let state = Arc::new(AppState { 
+        db: Arc::new(db_pool),
+        templates
+    });
 
     // Initialize tracing
     tracing_subscriber::registry()
@@ -77,15 +84,15 @@ async fn main() {
 
     let app = Router::new()
         .route("/hello", get(hello_world))
+        .route("/index", get(index))
         .layer(TraceLayer::new_for_http())
-        .with_state(state);
+        .with_state(state.clone());
 
     info!("Starting server on http://0.0.0.0:2000");
     debug!("Server running");
     //println!("Server running on http://0.0.0.0:2000");
     axum::serve(listener, app).await.unwrap();
 }
-
 
 #[cfg(test)]
 mod tests {
