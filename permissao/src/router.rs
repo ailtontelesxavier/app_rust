@@ -11,15 +11,6 @@ use shared::{AppError, SharedState};
 use minijinja::{path_loader, Environment, Value};
 
 
-
-use crate::handler;
-
-pub fn router() -> Router<SharedState> {
-    Router::new()
-        .route("/", get(handler::home))
-        .route("/saudacao", get(handler::saudacao))
-}
-
 pub async fn index() -> &'static str {
     "Welcome!"
 }

@@ -18,7 +18,7 @@ use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 
 use dotenv::dotenv;
 
-use permissao::index;
+use permissao::{router as router_permissao};
 
 
 use shared::{AppState, SharedState};
@@ -84,9 +84,10 @@ async fn main() {
 
     let app = Router::new()
         .route("/hello", get(hello_world))
-        .route("/index", get(index))
+        .nest("/permissao", router_permissao().with_state(state.clone()))
         .layer(TraceLayer::new_for_http())
         .with_state(state.clone());
+
 
     info!("Starting server on http://0.0.0.0:2000");
     debug!("Server running");

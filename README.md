@@ -35,3 +35,12 @@ let app = Router::new().route(
     "/admin",
     get(with_permission("admin", || async { "Admin OK" })),
 );
+
+
+
+
+
+
+sqlx migrate add -r "init"
+sqlx migrate run
+sqlx migrate add create_permissao_module_table

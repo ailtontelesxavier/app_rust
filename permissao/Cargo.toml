@@ -7,3 +7,5 @@ edition = "2024"
 shared = { path = "../shared" }
 minijinja = { version = "2.11", features = ["loader"] }
 axum = "0.8"
+chrono = "0.4"
+sqlx = { version = "0.8", features = ["runtime-tokio", "postgres", "macros", "chrono", "uuid"] }
