@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>teste</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@5/themes.css" rel="stylesheet" type="text/css" />
+    
+    <!-- Load Tailwind CSS via CDN (production approach)
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="module">
+        tailwind.config = {
+            plugins: [window.daisyui],
+            daisyui: {
+                themes: ["corporate", "coffee"]
+            }
+        }
+    </script>
+    -->
+
+    {# modal flowbite #}
+    <script src="https://cdn.jsdelivr.net/npm/flowbite@3.0.0/dist/flowbite.min.js"></script>
+
+
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <title>{% block title %}{%endblock%}</title>
+    {% block extra_css %}{% endblock %}
+
+</head>
+<body>
+<!--Load-->
+  <div id="loader" class="hidden fixed inset-0 flex items-center justify-center bg-transparent z-50">
+    <div class="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+  </div>
+  
+  {% block body %}{% endblock %}
+
+  <div id="messageBox" class="hidden toast toast-top toast-center overflow-y-auto">
+      <span class="alert alert-success">
+        <span id="messageText">New mail arrived.</span>
+        <span id="closeMessage" class="ml-1 hover:cursor-pointer text-xs font-bold">✖</span>
+      </span>
+    <!--
+    <div class="alert alert-info">
+      <span>Message.</span>
+    </div>
+    -->
+  </div>
+
+  <script>
+    function showLoader() {
+        document.getElementById("loader").classList.remove("hidden");
+    }
+    
+    function hideLoader() {
+        document.getElementById("loader").classList.add("hidden");
+    }
+    function showMessage(text, type = 'success') {
+      const messageBox = document.getElementById("messageBox");
+      const messageText = document.getElementById("messageText");
+      const closeMessage = document.getElementById("closeMessage");
+
+      messageText.textContent = text;
+      messageBox.classList.remove("hidden");
+      
+      if (type === "error") {
+        messageBox.classList.add("bg-red-200", "text-red-800");
+      } else {
+          messageBox.classList.add("bg-green-200", "text-green-800");
+      }
+
+      // Evento para fechar a mensagem ao clicar no botão ✖
+      document.getElementById("closeMessage").addEventListener("click", () => {
+        messageBox.classList.add("hidden");
+      });
+
+      // Ocultar automaticamente após 5 segundos
+      setTimeout(() => messageBox.classList.add("hidden"), 5000);
+    }
+  </script>
+
+  <!-- Toggle de tema -->
+  <script>
+    function getCookie(name) {
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) return parts.pop().split(';').shift();
+    }
+
+    // Aplica o tema salvo no cookie ao carregar a página
+    const savedTheme = getCookie('theme');
+    if (savedTheme) {
+      document.documentElement.setAttribute('data-theme', savedTheme);
+    }
+
+    // Toggle + salvar no cookie
+    const toggleBtn = document.getElementById("themeToggle");
+    if (toggleBtn) {
+      toggleBtn.addEventListener("click", () => {
+        const html = document.documentElement;
+        const current = html.getAttribute("data-theme");
+        const newTheme = current === "corporate" ? "coffee" : "corporate";
+        html.setAttribute("data-theme", newTheme);
+        document.cookie = `theme=${newTheme}; path=/; max-age=31536000`;
+        //altera do menu lateral
+        const sidebar = document.getElementById("sidebar");
+        if (sidebar) {
+          var thema = current === "dark" ? "coffee" : "";
+          sidebar.setAttribute("data-theme", thema);
+        }
+      });
+    }
+  </script>
+
+    <!-- Axios -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    
+    {% block extra_js %}{% endblock %}
+  
+  </body>
+</html>

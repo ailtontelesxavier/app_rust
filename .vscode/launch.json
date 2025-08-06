@@ -23,43 +23,6 @@
             "args": [],
             "cwd": "${workspaceFolder}"
         },
-        {
-            "type": "lldb",
-            "request": "launch",
-            "name": "Debug unit tests in executable 'app'",
-            "cargo": {
-                "args": [
-                    "test",
-                    "--no-run",
-                    "--bin=app",
-                    "--package=app"
-                ],
-                "filter": {
-                    "name": "app",
-                    "kind": "bin"
-                }
-            },
-            "args": [],
-            "cwd": "${workspaceFolder}"
-        },
-        {
-            "type": "lldb",
-            "request": "launch",
-            "name": "Debug unit tests in library 'blog'",
-            "cargo": {
-                "args": [
-                    "test",
-                    "--no-run",
-                    "--lib",
-                    "--package=blog"
-                ],
-                "filter": {
-                    "name": "blog",
-                    "kind": "lib"
-                }
-            },
-            "args": [],
-            "cwd": "${workspaceFolder}"
-        }
+
     ]
 }

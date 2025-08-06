@@ -14,6 +14,9 @@ use std::{fmt, sync::Arc};
 use tower_http::services::ServeDir;
 use tracing::{info, debug};
 
+use std::fs;
+use std::path::Path;
+
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 
 use dotenv::dotenv;
@@ -67,6 +70,7 @@ async fn main() {
     // Carrega os templates
     let mut env = Environment::new();
     env.set_loader(path_loader("templates"));
+
     let templates = Arc::new(env);
 
     let state = Arc::new(AppState { 
