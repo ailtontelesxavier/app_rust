@@ -18,5 +18,5 @@ pub struct ModuleCreateShema {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ModuleUpdateShema {
-    pub title: Optin<String>,
+    pub title: Option<String>,
 }

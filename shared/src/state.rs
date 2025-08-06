@@ -1,6 +1,6 @@
-use std::sync::Arc;
-use sqlx::PgPool;
 use minijinja::Environment;
+use sqlx::PgPool;
+use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct AppState {
@@ -9,3 +9,9 @@ pub struct AppState {
 }
 
 pub type SharedState = Arc<AppState>;
+
+#[derive(Clone, Debug)]
+pub struct CurrentUser {
+    pub is_authenticated: bool,
+    pub user_id: Option<i32>,
+}

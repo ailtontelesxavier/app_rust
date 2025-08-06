@@ -1,28 +1,22 @@
 use axum::{
     Router,
-    extract::{Json, State},
     http::StatusCode,
     response::{IntoResponse, Response},
     routing::{get, post},
 };
-use minijinja::{path_loader, Environment};
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+use minijinja::{Environment, path_loader};
+use std::sync::Arc;
 use tower_http::trace::TraceLayer;
-use serde::{Deserialize, Serialize};
-use sqlx::{FromRow, PgPool};
-use std::{fmt, sync::Arc};
-use tower_http::services::ServeDir;
-use tracing::{info, debug};
+use tracing::{debug, info};
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-use std::fs;
-use std::path::Path;
+use tower_http::services::{ServeDir, ServeFile};
 
-use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
+use sqlx::postgres::PgPoolOptions;
 
 use dotenv::dotenv;
 
-use permissao::{router as router_permissao};
-
+use permissao::router as router_permissao;
 
 use shared::{AppState, SharedState};
 
@@ -57,7 +51,6 @@ async fn hello_world() -> &'static str {
 
 #[tokio::main]
 async fn main() {
-
     dotenv().ok();
 
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
@@ -73,25 +66,29 @@ async fn main() {
 
     let templates = Arc::new(env);
 
-    let state = Arc::new(AppState { 
+    let state = Arc::new(AppState {
         db: Arc::new(db_pool),
-        templates
+        templates,
     });
 
     // Initialize tracing
     tracing_subscriber::registry()
-        .with(tracing_subscriber::EnvFilter::new("info,debug,tower_http=debug"))
+        .with(tracing_subscriber::EnvFilter::new(
+            "info,debug,tower_http=debug",
+        ))
         .with(tracing_subscriber::fmt::layer())
         .init();
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:2000").await.unwrap();
 
+    let server_dir = ServeDir::new("static");
+
     let app = Router::new()
         .route("/hello", get(hello_world))
         .nest("/permissao", router_permissao().with_state(state.clone()))
+        .nest_service("/static", server_dir)
         .layer(TraceLayer::new_for_http())
         .with_state(state.clone());
-
 
     info!("Starting server on http://0.0.0.0:2000");
     debug!("Server running");
