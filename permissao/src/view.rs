@@ -7,6 +7,7 @@ use axum::{
     http::StatusCode,
     response::Html,
     response::IntoResponse,
+    Extension,
 };
 use serde_json::json;
 use shared::SharedState;
@@ -61,6 +62,27 @@ pub async fn create_model(
             ));
         }
     }
+}
+
+
+#[derive(Debug, Deserialize)]
+pub struct PaginationQuery {
+    pub find: Option<String>,
+    pub page: Option<u32>,
+    pub page_size: Option<u32>,
+}
+
+pub async fn list_modules(
+    Query(q): Query<PaginationQuery>,
+    Extension(pool): Extension<Arc<PgPool>>,
+) -> Result<Json<PaginatedResponse<Module>>, StatusCode> {
+    let repo = ModuleRepository;
+    let res = repo
+        .get_paginated(&pool, q.find.as_deref(), q.page.unwrap_or(1), q.page_size.unwrap_or(10))
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    Ok(Json(res))
 }
 
 pub async fn saudacao(State(state): State<SharedState>) -> Html<String> {
