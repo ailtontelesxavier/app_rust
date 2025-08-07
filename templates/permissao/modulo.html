@@ -1,0 +1,29 @@
+{% extends 'base.html'%}
+
+{% block title %}Lista Modulo{%endblock%}
+ddddd
+{% block body %}
+  <div class="card w-full max-w-7xl shadow-lg bg-base-100">
+    <div class="card-body">
+      <h2 class="card-title">Lista de Modulos</h2>
+      {{dados}}
+      <form class="space-y-4 overflow-x-auto">
+        {#% include 'fragment/table_fragment.html' with context %#}
+      </form>
+      <h1>Módulos</h1>
+        <ul>
+            {% for item in dados %}
+                <li>{{ item.title }} - Criado em {{ item.createdAt }}</li>
+            {% endfor %}
+        </ul>
+        <h1>Módulos2</h1>
+        <ul>
+            {% for item in dados %}
+                <li>{{ item.title }} - Criado em {{ item.createdAt|format_datetime }}</li>
+            {% endfor %}
+        </ul>
+
+        <p>Página {{ pagina }} de {{ total_paginas }}</p>
+    </div>
+  </div>
+{%endblock%}

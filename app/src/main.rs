@@ -1,3 +1,5 @@
+mod filters;
+use filters::register_filters;
 use axum::{
     Router,
     http::StatusCode,
@@ -61,8 +63,11 @@ async fn main() {
         .expect("Failed to connect to the database");
 
     // Carrega os templates
+    // Crie o ambiente MiniJinja
     let mut env = Environment::new();
     env.set_loader(path_loader("templates"));
+    // Registre os filtros
+    register_filters(&mut env);
 
     let templates = Arc::new(env);
 

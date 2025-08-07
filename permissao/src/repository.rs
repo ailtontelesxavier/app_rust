@@ -1,7 +1,7 @@
 use async_trait::async_trait;
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use sqlx::{postgres::PgRow, FromRow, PgPool, QueryBuilder};
-use std::{sync::Arc};
+use serde::{Deserialize, Serialize, de::DeserializeOwned};
+use sqlx::{FromRow, PgPool, QueryBuilder, postgres::PgRow};
+use std::sync::Arc;
 
 use crate::model::module::Module;
 
@@ -82,10 +82,7 @@ where
             count_builder.push_bind(val);
         }
 
-        let total: (i64,) = count_builder
-            .build_query_as()
-            .fetch_one(pool)
-            .await?;
+        let total: (i64,) = count_builder.build_query_as().fetch_one(pool).await?;
 
         // === SELECT data ===
         let data_sql = format!(
@@ -102,10 +99,7 @@ where
             data_builder.push_bind(val);
         }
 
-        let data = data_builder
-            .build_query_as::<T>()
-            .fetch_all(pool)
-            .await?;
+        let data = data_builder.build_query_as::<T>().fetch_all(pool).await?;
 
         let total_pages = if total.0 == 0 {
             1
@@ -122,11 +116,7 @@ where
         })
     }
 
-    async fn create(
-        &self,
-        pool: &PgPool,
-        input: Self::CreateInput,
-    ) -> Result<T, sqlx::Error>;
+    async fn create(&self, pool: &PgPool, input: Self::CreateInput) -> Result<T, sqlx::Error>;
 
     async fn update(
         &self,
@@ -141,7 +131,7 @@ where
 //#[derive(Debug, Serialize, FromRow)]
 //pub struct Module {
 //    pub id: i32,
- //   pub title: String,
+//   pub title: String,
 //}
 
 #[derive(Debug, Deserialize)]
@@ -153,7 +143,6 @@ pub struct CreateModule {
 pub struct UpdateModule {
     pub title: String,
 }
-
 
 pub struct ModuleRepository;
 
@@ -178,11 +167,7 @@ impl Repository<Module> for ModuleRepository {
         "module m"
     }
 
-    async fn create(
-        &self,
-        pool: &PgPool,
-        input: Self::CreateInput,
-    ) -> Result<Module, sqlx::Error> {
+    async fn create(&self, pool: &PgPool, input: Self::CreateInput) -> Result<Module, sqlx::Error> {
         sqlx::query_as!(
             Module,
             r#"INSERT INTO module (title) VALUES ($1) RETURNING id, title, created_at, updated_at"#,
@@ -214,6 +199,4 @@ impl Repository<Module> for ModuleRepository {
             .await?;
         Ok(())
     }
-
-    
 }

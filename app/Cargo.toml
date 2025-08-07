@@ -17,6 +17,7 @@ tower-http = { version = "0.6", features = ["trace", "metrics", "fs"] }
 prometheus = "0.13"
 minijinja = { version = "2.11", features = ["loader"] }
 dotenv = "0.15"
+chrono = {version = "0.4", features = ["serde"] }
 
 [dev-dependencies]
 anyhow = "1.0"

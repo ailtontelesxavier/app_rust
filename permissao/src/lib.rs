@@ -1,9 +1,9 @@
 mod handler;
 mod model;
+mod repository;
 mod router;
 mod schema;
 mod view;
-mod repository;
 
 pub use shared::AppState;
 pub use shared::SharedState;
