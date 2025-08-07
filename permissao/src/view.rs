@@ -16,7 +16,7 @@ use shared::SharedState;
 use sqlx::FromRow;
 
 use crate::{handler, repository::{ModuleRepository, PaginatedResponse, Repository}};
-use crate::model::Module;
+use crate::model::module::Module;
 use crate::schema::ModuleCreateShema;
 
 pub async fn home(State(state): State<SharedState>) -> Html<String> {
@@ -82,7 +82,7 @@ pub async fn list_modules(
     let res = repo
         .get_paginated(&state.db, q.find.as_deref(), q.page.unwrap_or(1), q.page_size.unwrap_or(10))
         .await
-        .map_err(|err| {debug!("Server running:{}",err); StatusCode::INTERNAL_SERVER_ERROR})?;
+        .map_err(|err| {debug!("error:{}",err); StatusCode::INTERNAL_SERVER_ERROR})?;
 
     Ok(Json(res))
 }

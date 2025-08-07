@@ -3,7 +3,7 @@ use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use sqlx::{postgres::PgRow, FromRow, PgPool, QueryBuilder};
 use std::{sync::Arc};
 
-use crate::model::Module;
+use crate::model::module::Module;
 
 #[derive(Debug, Serialize)]
 pub struct PaginatedResponse<T> {
