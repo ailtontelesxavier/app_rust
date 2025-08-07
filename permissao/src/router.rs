@@ -11,4 +11,5 @@ pub fn router() -> Router<SharedState> {
     Router::new()
         .route("/index", get(view::home).post(view::create_model))
         .route("/saudacao", get(view::saudacao))
+        .route("/lista", get(view::list_modules))
 }

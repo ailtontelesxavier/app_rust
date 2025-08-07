@@ -9,11 +9,13 @@ use axum::{
     response::IntoResponse,
     Extension,
 };
+use tracing::{debug, info};
+use serde::Deserialize;
 use serde_json::json;
 use shared::SharedState;
 use sqlx::FromRow;
 
-use crate::handler;
+use crate::{handler, repository::{ModuleRepository, PaginatedResponse, Repository}};
 use crate::model::Module;
 use crate::schema::ModuleCreateShema;
 
@@ -74,13 +76,13 @@ pub struct PaginationQuery {
 
 pub async fn list_modules(
     Query(q): Query<PaginationQuery>,
-    Extension(pool): Extension<Arc<PgPool>>,
+    State(state): State<SharedState>,
 ) -> Result<Json<PaginatedResponse<Module>>, StatusCode> {
     let repo = ModuleRepository;
     let res = repo
-        .get_paginated(&pool, q.find.as_deref(), q.page.unwrap_or(1), q.page_size.unwrap_or(10))
+        .get_paginated(&state.db, q.find.as_deref(), q.page.unwrap_or(1), q.page_size.unwrap_or(10))
         .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        .map_err(|err| {debug!("Server running:{}",err); StatusCode::INTERNAL_SERVER_ERROR})?;
 
     Ok(Json(res))
 }

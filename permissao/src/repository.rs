@@ -1,7 +1,9 @@
 use async_trait::async_trait;
-use serde::{Deserialize, Serialize};
-use sqlx::{PgPool, FromRow, postgres::PgRow};
-use std::collections::HashMap;
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use sqlx::{postgres::PgRow, FromRow, PgPool, QueryBuilder};
+use std::{sync::Arc};
+
+use crate::model::Module;
 
 #[derive(Debug, Serialize)]
 pub struct PaginatedResponse<T> {
@@ -17,13 +19,13 @@ pub trait Repository<T>
 where
     T: for<'r> FromRow<'r, PgRow> + Send + Unpin + Serialize + 'static,
 {
-    type CreateInput: Deserialize<'static> + Send + Sync;
-    type UpdateInput: Deserialize<'static> + Send + Sync;
+    type CreateInput: DeserializeOwned + Send + Sync;
+    type UpdateInput: DeserializeOwned + Send + Sync;
 
     fn table_name(&self) -> &str;
     fn searchable_fields(&self) -> &[&str];
-    fn select_clause(&self) -> &str;   // SELECT com JOINs e alias
-    fn from_clause(&self) -> &str;     // FROM + JOIN
+    fn select_clause(&self) -> &str;
+    fn from_clause(&self) -> &str;
 
     fn extra_where(&self) -> Option<&str> {
         None
@@ -36,66 +38,86 @@ where
         page: u32,
         page_size: u32,
     ) -> Result<PaginatedResponse<T>, sqlx::Error> {
-        let offset = (page.max(1) - 1) * page_size;
-        let page_size = page_size.min(100);
+        let page = page.max(1);
+        let offset = (page - 1) * page_size;
+        let limit = page_size.min(100);
 
-        let mut filters = vec![];
-        let mut args: Vec<String> = vec![];
-        let mut param_idx = 1;
+        // === WHERE clause builder ===
+        let mut where_parts = vec![];
+        let mut bindings = vec![];
 
         if let Some(find) = find {
             let like = format!("%{}%", find);
+            let mut filter_parts = vec![];
+
             for field in self.searchable_fields() {
-                filters.push(format!(r#"{} ILIKE ${}"#, field, param_idx));
-                args.push(like.clone());
-                param_idx += 1;
+                filter_parts.push(format!(r#"{field} ILIKE ?"#));
+                bindings.push(like.clone());
+            }
+
+            if !filter_parts.is_empty() {
+                where_parts.push(format!("({})", filter_parts.join(" OR ")));
             }
         }
 
-        let mut where_clause = if !filters.is_empty() {
-            format!("({})", filters.join(" OR "))
-        } else {
-            "TRUE".to_string()
-        };
-
         if let Some(extra) = self.extra_where() {
-            where_clause = format!("{} AND ({})", where_clause, extra);
+            where_parts.push(format!("({})", extra));
         }
 
-        // Total
-        let count_sql = format!("SELECT COUNT(*) FROM {} WHERE {}", self.from_clause(), &where_clause);
-        let total: (i64,) = sqlx::query_as_with(&count_sql, args.clone())
+        let where_clause = if !where_parts.is_empty() {
+            format!("WHERE {}", where_parts.join(" AND "))
+        } else {
+            "".to_string()
+        };
+
+        // === COUNT ===
+        let count_sql = format!(
+            "SELECT COUNT(*) FROM {} {}",
+            self.from_clause(),
+            where_clause
+        );
+
+        let mut count_builder: QueryBuilder<'_, sqlx::Postgres> = QueryBuilder::new(&count_sql);
+        for val in &bindings {
+            count_builder.push_bind(val);
+        }
+
+        let total: (i64,) = count_builder
+            .build_query_as()
             .fetch_one(pool)
             .await?;
 
-        // Dados
-        args.push(offset.to_string());
-        args.push(page_size.to_string());
-
+        // === SELECT data ===
         let data_sql = format!(
-            "SELECT {} FROM {} WHERE {} ORDER BY 1 DESC OFFSET ${} LIMIT ${}",
+            "SELECT {} FROM {} {} ORDER BY 1 DESC OFFSET {} LIMIT {}",
             self.select_clause(),
             self.from_clause(),
             where_clause,
-            param_idx,
-            param_idx + 1
+            offset,
+            limit
         );
 
-        let data = sqlx::query_as_with::<_, T, _>(&data_sql, args)
+        let mut data_builder: QueryBuilder<'_, sqlx::Postgres> = QueryBuilder::new(&data_sql);
+        for val in &bindings {
+            data_builder.push_bind(val);
+        }
+
+        let data = data_builder
+            .build_query_as::<T>()
             .fetch_all(pool)
             .await?;
 
         let total_pages = if total.0 == 0 {
             1
         } else {
-            ((total.0 as f32) / (page_size as f32)).ceil() as u32
+            ((total.0 as f32) / (limit as f32)).ceil() as u32
         };
 
         Ok(PaginatedResponse {
             data,
             total_records: total.0,
             page,
-            page_size,
+            page_size: limit,
             total_pages,
         })
     }
@@ -116,11 +138,11 @@ where
     async fn delete(&self, pool: &PgPool, id: i32) -> Result<(), sqlx::Error>;
 }
 
-#[derive(Debug, Serialize, FromRow)]
-pub struct Module {
-    pub id: i32,
-    pub title: String,
-}
+//#[derive(Debug, Serialize, FromRow)]
+//pub struct Module {
+//    pub id: i32,
+ //   pub title: String,
+//}
 
 #[derive(Debug, Deserialize)]
 pub struct CreateModule {
@@ -149,7 +171,7 @@ impl Repository<Module> for ModuleRepository {
     }
 
     fn select_clause(&self) -> &str {
-        "m.id, m.title"
+        "m.id, m.title, m.created_at, m.updated_at"
     }
 
     fn from_clause(&self) -> &str {
@@ -163,7 +185,7 @@ impl Repository<Module> for ModuleRepository {
     ) -> Result<Module, sqlx::Error> {
         sqlx::query_as!(
             Module,
-            r#"INSERT INTO module (title) VALUES ($1) RETURNING id, title"#,
+            r#"INSERT INTO module (title) VALUES ($1) RETURNING id, title, created_at, updated_at"#,
             input.title
         )
         .fetch_one(pool)
@@ -178,7 +200,7 @@ impl Repository<Module> for ModuleRepository {
     ) -> Result<Module, sqlx::Error> {
         sqlx::query_as!(
             Module,
-            r#"UPDATE module SET title = $1 WHERE id = $2 RETURNING id, title"#,
+            r#"UPDATE module SET title = $1 WHERE id = $2 RETURNING id, title, created_at, updated_at"#,
             input.title,
             id
         )
