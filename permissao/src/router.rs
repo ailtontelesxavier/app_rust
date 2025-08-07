@@ -12,5 +12,7 @@ pub fn router() -> Router<SharedState> {
         .route("/index", get(view::home).post(view::create_model))
         .route("/saudacao", get(view::saudacao))
         .route("/lista", get(view::list_modules))
-        .route("/modulo", get(get_modulo))
+        .route("/modulo", get(view::list_modulo))
+        .route("/modulo-form", get(view::saudacao))
+        .route("/modulo-form/{id}", get(view::get_modulo))
 }

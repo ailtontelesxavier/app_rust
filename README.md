@@ -44,3 +44,6 @@ let app = Router::new().route(
 sqlx migrate add -r "init"
 sqlx migrate run
 sqlx migrate add create_permissao_module_table
+
+
+https://editorjs.io/

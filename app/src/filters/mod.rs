@@ -1,12 +1,12 @@
-mod datetime;
-mod string;
-mod number;
 mod array;
+mod datetime;
+mod number;
+mod string;
 
-pub use datetime::*;
-pub use string::*;
-pub use number::*;
 pub use array::*;
+pub use datetime::*;
+pub use number::*;
+pub use string::*;
 
 use minijinja::Environment;
 
@@ -20,13 +20,13 @@ pub fn register_filters(env: &mut Environment) {
     env.add_filter("lowercase", lowercase);
     env.add_filter("truncate", truncate);
     env.add_filter("capitalize_first", capitalize_first);
-    
+
     // Number filters
     env.add_filter("currency", number::currency);
     env.add_filter("format_number", number::format_number);
     env.add_filter("currency_float", number::currency_float);
     env.add_filter("format_number_int", number::format_number_int);
-    
+
     // Array filters
     env.add_filter("join", join);
     env.add_filter("unique", unique);

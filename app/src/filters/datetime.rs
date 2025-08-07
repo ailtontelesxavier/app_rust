@@ -1,5 +1,5 @@
-use minijinja::{value::Value, Error, ErrorKind};
 use chrono::{DateTime, NaiveDateTime, Utc};
+use minijinja::{Error, ErrorKind, value::Value};
 use tracing::debug;
 
 // Converte para string formatada: 07/08/2025 00:37
@@ -13,10 +13,7 @@ pub fn format_datetime_filter(value: Value) -> Result<Value, Error> {
     if let Some(timestamp) = value.as_i64() {
         return DateTime::<Utc>::from_timestamp(timestamp, 0)
             .map(|dt| Value::from(format_datetime_utc(dt)))
-            .ok_or_else(|| Error::new(
-                ErrorKind::InvalidOperation,
-                "Timestamp inválido",
-            ));
+            .ok_or_else(|| Error::new(ErrorKind::InvalidOperation, "Timestamp inválido"));
     }
 
     // Se for string no formato ISO 8601
@@ -26,10 +23,12 @@ pub fn format_datetime_filter(value: Value) -> Result<Value, Error> {
         return DateTime::parse_from_rfc3339(s)
             .map(|dt| dt.with_timezone(&Utc)) // converte para Utc
             .map(|dt| Value::from(format_datetime_utc(dt)))
-            .map_err(|e| Error::new(
-                ErrorKind::InvalidOperation,
-                format!("Formato de data inválido: {}", e),
-            ));
+            .map_err(|e| {
+                Error::new(
+                    ErrorKind::InvalidOperation,
+                    format!("Formato de data inválido: {}", e),
+                )
+            });
     }
 
     Err(Error::new(

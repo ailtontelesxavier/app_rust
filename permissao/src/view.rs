@@ -1,12 +1,7 @@
 use std::sync::Arc;
 
 use axum::{
-    Extension, Json,
-    extract::State,
-    extract::{Form, Path, Query},
-    http::StatusCode,
-    response::Html,
-    response::IntoResponse,
+    extract::{Form, Path, Query, State}, http::StatusCode, response::{Html, IntoResponse, Response, Redirect}, Extension, Json
 };
 use minijinja::Value;
 use minijinja::context;
@@ -16,6 +11,7 @@ use shared::SharedState;
 use sqlx::FromRow;
 use std::collections::BTreeMap;
 use tracing::{debug, info};
+use uuid::Uuid;
 
 use crate::model::module::Module;
 use crate::schema::ModuleCreateShema;
@@ -106,7 +102,7 @@ pub async fn saudacao(State(state): State<SharedState>) -> Html<String> {
     Html(html)
 }
 
-pub async fn get_modulo(
+pub async fn list_modulo(
     Query(q): Query<PaginationQuery>,
     State(state): State<SharedState>,
 ) -> Result<Html<String>, StatusCode> {
@@ -126,7 +122,8 @@ pub async fn get_modulo(
         })?;
 
     let dados_formatados: Vec<Value> = res
-        .data.clone()
+        .data
+        .clone()
         .into_iter()
         .map(|m| {
             let mut map = BTreeMap::new();
@@ -172,4 +169,38 @@ pub async fn get_modulo(
     })?;
 
     Ok(Html(html))
+}
+
+pub async fn get_modulo(
+    Path(id): Path<i32>,
+    State(state): State<SharedState>,
+) -> Response {
+    // Buscar o módulo no banco de dados
+    let module_result = sqlx::query_as::<_, Module>("SELECT * FROM module WHERE id = $1")
+        .bind(id)
+        .fetch_one(&*state.db)
+        .await;
+
+    // Carregar o template
+    let template = state.templates.get_template("permissao/modulo_form.html")
+        .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, 
+            format!("Falha ao carregar template: {}", err)));
+
+    match module_result {
+        Ok(module) => {
+            let ctx = context! {
+                row => module,
+            };
+            // Renderizar o template
+            let html = template.expect("REASON").render(ctx)
+                .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, 
+                    format!("Falha ao renderizar template: {}", err)));
+
+            Html(html).into_response()
+        },
+        Err(_) => {
+            let path = "/permissao/modulo";
+            Redirect::to(path).into_response()
+        }
+    }
 }

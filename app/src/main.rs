@@ -1,11 +1,11 @@
 mod filters;
-use filters::register_filters;
 use axum::{
     Router,
     http::StatusCode,
     response::{IntoResponse, Response},
     routing::{get, post},
 };
+use filters::register_filters;
 use minijinja::{Environment, path_loader};
 use std::sync::Arc;
 use tower_http::trace::TraceLayer;

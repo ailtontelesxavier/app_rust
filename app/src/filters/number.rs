@@ -1,11 +1,11 @@
-use minijinja::{Value, Error, ErrorKind};
+use minijinja::{Error, ErrorKind, Value};
 
 /// Formata número como moeda
 pub fn currency(value: Value) -> Result<Value, Error> {
     // Tenta extrair o valor numérico
     let num = if value.is_number() {
         if let Some(i) = value.as_i64() {
-            i as f64  // Converte i64 para f64
+            i as f64 // Converte i64 para f64
         } else {
             return Err(Error::new(
                 ErrorKind::InvalidOperation,
@@ -18,7 +18,7 @@ pub fn currency(value: Value) -> Result<Value, Error> {
             "valor não é um número",
         ));
     };
-    
+
     Ok(Value::from(format!("R$ {:.2}", num)))
 }
 
@@ -41,7 +41,7 @@ pub fn format_number(value: Value) -> Result<Value, Error> {
         .map(|chunk| std::str::from_utf8(chunk).unwrap())
         .collect();
     let formatted = chunks.join(".").chars().rev().collect::<String>();
-    
+
     Ok(Value::from(formatted))
 }
 
