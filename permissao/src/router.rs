@@ -1,6 +1,6 @@
 use axum::{
     Router,
-    routing::{get, post},
+    routing::{get, post,put},
 };
 
 use shared::SharedState;
@@ -14,5 +14,5 @@ pub fn router() -> Router<SharedState> {
         .route("/lista", get(view::list_modules))
         .route("/modulo", get(view::list_modulo))
         .route("/modulo-form", get(view::saudacao))
-        .route("/modulo-form/{id}", get(view::get_modulo))
+        .route("/modulo-form/{id}", get(view::get_modulo).post(view::get_modulo).put(view::put_modulo))
 }

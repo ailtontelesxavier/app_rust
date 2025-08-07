@@ -1,9 +1,7 @@
 mod filters;
+mod middlewares;
 use axum::{
-    Router,
-    http::StatusCode,
-    response::{IntoResponse, Response},
-    routing::{get, post},
+    http::{header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE}, HeaderValue, Method, StatusCode}, middleware, response::{IntoResponse, Response}, routing::get, Router
 };
 use filters::register_filters;
 use minijinja::{Environment, path_loader};
@@ -13,6 +11,7 @@ use tracing::{debug, info};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use tower_http::services::{ServeDir, ServeFile};
+use tower_http::cors::CorsLayer;
 
 use sqlx::postgres::PgPoolOptions;
 
@@ -21,6 +20,7 @@ use dotenv::dotenv;
 use permissao::router as router_permissao;
 
 use shared::{AppState, SharedState};
+use middlewares::method_override;
 
 const SECRET: &[u8] = b"super-secret-key";
 
@@ -88,9 +88,17 @@ async fn main() {
 
     let server_dir = ServeDir::new("static");
 
+    let cors = CorsLayer::new()
+        .allow_origin("http://localhost:2000".parse::<HeaderValue>().unwrap())
+        .allow_methods([Method::GET, Method::POST, Method::PUT, Method::DELETE])
+        .allow_credentials(true)
+        .allow_headers([AUTHORIZATION, ACCEPT, CONTENT_TYPE]);
+
     let app = Router::new()
+        .layer(cors)
         .route("/hello", get(hello_world))
         .nest("/permissao", router_permissao().with_state(state.clone()))
+        .layer(middleware::from_fn(method_override))
         .nest_service("/static", server_dir)
         .layer(TraceLayer::new_for_http())
         .with_state(state.clone());

@@ -13,7 +13,7 @@ use std::collections::BTreeMap;
 use tracing::{debug, info};
 use uuid::Uuid;
 
-use crate::model::module::Module;
+use crate::{model::module::Module, schema::ModuleUpdateShema};
 use crate::schema::ModuleCreateShema;
 use crate::{
     handler,
@@ -201,6 +201,60 @@ pub async fn get_modulo(
         Err(_) => {
             let path = "/permissao/modulo";
             Redirect::to(path).into_response()
+        }
+    }
+}
+
+pub async fn put_modulo(
+    Path(id): Path<i32>,
+    State(state): State<SharedState>,
+    Form(form): Form<ModuleUpdateShema>,
+) -> Response {
+    // 1. Tentar atualizar o módulo no banco de dados
+    let update_result = sqlx::query_as::<_, Module>(
+        "UPDATE module SET title = $1, updated_at = NOW() WHERE id = $2 RETURNING *"
+    )
+    .bind(&form.title)
+    .bind(id)
+    .fetch_one(&*state.db)
+    .await;
+
+    match update_result {
+        Ok(updated_module) => {
+            // 2. Carregar o template para mostrar o módulo atualizado
+            let template = match state.templates.get_template("permissao/modulo_form.html") {
+                Ok(t) => t,
+                Err(err) => return (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    format!("Falha ao carregar template: {}", err)
+                ).into_response(),
+            };
+
+            // 3. Preparar o contexto com os dados atualizados
+            let ctx = context! {
+                row => updated_module,
+                message => "Módulo atualizado com sucesso!",
+            };
+
+            // 4. Renderizar o template
+            match template.render(ctx) {
+                Ok(html) => Html(html).into_response(),
+                Err(err) => (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    format!("Falha ao renderizar template: {}", err)
+                ).into_response(),
+            }
+        },
+        Err(sqlx::Error::RowNotFound) => {
+            // Módulo não existe - redirecionar para lista
+            Redirect::to("/permissao/modulo").into_response()
+        },
+        Err(e) => {
+            // Outros erros de banco de dados
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Erro ao atualizar módulo: {}", e)
+            ).into_response()
         }
     }
 }
