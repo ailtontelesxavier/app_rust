@@ -38,16 +38,7 @@
   </div>
   
   {% block body %}{% endblock %}
-    
-  {# Exibe a mensagem flash se existir #}
-  {% if flash %}
-      <div
-          class="p-4 mb-4 rounded-lg
-                  {% if flash.level == 'success' %}bg-green-100 text-green-800{% endif %}
-                  {% if flash.level == 'error' %}bg-red-100 text-red-800{% endif %}">
-          {{ flash.message }}
-      </div>
-  {% endif %}
+
 
   <div id="messageBox" class="hidden toast toast-top toast-center overflow-y-auto">
       <span class="alert alert-success">

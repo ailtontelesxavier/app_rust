@@ -1,5 +1,4 @@
 mod filters;
-mod middlewares;
 use axum::{
     http::{header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE}, HeaderValue, Method}, routing::get, Router
 };
