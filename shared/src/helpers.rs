@@ -1,14 +1,13 @@
-use super::error::AppError;
-use tower_sessions::Session;
 use std::fmt::Display;
 use serde::Serialize;
 
-#[derive(Serialize)]
+#[derive(Serialize, Clone)]
 pub struct FlashData {
     pub flash: String,
     pub flash_status: String,
 }
 
+#[derive(Clone)]
 pub enum FlashStatus {
     Error,
     Info,
@@ -26,25 +25,22 @@ impl Display for FlashStatus {
     }
 }
 
-/// Recupera e remove a mensagem flash da sessão.
-/// Retorna `Ok(None)` se não houver mensagem.
-pub async fn get_flash(session: &Session) -> Result<Option<FlashData>, AppError> {
-    let flash = session.remove::<String>("flash").await?;
-    let flash_status = session.remove::<String>("flash_status").await?;
-
-    match (flash, flash_status) {
-        (Some(flash), Some(flash_status)) => Ok(Some(FlashData { flash, flash_status })),
-        _ => Ok(None),
+/// Cria dados de flash a partir de query parameters
+pub fn create_flash_data(message: impl Into<String>, status: FlashStatus) -> FlashData {
+    FlashData {
+        flash: message.into(),
+        flash_status: status.to_string(),
     }
 }
 
-/// Define uma nova mensagem flash na sessão.
-pub async fn set_flash(
-    session: &Session,
-    message: impl Into<String>,
-    status: FlashStatus,
-) -> Result<(), AppError> {
-    session.insert("flash", message.into()).await?;
-    session.insert("flash_status", status.to_string()).await?;
-    Ok(())
+/// Cria uma URL com parâmetros de mensagem flash
+pub fn create_flash_url(base_url: &str, message: &str, status: FlashStatus) -> String {
+    let encoded_message = urlencoding::encode(message);
+    let status_str = match status {
+        FlashStatus::Success => "success",
+        FlashStatus::Error => "error",
+        FlashStatus::Info => "info",
+    };
+    
+    format!("{}?msg={}&status={}", base_url, encoded_message, status_str)
 }

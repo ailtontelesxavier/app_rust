@@ -8,15 +8,15 @@ use axum::{
 use minijinja::Value;
 use minijinja::context;
 use serde::Deserialize;
-use shared::SharedState;
-use std::collections::BTreeMap;
-use tracing::debug;
+use shared::{SharedState, helpers, FlashStatus};
+use std::collections::{BTreeMap, HashMap};
+use tracing::{debug, error};
 
 use crate::schema::ModuleCreateShema;
 use crate::{
     repository::{ModuleRepository, PaginatedResponse, Repository},
 };
-use crate::{model::module::Module, schema::ModuleUpdateShema};
+use crate::model::module::Module;
 
 pub async fn home(State(state): State<SharedState>) -> Html<String> {
     let template = state.templates.get_template("index.html").unwrap();
@@ -38,12 +38,32 @@ pub async fn create_model(
 
     match query_result {
         Ok(module) => {
-            let uri = format!("/permissao/modulo-form/{}", module.id);
-            Redirect::to(&uri).into_response()
+            // Redirecionar com mensagem de sucesso
+            let redirect_url = helpers::create_flash_url(
+                &format!("/permissao/modulo-form/{}", module.id),
+                "Módulo criado com sucesso!",
+                FlashStatus::Success
+            );
+            Redirect::to(&redirect_url).into_response()
         }
         Err(e) => {
+            let error_message = if e.to_string()
+                .contains("duplicate key value violates unique constraint")
+            {
+                "Este módulo já existe"
+            } else {
+                "Ocorreu um erro ao criar o módulo"
+            };
+            
+            // Redirecionar com mensagem de erro
+            let redirect_url = helpers::create_flash_url(
+                "/permissao/modulo-form",
+                error_message,
+                FlashStatus::Error
+            );
+            
             debug!("Erro ao criar módulo: {}", e);
-            Redirect::to("/permissao/modulo-form").into_response()
+            Redirect::to(&redirect_url).into_response()
         }
     }
 }
@@ -85,23 +105,37 @@ pub async fn saudacao(State(state): State<SharedState>) -> Html<String> {
 
 pub async fn show_module_form(
     State(state): State<SharedState>,
+    Query(params): Query<HashMap<String, String>>,
 ) -> impl IntoResponse {
-    let context = context! {};
+    // Extrair mensagens flash dos parâmetros da query
+    let flash_message = params.get("msg").map(|msg| urlencoding::decode(msg).unwrap_or_default().to_string());
+    let flash_status = params.get("status")
+        .and_then(|s| match s.as_str() {
+            "success" => Some("success"),
+            "error" => Some("error"),
+            _ => None,
+        });
+
+    let ctx = context! {
+        title => "Cadastro de Módulo",
+        flash_message => flash_message,
+        flash_status => flash_status,
+    };
 
     match state.templates.get_template("permissao/modulo_form.html") {
-        Ok(template) => {
-            match template.render(context) {
-                Ok(content) => Html(content).into_response(),
-                Err(e) => (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    format!("Failed to render template: {}", e),
-                ).into_response(),
-            }
-        }
-        Err(e) => (
+        Ok(template) => match template.render(ctx) {
+            Ok(html) => Html(html).into_response(),
+            Err(err) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Falha ao renderizar template: {}", err),
+            )
+                .into_response(),
+        },
+        Err(err) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Failed to load template: {}", e),
-        ).into_response(),
+            format!("Falha ao carregar template: {}", err),
+        )
+            .into_response(),
     }
 }
 
@@ -175,24 +209,34 @@ pub async fn list_modulo(
 }
 
 pub async fn get_modulo(
-    Path(id): Path<i32>,
     State(state): State<SharedState>,
-) -> Response {
+    Path(id): Path<i32>,
+    Query(params): Query<HashMap<String, String>>,
+) -> Result<Html<String>, Response> {
     // Buscar o módulo no banco de dados
     let module_result = sqlx::query_as::<_, Module>("SELECT * FROM module WHERE id = $1")
         .bind(id)
         .fetch_one(&*state.db)
         .await;
 
+    // Extrair mensagens flash dos parâmetros da query
+    let flash_message = params.get("msg").map(|msg| urlencoding::decode(msg).unwrap_or_default().to_string());
+    let flash_status = params.get("status")
+        .and_then(|s| match s.as_str() {
+            "success" => Some("success"),
+            "error" => Some("error"),
+            _ => None,
+        });
+
     // Carregar o template
     let template = match state.templates.get_template("permissao/modulo_form.html") {
         Ok(t) => t,
         Err(err) => {
-            return (
+            return Err((
                 StatusCode::INTERNAL_SERVER_ERROR,
                 format!("Falha ao carregar template: {}", err),
             )
-                .into_response();
+                .into_response());
         }
     };
 
@@ -200,52 +244,67 @@ pub async fn get_modulo(
         Ok(module) => {
             let ctx = context! {
                 row => module,
+                flash_message => flash_message,
+                flash_status => flash_status,
             };
             match template.render(ctx) {
-                Ok(html) => Html(html).into_response(),
-                Err(err) => (
+                Ok(html) => Ok(Html(html)),
+                Err(err) => Err((
                     StatusCode::INTERNAL_SERVER_ERROR,
                     format!("Falha ao renderizar template: {}", err),
                 )
-                    .into_response(),
+                    .into_response()),
             }
         }
         Err(e) => {
             debug!("Erro ao buscar módulo: {}", e);
-            Redirect::to("/permissao/modulo").into_response()
+            Err(Redirect::to("/permissao/modulo").into_response())
         }
     }
 }
 
 pub async fn update_modulo(
-    Path(id): Path<i32>,
     State(state): State<SharedState>,
-    Form(form): Form<ModuleUpdateShema>,
+    Path(id): Path<i32>,
+    Form(body): Form<ModuleCreateShema>,
 ) -> Response {
-    // 1. Tentar atualizar o módulo no banco de dados
-    let update_result = sqlx::query_as::<_, Module>(
-        "UPDATE module SET title = $1, updated_at = NOW() WHERE id = $2 RETURNING *",
+    let query_result = sqlx::query_as!(
+        Module,
+        "UPDATE module SET title = $1 WHERE id = $2 RETURNING *",
+        body.title.to_string(),
+        id
     )
-    .bind(&form.title)
-    .bind(id)
     .fetch_one(&*state.db)
     .await;
 
-    match update_result {
-        Ok(updated_module) => {
-            // Redirecionar para o formulário do módulo atualizado
-            let uri = format!("/permissao/modulo-form/{}", updated_module.id);
-            Redirect::to(&uri).into_response()
-        }
-        Err(sqlx::Error::RowNotFound) => {
-            // Módulo não existe - redirecionar para lista
-            Redirect::to("/permissao/modulo").into_response()
+    match query_result {
+        Ok(_) => {
+            // Redirecionar com mensagem de sucesso
+            let redirect_url = helpers::create_flash_url(
+                &format!("/permissao/modulo-form/{}", id),
+                "Módulo atualizado com sucesso!",
+                FlashStatus::Success
+            );
+            Redirect::to(&redirect_url).into_response()
         }
         Err(e) => {
+            let error_message = if e.to_string()
+                .contains("duplicate key value violates unique constraint")
+            {
+                "Este título já existe para outro módulo"
+            } else {
+                "Ocorreu um erro ao atualizar o módulo"
+            };
+            
+            // Redirecionar com mensagem de erro
+            let redirect_url = helpers::create_flash_url(
+                &format!("/permissao/modulo-form/{}", id),
+                error_message,
+                FlashStatus::Error
+            );
+            
             debug!("Erro ao atualizar módulo: {}", e);
-            // Redirecionar de volta para o formulário do módulo
-            let uri = format!("/permissao/modulo-form/{}", id);
-            Redirect::to(&uri).into_response()
+            Redirect::to(&redirect_url).into_response()
         }
     }
 }

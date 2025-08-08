@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Teste de Mensagens Flash</title>
+</head>
+<body>
+    <h1>Teste das Mensagens Flash</h1>
+    
+    <h2>1. Teste de Criação com Sucesso</h2>
+    <button onclick="testCreateSuccess()">Testar Criação</button>
+    
+    <h2>2. Teste de Erro de Duplicação</h2>
+    <button onclick="testDuplicateError()">Testar Duplicação</button>
+    
+    <h2>3. Visualizar Mensagem de Sucesso Manual</h2>
+    <a href="http://localhost:2000/permissao/modulo-form?msg=M%C3%B3dulo%20criado%20com%20sucesso!&status=success">Ver mensagem de sucesso</a>
+    
+    <h2>4. Visualizar Mensagem de Erro Manual</h2>
+    <a href="http://localhost:2000/permissao/modulo-form?msg=Este%20m%C3%B3dulo%20j%C3%A1%20existe&status=error">Ver mensagem de erro</a>
+
+    <script>
+        async function testCreateSuccess() {
+            const randomName = 'Modulo_' + Math.random().toString(36).substr(2, 9);
+            
+            const formData = new FormData();
+            formData.append('title', randomName);
+            
+            try {
+                const response = await fetch('/permissao/modulo-form', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (response.redirected) {
+                    window.location.href = response.url;
+                } else {
+                    console.log('Resposta:', response);
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+            }
+        }
+        
+        async function testDuplicateError() {
+            // Primeiro criar um módulo
+            const testName = 'ModuloTeste123';
+            
+            const formData = new FormData();
+            formData.append('title', testName);
+            
+            try {
+                // Primeira criação
+                await fetch('/permissao/modulo-form', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                // Segunda criação (deve dar erro)
+                const response = await fetch('/permissao/modulo-form', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (response.redirected) {
+                    window.location.href = response.url;
+                } else {
+                    console.log('Resposta:', response);
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+            }
+        }
+    </script>
+</body>
+</html>

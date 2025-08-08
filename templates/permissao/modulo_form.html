@@ -8,9 +8,9 @@
         <h2 class="card-title">Formulario Modulo</h2>
         
         {# Exibir mensagem flash se existir #}
-        {% if flash_data %}
-        <div class="alert {% if flash_data.flash_status == 'success-flash' %}alert-success{% elif flash_data.flash_status == 'error-flash' %}alert-error{% else %}alert-info{% endif %} mb-4">
-            <span>{{ flash_data.flash }}</span>
+        {% if flash_message %}
+        <div class="alert {% if flash_status == 'success' %}alert-success{% elif flash_status == 'error' %}alert-error{% else %}alert-info{% endif %} mb-4">
+            <span>{{ flash_message }}</span>
         </div>
         {% endif %}
         
