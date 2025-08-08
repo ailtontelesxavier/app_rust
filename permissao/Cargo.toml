@@ -6,7 +6,11 @@ edition = "2024"
 [dependencies]
 shared = { path = "../shared" }
 minijinja = { version = "2.11", features = ["loader"] }
+# Web framework
 axum = "0.8"
+
+tower-sessions = { version = "0.13"}
+
 tokio = { version = "1.45", features = ["full"] }
 tower-http = { version = "0.6", features = ["cors", "trace"] }
 chrono = {version = "0.4", features = ["serde"] }

@@ -1,11 +1,11 @@
 use axum::{
     Router,
-    routing::{get, post, put},
+    routing::{get, post},
 };
 
 use shared::SharedState;
 
-use crate::view::{self, get_modulo};
+use crate::view;
 
 pub fn router() -> Router<SharedState> {
     Router::new()

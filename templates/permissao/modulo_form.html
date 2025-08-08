@@ -6,6 +6,14 @@
 <div class="card w-full max-w-3xl shadow-lg bg-base-100">
     <div class="card-body">
         <h2 class="card-title">Formulario Modulo</h2>
+        
+        {# Exibir mensagem flash se existir #}
+        {% if flash_data %}
+        <div class="alert {% if flash_data.flash_status == 'success-flash' %}alert-success{% elif flash_data.flash_status == 'error-flash' %}alert-error{% else %}alert-info{% endif %} mb-4">
+            <span>{{ flash_data.flash }}</span>
+        </div>
+        {% endif %}
+        
         <form id="form_modulo" class="space-y-4" method="POST" action="{% if row %}/permissao/modulo-form/{{row.id}}{% else %}/permissao/modulo-form{% endif %}">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
                 {% if row %}
