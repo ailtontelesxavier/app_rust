@@ -10,13 +10,13 @@ use minijinja::context;
 use serde::Deserialize;
 use shared::{SharedState, helpers, FlashStatus};
 use std::collections::{BTreeMap, HashMap};
-use tracing::{debug, error};
+use tracing::debug;
 
-use crate::schema::ModuleCreateShema;
+use crate::schema::{ModuleCreateShema, PermissionCreateShema, PermissionUpdateShema};
 use crate::{
     repository::{ModuleRepository, PaginatedResponse, Repository},
 };
-use crate::model::module::Module;
+use crate::model::{module::Module, permission::{Permission, PermissionWithModule}};
 
 #[derive(Deserialize)]
 pub struct ListParams {
@@ -445,6 +445,362 @@ pub async fn delete_module(
                 FlashStatus::Error
             );
             Redirect::to(&redirect_url).into_response()
+        }
+    }
+}
+
+// Implementação simplificada do handler de permissões
+pub struct PermissionHandler;
+
+impl PermissionHandler {
+    pub async fn count_items(
+        &self,
+        pool: &sqlx::Pool<sqlx::Postgres>, 
+        params: &shared::generic_list::GenericListParams
+    ) -> Result<usize, sqlx::Error> {
+        let search_term = params.search.as_deref().unwrap_or("");
+        
+        let count: i64 = if search_term.is_empty() {
+            sqlx::query_scalar("SELECT COUNT(*) FROM permission p INNER JOIN module m ON p.module_id = m.id")
+                .fetch_one(pool)
+                .await?
+        } else {
+            sqlx::query_scalar(
+                "SELECT COUNT(*) FROM permission p INNER JOIN module m ON p.module_id = m.id 
+                 WHERE p.permission ILIKE $1 OR m.name ILIKE $1"
+            )
+            .bind(format!("%{}%", search_term))
+            .fetch_one(pool)
+            .await?
+        };
+        
+        Ok(count as usize)
+    }
+    
+    pub async fn fetch_items(
+        &self,
+        pool: &sqlx::Pool<sqlx::Postgres>, 
+        params: &shared::generic_list::GenericListParams
+    ) -> Result<Vec<crate::model::permission::PermissionWithModule>, sqlx::Error> {
+        let page = params.page.unwrap_or(1);
+        let limit = 10_i64;
+        let offset = ((page - 1) * 10) as i64;
+        let search_term = params.search.as_deref().unwrap_or("");
+        
+        let items = if search_term.is_empty() {
+            sqlx::query_as::<_, crate::model::permission::PermissionWithModule>(
+                "SELECT p.id, p.name, p.description, p.module_id, p.created_at, p.updated_at, m.name as module_name
+                 FROM permission p 
+                 INNER JOIN module m ON p.module_id = m.id
+                 ORDER BY p.id DESC
+                 LIMIT $1 OFFSET $2"
+            )
+            .bind(limit)
+            .bind(offset)
+            .fetch_all(pool)
+            .await?
+        } else {
+            sqlx::query_as::<_, crate::model::permission::PermissionWithModule>(
+                "SELECT p.id, p.name, p.description, p.module_id, p.created_at, p.updated_at, m.name as module_name
+                 FROM permission p 
+                 INNER JOIN module m ON p.module_id = m.id
+                 WHERE p.name ILIKE $1 OR m.name ILIKE $1
+                 ORDER BY p.id DESC
+                 LIMIT $2 OFFSET $3"
+            )
+            .bind(format!("%{}%", search_term))
+            .bind(limit)
+            .bind(offset)
+            .fetch_all(pool)
+            .await?
+        };
+        
+        Ok(items)
+    }
+}
+
+pub async fn list_permissions(
+    Query(params): Query<shared::generic_list::GenericListParams>,
+    State(state): State<SharedState>,
+) -> impl IntoResponse {
+    let handler = PermissionHandler;
+    let config = shared::generic_list::ListConfig {
+        entity_name: "permission".to_string(),
+        entity_label: "Permissão".to_string(),
+        plural_label: "Permissões".to_string(),
+        base_url: "/permission".to_string(),
+        fields: vec![
+            ("id".to_string(), "ID".to_string()),
+            ("permission".to_string(), "Permissão".to_string()),
+            ("module_name".to_string(), "Módulo".to_string()),
+            ("created_at".to_string(), "Criado em".to_string()),
+        ],
+        searchable_fields: vec!["permission".to_string(), "module_name".to_string()],
+        items_per_page: 10,
+    };
+    
+    let items_result = handler.fetch_items(&state.db, &params).await;
+    let count_result = handler.count_items(&state.db, &params).await;
+    
+    match (items_result, count_result) {
+        (Ok(items), Ok(total_count)) => {
+            let page = params.page.unwrap_or(1);
+            let total_pages = (total_count + config.items_per_page - 1) / config.items_per_page;
+            
+            let context = minijinja::context! {
+                items => items,
+                config => config,
+                search => params.search.as_deref().unwrap_or(""),
+                current_page => page,
+                total_pages => total_pages,
+                total_count => total_count,
+                flash_status => params.flash_status,
+                flash_message => params.flash_message,
+            };
+            
+            match state.templates.get_template("shared/generic_list.html") {
+                Ok(template) => match template.render(context) {
+                    Ok(rendered) => Html(rendered).into_response(),
+                    Err(err) => (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        format!("Erro ao renderizar template: {}", err),
+                    ).into_response(),
+                },
+                Err(err) => (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    format!("Erro ao carregar template: {}", err),
+                ).into_response(),
+            }
+        }
+        _ => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Erro ao carregar dados das permissões".to_string(),
+        ).into_response(),
+    }
+}
+
+pub async fn show_permission_form(
+    State(state): State<SharedState>,
+    Query(params): Query<HashMap<String, String>>,
+) -> Result<Html<String>, Response> {
+    // Buscar todos os módulos para o dropdown
+    let modules = match sqlx::query_as::<_, Module>("SELECT * FROM module ORDER BY name")
+        .fetch_all(&*state.db)
+        .await
+    {
+        Ok(modules) => modules,
+        Err(_) => {
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Erro ao carregar módulos".to_string(),
+            ).into_response())
+        }
+    };
+
+    // Extrair mensagens flash dos parâmetros da query
+    let flash_message = params.get("msg").map(|msg| urlencoding::decode(msg).unwrap_or_default().to_string());
+    let flash_status = params.get("status")
+        .and_then(|s| match s.as_str() {
+            "success" => Some("success"),
+            "error" => Some("error"),
+            _ => None,
+        });
+
+    let context = minijinja::context! {
+        modules => modules,
+        flash_message => flash_message,
+        flash_status => flash_status,
+    };
+
+    match state.templates.get_template("permissao/permission_form.html") {
+        Ok(template) => match template.render(context) {
+            Ok(html) => Ok(Html(html)),
+            Err(err) => Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Erro ao renderizar template: {}", err),
+            ).into_response()),
+        },
+        Err(err) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Erro ao carregar template: {}", err),
+        ).into_response()),
+    }
+}
+
+pub async fn create_permission(
+    State(state): State<SharedState>,
+    Form(input): Form<PermissionCreateShema>,
+) -> Response {
+    match sqlx::query!(
+        "INSERT INTO permission (name, description, module_id) VALUES ($1, $2, $3)",
+        input.name,
+        input.description,
+        input.module_id
+    )
+    .execute(&*state.db)
+    .await
+    {
+        Ok(_) => {
+            let flash_url = helpers::create_flash_url(
+                "/permissao/permission",
+                "Permissão criada com sucesso!",
+                FlashStatus::Success,
+            );
+            Redirect::to(&flash_url).into_response()
+        }
+        Err(err) => {
+            let flash_url = helpers::create_flash_url(
+                "/permissao/permission-form",
+                &format!("Erro ao criar permissão: {}", err),
+                FlashStatus::Error,
+            );
+            Redirect::to(&flash_url).into_response()
+        }
+    }
+}
+
+pub async fn get_permission(
+    State(state): State<SharedState>,
+    Path(id): Path<i32>,
+    Query(params): Query<HashMap<String, String>>,
+) -> Result<Html<String>, Response> {
+    // Buscar a permissão no banco de dados
+    let permission_result = sqlx::query_as::<_, Permission>("SELECT * FROM permission WHERE id = $1")
+        .bind(id)
+        .fetch_one(&*state.db)
+        .await;
+
+    // Buscar todos os módulos para o dropdown
+    let modules = match sqlx::query_as::<_, Module>("SELECT * FROM module ORDER BY name")
+        .fetch_all(&*state.db)
+        .await
+    {
+        Ok(modules) => modules,
+        Err(_) => {
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Erro ao carregar módulos".to_string(),
+            ).into_response())
+        }
+    };
+
+    // Extrair mensagens flash dos parâmetros da query
+    let flash_message = params.get("msg").map(|msg| urlencoding::decode(msg).unwrap_or_default().to_string());
+    let flash_status = params.get("status")
+        .and_then(|s| match s.as_str() {
+            "success" => Some("success"),
+            "error" => Some("error"),
+            _ => None,
+        });
+
+    match permission_result {
+        Ok(permission) => {
+            let context = minijinja::context! {
+                row => permission,
+                modules => modules,
+                flash_message => flash_message,
+                flash_status => flash_status,
+            };
+            match state.templates.get_template("permissao/permission_form.html") {
+                Ok(template) => match template.render(context) {
+                    Ok(html) => Ok(Html(html)),
+                    Err(err) => Err((
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        format!("Erro ao renderizar template: {}", err),
+                    ).into_response()),
+                },
+                Err(err) => Err((
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    format!("Erro ao carregar template: {}", err),
+                ).into_response()),
+            }
+        }
+        Err(_) => {
+            let flash_url = helpers::create_flash_url(
+                &format!("/permissao/permission"),
+                &format!("Permissão não encontrada"),
+                FlashStatus::Error,
+            );
+            Err(Redirect::to(&flash_url).into_response())
+        }
+    }
+}
+
+pub async fn update_permission(
+    State(state): State<SharedState>,
+    Path(id): Path<i32>,
+    Form(input): Form<PermissionUpdateShema>,
+) -> Response {
+    match sqlx::query!(
+        "UPDATE permission SET name = $1, description = $2, module_id = $3, updated_at = NOW() WHERE id = $4",
+        input.name,
+        input.description,
+        input.module_id,
+        id
+    )
+    .execute(&*state.db)
+    .await
+    {
+        Ok(result) => {
+            if result.rows_affected() > 0 {
+                let flash_url = helpers::create_flash_url(
+                    &format!("/permissao/permission"),
+                    &format!("Permissão atualizada com sucesso!"),
+                    FlashStatus::Success,
+                );
+                Redirect::to(&flash_url).into_response()
+            } else {
+                let flash_url = helpers::create_flash_url(
+                    "/permissao/permission",
+                    "Permissão não encontrada",
+                    FlashStatus::Error,
+                );
+                Redirect::to(&flash_url).into_response()
+            }
+        }
+        Err(err) => {
+            let flash_url = helpers::create_flash_url(
+                &format!("/permissao/permission-form/{}", id),
+                &format!("Erro ao atualizar permissão: {}", err),
+                FlashStatus::Error,
+            );
+            Redirect::to(&flash_url).into_response()
+        }
+    }
+}
+
+pub async fn delete_permission(
+    State(state): State<SharedState>,
+    Path(id): Path<i32>,
+) -> Response {
+    match sqlx::query!("DELETE FROM permission WHERE id = $1", id)
+        .execute(&*state.db)
+        .await
+    {
+        Ok(result) => {
+            if result.rows_affected() > 0 {
+                let flash_url = helpers::create_flash_url(
+                    "/permissao/permission",
+                    "Permissão excluída com sucesso!",
+                    FlashStatus::Success,
+                );
+                Redirect::to(&flash_url).into_response()
+            } else {
+                let flash_url = helpers::create_flash_url(
+                    "/permissao/permission",
+                    "Permissão não encontrada",
+                    FlashStatus::Error,
+                );
+                Redirect::to(&flash_url).into_response()
+            }
+        }
+        Err(err) => {
+            let flash_url = helpers::create_flash_url(
+                "/permissao/permission",
+                &format!("Erro ao excluir permissão: {}", err),
+                FlashStatus::Error,
+            );
+            Redirect::to(&flash_url).into_response()
         }
     }
 }

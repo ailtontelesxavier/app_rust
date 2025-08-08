@@ -19,6 +19,27 @@ pub struct Module {
     pub updated_at: Option<DateTime<Utc>>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+pub struct Permission {
+    pub id: i32,
+    pub name: String,
+    pub description: Option<String>,
+    #[serde(rename = "moduleId")]
+    pub module_id: i32,
+    #[serde(rename = "createdAt")]
+    pub created_at: Option<DateTime<Utc>>,
+    #[serde(rename = "updatedAt")]
+    pub updated_at: Option<DateTime<Utc>>,
+}
+
+// Estrutura para relacionamento com Module
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PermissionWithModule {
+    #[serde(flatten)]
+    pub permission: Permission,
+    pub module: Module,
+}
+
 /*
 #[derive(Deserialize, Validate)]
 pub struct AuthFormModel {

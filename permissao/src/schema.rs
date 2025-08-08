@@ -20,3 +20,17 @@ pub struct ModuleCreateShema {
 pub struct ModuleUpdateShema {
     pub title: String,
 }
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct PermissionCreateShema {
+    pub name: String,
+    pub description: Option<String>,
+    pub module_id: i32,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct PermissionUpdateShema {
+    pub name: String,
+    pub description: Option<String>,
+    pub module_id: i32,
+}

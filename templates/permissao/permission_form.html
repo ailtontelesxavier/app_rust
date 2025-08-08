@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}
+    {% if row %}Editar Permissão{% else %}Nova Permissão{% endif %}
+{% endblock %}
+
+{% block main %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Flash Messages -->
+    {% if flash_message %}
+        <div class="alert alert-{{ flash_status or 'info' }} mb-6">
+            <span>{{ flash_message }}</span>
+        </div>
+    {% endif %}
+
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <h2 class="card-title text-2xl mb-6">
+                {% if row %}
+                    <i class="fas fa-edit"></i> Editar Permissão
+                {% else %}
+                    <i class="fas fa-plus"></i> Nova Permissão
+                {% endif %}
+            </h2>
+
+            <form method="post" class="space-y-6">
+                <!-- Nome da Permissão -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-semibold">Nome da Permissão</span>
+                    </label>
+                    <input 
+                        type="text" 
+                        name="permission" 
+                        placeholder="Ex: CREATE_USER, VIEW_REPORTS, etc."
+                        class="input input-bordered w-full" 
+                        value="{{ row.permission if row else '' }}"
+                        required 
+                    />
+                    <label class="label">
+                        <span class="label-text-alt text-gray-500">Use MAIÚSCULAS e underscore (ex: CREATE_USER)</span>
+                    </label>
+                </div>
+
+                <!-- Seleção de Módulo -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-semibold">Módulo</span>
+                    </label>
+                    <select name="module_id" class="select select-bordered w-full" required>
+                        <option value="">Selecione um módulo</option>
+                        {% for module in modules %}
+                        <option value="{{ module.id }}" 
+                            {% if row and row.module_id == module.id %}selected{% endif %}>
+                            {{ module.name }} - {{ module.title }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Botões -->
+                <div class="flex gap-4 pt-4">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i>
+                        {% if row %}Atualizar{% else %}Criar{% endif %} Permissão
+                    </button>
+                    
+                    <a href="/permissao/permission" class="btn btn-ghost">
+                        <i class="fas fa-arrow-left"></i>
+                        Voltar à Lista
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+.alert {
+    @apply rounded-lg p-4 mb-4;
+}
+
+.alert-success {
+    @apply bg-green-100 border border-green-400 text-green-700;
+}
+
+.alert-error {
+    @apply bg-red-100 border border-red-400 text-red-700;
+}
+
+.alert-info {
+    @apply bg-blue-100 border border-blue-400 text-blue-700;
+}
+</style>
+{% endblock %}
