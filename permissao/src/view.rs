@@ -18,10 +18,110 @@ use crate::{
 };
 use crate::model::module::Module;
 
+#[derive(Deserialize)]
+pub struct ListParams {
+    pub page: Option<usize>,
+    pub find: Option<String>,
+    pub msg: Option<String>,
+    pub status: Option<String>,
+}
+
 pub async fn home(State(state): State<SharedState>) -> Html<String> {
     let template = state.templates.get_template("index.html").unwrap();
     let html = template.render(()).unwrap();
     Html(html)
+}
+
+pub async fn list_modules(
+    State(state): State<SharedState>,
+    Query(params): Query<ListParams>,
+) -> impl IntoResponse {
+    let page = params.page.unwrap_or(1);
+    let per_page = 10; // Itens por página
+    let search_term = params.find.unwrap_or_default();
+    
+    // Extrair mensagens flash dos parâmetros da query
+    let flash_message = params.msg.as_ref().map(|msg| urlencoding::decode(msg).unwrap_or_default().to_string());
+    let flash_status = params.status.as_ref()
+        .and_then(|s| match s.as_str() {
+            "success" => Some("success"),
+            "error" => Some("error"),
+            _ => None,
+        });
+
+    // Buscar módulos com filtro e paginação
+    let (modules, total_records) = if search_term.is_empty() {
+        // Buscar todos os módulos
+        let count_result = sqlx::query_scalar!("SELECT COUNT(*) FROM module")
+            .fetch_one(&*state.db)
+            .await;
+            
+        let modules_result = sqlx::query_as!(
+            Module,
+            "SELECT * FROM module ORDER BY id DESC LIMIT $1 OFFSET $2",
+            per_page as i64,
+            ((page - 1) * per_page) as i64
+        )
+        .fetch_all(&*state.db)
+        .await;
+
+        match (count_result, modules_result) {
+            (Ok(count), Ok(modules)) => (modules, count.unwrap_or(0) as usize),
+            _ => (Vec::new(), 0),
+        }
+    } else {
+        // Buscar com filtro
+        let search_pattern = format!("%{}%", search_term);
+        
+        let count_result = sqlx::query_scalar!(
+            "SELECT COUNT(*) FROM module WHERE title ILIKE $1",
+            search_pattern
+        )
+        .fetch_one(&*state.db)
+        .await;
+            
+        let modules_result = sqlx::query_as!(
+            Module,
+            "SELECT * FROM module WHERE title ILIKE $1 ORDER BY id DESC LIMIT $2 OFFSET $3",
+            search_pattern,
+            per_page as i64,
+            ((page - 1) * per_page) as i64
+        )
+        .fetch_all(&*state.db)
+        .await;
+
+        match (count_result, modules_result) {
+            (Ok(count), Ok(modules)) => (modules, count.unwrap_or(0) as usize),
+            _ => (Vec::new(), 0),
+        }
+    };
+
+    let total_pages = (total_records + per_page - 1) / per_page;
+
+    let ctx = context! {
+        title => "Lista de Módulos",
+        rows => modules,
+        current_page => page,
+        total_pages => total_pages,
+        total_records => total_records,
+        find => if search_term.is_empty() { None } else { Some(search_term) },
+        flash_message => flash_message,
+        flash_status => flash_status,
+    };
+
+    match state.templates.get_template("permissao/modulo_list.html") {
+        Ok(template) => match template.render(ctx) {
+            Ok(html) => Html(html).into_response(),
+            Err(err) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Falha ao renderizar template: {}", err),
+            ).into_response(),
+        },
+        Err(err) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Falha ao carregar template: {}", err),
+        ).into_response(),
+    }
 }
 
 pub async fn create_model(
@@ -75,7 +175,7 @@ pub struct PaginationQuery {
     pub page_size: Option<u32>,
 }
 
-pub async fn list_modules(
+pub async fn list_modules_api(
     Query(q): Query<PaginationQuery>,
     State(state): State<SharedState>,
 ) -> Result<Json<PaginatedResponse<Module>>, StatusCode> {
@@ -304,6 +404,46 @@ pub async fn update_modulo(
             );
             
             debug!("Erro ao atualizar módulo: {}", e);
+            Redirect::to(&redirect_url).into_response()
+        }
+    }
+}
+
+pub async fn delete_module(
+    State(state): State<SharedState>,
+    Path(id): Path<i32>,
+) -> Response {
+    let query_result = sqlx::query!("DELETE FROM module WHERE id = $1", id)
+        .execute(&*state.db)
+        .await;
+
+    match query_result {
+        Ok(result) => {
+            if result.rows_affected() > 0 {
+                // Redirecionar com mensagem de sucesso
+                let redirect_url = helpers::create_flash_url(
+                    "/permissao/modulo",
+                    "Módulo excluído com sucesso!",
+                    FlashStatus::Success
+                );
+                Redirect::to(&redirect_url).into_response()
+            } else {
+                // Módulo não encontrado
+                let redirect_url = helpers::create_flash_url(
+                    "/permissao/modulo",
+                    "Módulo não encontrado",
+                    FlashStatus::Error
+                );
+                Redirect::to(&redirect_url).into_response()
+            }
+        }
+        Err(e) => {
+            debug!("Erro ao excluir módulo: {}", e);
+            let redirect_url = helpers::create_flash_url(
+                "/permissao/modulo",
+                "Erro ao excluir módulo",
+                FlashStatus::Error
+            );
             Redirect::to(&redirect_url).into_response()
         }
     }

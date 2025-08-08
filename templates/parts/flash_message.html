@@ -1,0 +1,6 @@
+{# Exibir mensagem flash se existir #}
+{% if flash_message %}
+<div class="alert {% if flash_status == 'success' %}alert-success{% elif flash_status == 'error' %}alert-error{% else %}alert-info{% endif %} mb-4">
+    <span>{{ flash_message }}</span>
+</div>
+{% endif %}

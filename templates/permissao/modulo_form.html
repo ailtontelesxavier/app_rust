@@ -39,12 +39,7 @@
                 <button id="btnSubmit" type="submit"class="btn btn-success w-full md:w-auto">Salvar</button>
             </div>
         </form>
-        {# Exibir mensagem flash se existir #}
-        {% if flash_message %}
-        <div class="alert {% if flash_status == 'success' %}alert-success{% elif flash_status == 'error' %}alert-error{% else %}alert-info{% endif %} mb-4">
-            <span>{{ flash_message }}</span>
-        </div>
-        {% endif %}
+        {% include 'parts/flash_message.html' %}
     </div>
 </div>
 
