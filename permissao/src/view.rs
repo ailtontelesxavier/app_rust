@@ -1,8 +1,12 @@
 use std::sync::Arc;
 
 use axum::{
-    extract::{Form, Path, Query, State}, http::StatusCode, response::{Html, IntoResponse, Response, Redirect}, Extension, Json
+    Extension, Json,
+    extract::{Form, Path, Query, State},
+    http::StatusCode,
+    response::{Html, IntoResponse, Redirect, Response},
 };
+
 use minijinja::Value;
 use minijinja::context;
 use serde::Deserialize;
@@ -13,12 +17,12 @@ use std::collections::BTreeMap;
 use tracing::{debug, info};
 use uuid::Uuid;
 
-use crate::{model::module::Module, schema::ModuleUpdateShema};
 use crate::schema::ModuleCreateShema;
 use crate::{
     handler,
     repository::{ModuleRepository, PaginatedResponse, Repository},
 };
+use crate::{model::module::Module, schema::ModuleUpdateShema};
 
 pub async fn home(State(state): State<SharedState>) -> Html<String> {
     let template = state.templates.get_template("index.html").unwrap();
@@ -27,9 +31,10 @@ pub async fn home(State(state): State<SharedState>) -> Html<String> {
 }
 
 pub async fn create_model(
+    flash: Flash,
     State(state): State<SharedState>,
     Form(body): Form<ModuleCreateShema>,
-) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
+) -> Response {
     let query_result = sqlx::query_as!(
         Module,
         "INSERT INTO module (title) VALUES ($1) RETURNING *",
@@ -40,29 +45,21 @@ pub async fn create_model(
 
     match query_result {
         Ok(module) => {
-            let module_response = json!({
-                "status": "success",
-                "data": json!({
-                    "module": module,
-                }),
-            });
-
-            return Ok((StatusCode::CREATED, Json(module_response)));
+            let uri = format!("/permissao/modulo-form/{}", module.id);
+            flash.success("cadastrado com sucesso");
+            Redirect::to(&uri).into_response()
         }
         Err(e) => {
-            if e.to_string()
+            let error_message = if e.to_string()
                 .contains("duplicate key value violates unique constraint")
             {
-                let error_response = serde_json::json!({
-                    "status": "fail",
-                    "message": "This module already exists",
-                });
-                return Err((StatusCode::CONFLICT, Json(error_response)));
-            }
-            return Err((
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({"status": "error","message": format!("{:?}", e)})),
-            ));
+                "Este módulo já existe"
+            } else {
+                "Ocorreu um erro ao criar o módulo"
+            };
+            
+            flash.error(error_message);
+            Redirect::to("/permissao/modulo-form").into_response()
         }
     }
 }
@@ -100,6 +97,24 @@ pub async fn saudacao(State(state): State<SharedState>) -> Html<String> {
     let template = state.templates.get_template("saudacao.html").unwrap();
     let html = template.render(context).unwrap();
     Html(html)
+}
+
+pub async fn show_module_form(
+    State(state): State<SharedState>,
+) -> Result<impl IntoResponse, impl IntoResponse> {
+    let template = state
+        .templates
+        .get_template("/permissao/module_form.html")
+        .unwrap()
+        .render({});
+
+    match template {
+        Ok(content) => Ok(Html(content)),
+        Err(e) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Failed to render template: {}", e),
+        )),
+    }
 }
 
 pub async fn list_modulo(
@@ -171,10 +186,7 @@ pub async fn list_modulo(
     Ok(Html(html))
 }
 
-pub async fn get_modulo(
-    Path(id): Path<i32>,
-    State(state): State<SharedState>,
-) -> Response {
+pub async fn get_modulo(Path(id): Path<i32>, State(state): State<SharedState>) -> Response {
     // Buscar o módulo no banco de dados
     let module_result = sqlx::query_as::<_, Module>("SELECT * FROM module WHERE id = $1")
         .bind(id)
@@ -182,9 +194,15 @@ pub async fn get_modulo(
         .await;
 
     // Carregar o template
-    let template = state.templates.get_template("permissao/modulo_form.html")
-        .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, 
-            format!("Falha ao carregar template: {}", err)));
+    let template = state
+        .templates
+        .get_template("permissao/modulo_form.html")
+        .map_err(|err| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Falha ao carregar template: {}", err),
+            )
+        });
 
     match module_result {
         Ok(module) => {
@@ -192,12 +210,15 @@ pub async fn get_modulo(
                 row => module,
             };
             // Renderizar o template
-            let html = template.expect("REASON").render(ctx)
-                .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, 
-                    format!("Falha ao renderizar template: {}", err)));
+            let html = template.expect("REASON").render(ctx).map_err(|err| {
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    format!("Falha ao renderizar template: {}", err),
+                )
+            });
 
             Html(html).into_response()
-        },
+        }
         Err(_) => {
             let path = "/permissao/modulo";
             Redirect::to(path).into_response()
@@ -205,14 +226,14 @@ pub async fn get_modulo(
     }
 }
 
-pub async fn put_modulo(
+pub async fn update_modulo(
     Path(id): Path<i32>,
     State(state): State<SharedState>,
     Form(form): Form<ModuleUpdateShema>,
 ) -> Response {
     // 1. Tentar atualizar o módulo no banco de dados
     let update_result = sqlx::query_as::<_, Module>(
-        "UPDATE module SET title = $1, updated_at = NOW() WHERE id = $2 RETURNING *"
+        "UPDATE module SET title = $1, updated_at = NOW() WHERE id = $2 RETURNING *",
     )
     .bind(&form.title)
     .bind(id)
@@ -224,10 +245,13 @@ pub async fn put_modulo(
             // 2. Carregar o template para mostrar o módulo atualizado
             let template = match state.templates.get_template("permissao/modulo_form.html") {
                 Ok(t) => t,
-                Err(err) => return (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    format!("Falha ao carregar template: {}", err)
-                ).into_response(),
+                Err(err) => {
+                    return (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        format!("Falha ao carregar template: {}", err),
+                    )
+                        .into_response();
+                }
             };
 
             // 3. Preparar o contexto com os dados atualizados
@@ -241,20 +265,22 @@ pub async fn put_modulo(
                 Ok(html) => Html(html).into_response(),
                 Err(err) => (
                     StatusCode::INTERNAL_SERVER_ERROR,
-                    format!("Falha ao renderizar template: {}", err)
-                ).into_response(),
+                    format!("Falha ao renderizar template: {}", err),
+                )
+                    .into_response(),
             }
-        },
+        }
         Err(sqlx::Error::RowNotFound) => {
             // Módulo não existe - redirecionar para lista
             Redirect::to("/permissao/modulo").into_response()
-        },
+        }
         Err(e) => {
             // Outros erros de banco de dados
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Erro ao atualizar módulo: {}", e)
-            ).into_response()
+                format!("Erro ao atualizar módulo: {}", e),
+            )
+                .into_response()
         }
     }
 }

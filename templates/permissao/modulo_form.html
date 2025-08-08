@@ -7,7 +7,6 @@
     <div class="card-body">
         <h2 class="card-title">Formulario Modulo</h2>
         <form id="form_modulo" class="space-y-4" method="POST" action="{% if row %}/permissao/modulo-form/{{row.id}}{% else %}/permissao/modulo-form{% endif %}">
-            {% if row %}<input type="hidden" name="_method" value="PUT">{% endif %}
             <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
                 {% if row %}
                 <div class="col-span-2 md:col-span-1">

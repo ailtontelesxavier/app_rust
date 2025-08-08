@@ -3,6 +3,7 @@ mod middlewares;
 use axum::{
     http::{header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE}, HeaderValue, Method, StatusCode}, middleware, response::{IntoResponse, Response}, routing::get, Router
 };
+use axum_flash::{Flash, IncomingFlashes, Key, Message};
 use filters::register_filters;
 use minijinja::{Environment, path_loader};
 use std::sync::Arc;
@@ -71,6 +72,8 @@ async fn main() {
 
     let templates = Arc::new(env);
 
+    let key = Key::generate();
+
     let state = Arc::new(AppState {
         db: Arc::new(db_pool),
         templates,
@@ -98,10 +101,11 @@ async fn main() {
         .layer(cors)
         .route("/hello", get(hello_world))
         .nest("/permissao", router_permissao().with_state(state.clone()))
-        .layer(middleware::from_fn(method_override))
+        //.layer(middleware::from_fn(method_override))
         .nest_service("/static", server_dir)
         .layer(TraceLayer::new_for_http())
-        .with_state(state.clone());
+        .with_state(state.clone())
+        .layer(Flash::layer(key));
 
     info!("Starting server on http://0.0.0.0:2000");
     debug!("Server running");
