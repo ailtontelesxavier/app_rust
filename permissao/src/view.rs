@@ -489,7 +489,7 @@ impl PermissionHandler {
         
         let items = if search_term.is_empty() {
             sqlx::query_as::<_, crate::model::permission::PermissionWithModule>(
-                "SELECT p.id, p.name, p.description, p.module_id, p.created_at, p.updated_at, m.name as module_name
+                "SELECT p.id, p.name, p.description, p.module_id, p.created_at, p.updated_at, m.title as module_name
                  FROM permission p 
                  INNER JOIN module m ON p.module_id = m.id
                  ORDER BY p.id DESC
@@ -501,7 +501,7 @@ impl PermissionHandler {
             .await?
         } else {
             sqlx::query_as::<_, crate::model::permission::PermissionWithModule>(
-                "SELECT p.id, p.name, p.description, p.module_id, p.created_at, p.updated_at, m.name as module_name
+                "SELECT p.id, p.name, p.description, p.module_id, p.created_at, p.updated_at, m.title as module_name
                  FROM permission p 
                  INNER JOIN module m ON p.module_id = m.id
                  WHERE p.name ILIKE $1 OR m.name ILIKE $1
@@ -584,16 +584,13 @@ pub async fn show_permission_form(
     Query(params): Query<HashMap<String, String>>,
 ) -> Result<Html<String>, Response> {
     // Buscar todos os módulos para o dropdown
-    let modules = match sqlx::query_as::<_, Module>("SELECT * FROM module ORDER BY name")
+    let modules = match sqlx::query_as::<_, Module>("SELECT * FROM module ORDER BY title")
         .fetch_all(&*state.db)
         .await
     {
         Ok(modules) => modules,
         Err(_) => {
-            return Err((
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "Erro ao carregar módulos".to_string(),
-            ).into_response())
+            vec![]
         }
     };
 
@@ -629,15 +626,15 @@ pub async fn show_permission_form(
 
 pub async fn create_permission(
     State(state): State<SharedState>,
-    Form(input): Form<PermissionCreateShema>,
+    Form(body): Form<PermissionCreateShema>,
 ) -> Response {
     match sqlx::query!(
-        "INSERT INTO permission (name, description, module_id) VALUES ($1, $2, $3)",
-        input.name,
-        input.description,
-        input.module_id
+        "INSERT INTO permission (name, description, module_id) VALUES ($1, $2, $3) RETURNING *",
+        body.name.to_string(),
+        body.description,
+        body.module_id
     )
-    .execute(&*state.db)
+    .fetch_one(&*state.db)
     .await
     {
         Ok(_) => {
@@ -665,13 +662,13 @@ pub async fn get_permission(
     Query(params): Query<HashMap<String, String>>,
 ) -> Result<Html<String>, Response> {
     // Buscar a permissão no banco de dados
-    let permission_result = sqlx::query_as::<_, Permission>("SELECT * FROM permission WHERE id = $1")
+    let permission_result = sqlx::query_as::<_, Permission>("SELECT * FROM permission WHERE id = $1 RETURNING *")
         .bind(id)
         .fetch_one(&*state.db)
         .await;
 
     // Buscar todos os módulos para o dropdown
-    let modules = match sqlx::query_as::<_, Module>("SELECT * FROM module ORDER BY name")
+    let modules = match sqlx::query_as::<_, Module>("SELECT * FROM module ORDER BY title RETURNING *")
         .fetch_all(&*state.db)
         .await
     {
@@ -731,32 +728,24 @@ pub async fn update_permission(
     Path(id): Path<i32>,
     Form(input): Form<PermissionUpdateShema>,
 ) -> Response {
-    match sqlx::query!(
-        "UPDATE permission SET name = $1, description = $2, module_id = $3, updated_at = NOW() WHERE id = $4",
+    let query_result = sqlx::query!(
+        "UPDATE permission SET name = $1, description = $2, module_id = $3, updated_at = NOW() WHERE id = $4 RETURNING *",
         input.name,
         input.description,
         input.module_id,
         id
     )
-    .execute(&*state.db)
-    .await
-    {
-        Ok(result) => {
-            if result.rows_affected() > 0 {
-                let flash_url = helpers::create_flash_url(
-                    &format!("/permissao/permission"),
-                    &format!("Permissão atualizada com sucesso!"),
-                    FlashStatus::Success,
-                );
-                Redirect::to(&flash_url).into_response()
-            } else {
-                let flash_url = helpers::create_flash_url(
-                    "/permissao/permission",
-                    "Permissão não encontrada",
-                    FlashStatus::Error,
-                );
-                Redirect::to(&flash_url).into_response()
-            }
+    .fetch_one(&*state.db)
+    .await;
+    match query_result {
+        Ok(_) => {
+            let flash_url = helpers::create_flash_url(
+                &format!("/permissao/permission"),
+                &format!("Permissão atualizada com sucesso!"),
+                FlashStatus::Success,
+            );
+            Redirect::to(&flash_url).into_response()
+            
         }
         Err(err) => {
             let flash_url = helpers::create_flash_url(
