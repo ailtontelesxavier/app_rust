@@ -1,0 +1,98 @@
+{% macro modulo_combobox(module_name, attrs='') %}
+<div class="relative w-full mb-4 mx-auto">
+    <input id="search_module" type="text" placeholder="modulo..."
+           class="w-full rounded-md border shadow border-gray-300 bg-gray-50 px-4 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500"
+           {{ attrs }}
+           >
+    <div id="dropdown" class="absolute z-10 mt-1 max-h-60 min-w-xs w-full overflow-auto rounded-md border border-gray-300 bg-white shadow-lg dark:bg-gray-700 dark:border-gray-600 hidden">
+        <ul class="py-1"></ul>
+        <div class="flex justify-between items-center px-4 py-2 shadow bg-gray-100 dark:bg-gray-600">
+            <button id="previous-page" class="inline-flex items-center justify-center bg-primary text-primary-foreground shadow hover:bg-emerald-300 h-9 px-4 py-2 cursor-pointer text-black hover:text-white rounded disabled:opacity-50" disabled><-</button>
+            <div class="flex flex-col gap-2">
+                <div class="items-center justify-center">
+                    <span id="current-page" class="text-gray-700 dark:text-gray-300">Pagina 0</span>
+                    <span id="total-pages" class="text-gray-700 dark:text-gray-300"> de 0</span>
+                </div>
+                <span id="total-records" class="text-gray-700 dark:text-gray-300">Linhas: 0</span>
+            </div>
+            <button id="next-page" class="inline-flex items-center justify-center bg-primary text-primary-foreground shadow hover:bg-emerald-300 h-9 px-4 py-2 cursor-pointer text-black hover:text-white rounded disabled:opacity-50" disabled>-></button>
+        </div>
+    </div>
+    <!-- Inputs hidden para id -->
+    <input type="hidden" id="hidden_module_id" name="{{ module_name }}">
+</div>
+<script>
+
+    document.getElementById('search_module').addEventListener('input', async function(e) {
+        const searchTerm = e.target.value;
+        currentPage = 1;  // Reset to first page on new search
+        fetchModules(searchTerm, currentPage);
+    });
+
+    document.getElementById('previous-page').addEventListener('mouseover', async function() {
+        if (currentPage > 1) {
+            const searchTerm = document.getElementById('search_module').value;
+            currentPage -= 1;
+            fetchModules(searchTerm, currentPage);
+        }
+    });
+
+    document.getElementById('next-page').addEventListener('mouseover', async function() {
+        if (currentPage < totalPages) {
+            const searchTerm = document.getElementById('search_module').value;
+            currentPage += 1;
+            fetchModules(searchTerm, currentPage);
+        }
+    });
+
+    //fechar ao clicar fora
+    document.addEventListener('click', function (evt) {
+        const dropdown = document.getElementById('dropdown');
+        const searchInput = document.getElementById('search_module');
+    
+        if (!dropdown.contains(evt.target) && evt.target !== searchInput) {
+            dropdown.classList.add('hidden');
+        }
+    });
+
+
+    async function fetchModules(searchTerm, page) {
+        try {
+            const response = await axios.get(`/core/module-api?find=${searchTerm}&page=${page}`);
+            const data = response.data;
+            const dropdown = document.getElementById('dropdown');
+            const ul = dropdown.querySelector('ul');
+            ul.innerHTML = '';
+            if (data.rows.length > 0) {
+                dropdown.classList.remove('hidden');
+                data.rows.forEach(module => {
+                    const li = document.createElement('li');
+                    li.className = 'cursor-pointer px-4 py-2 text-gray-900 hover:bg-cyan-200 hover:text-green-800 dark:text-white dark:hover:bg-primary-500 dark:hover:text-white';
+                    li.textContent = module.title;
+                    li.addEventListener('mousedown', () => {
+                        document.getElementById('search_module').value = module.title;
+                        document.getElementById('hidden_module_id').value = module.id;
+                        dropdown.classList.add('hidden');
+                    });
+                    ul.appendChild(li);
+                });
+                document.getElementById('total-records').textContent = `Linhas: ${data.total_records}`;
+                document.getElementById('current-page').textContent = `Pagina ${data.current_page}`;
+                document.getElementById('total-pages').textContent = ` de ${data.total_pages}`;
+
+                // Atualizar o total de páginas
+                totalPages = data.total_pages;
+
+                // Habilitar/Desabilitar botões de navegação
+                document.getElementById('previous-page').disabled = data.current_page === 1;
+                document.getElementById('next-page').disabled = data.current_page === data.total_pages;
+            } else {
+                dropdown.classList.add('hidden');
+            }
+        } catch (error) {
+            console.error("There was an error fetching the options!", error);
+        }
+    }
+</script>
+{% endmacro %}
+

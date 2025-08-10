@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% include "components/modulo.html"%}
 
 {% block title %}
     {% if row %}Editar Permissão{% else %}Nova Permissão{% endif %}
@@ -44,6 +45,7 @@
 
                 <!-- Seleção de Módulo -->
                 <div class="form-control">
+                    {{modulo_combobox("modulo_id")}}
                     <label class="label">
                         <span class="label-text font-semibold">Módulo</span>
                     </label>
