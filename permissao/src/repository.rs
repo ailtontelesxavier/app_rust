@@ -1,7 +1,6 @@
 use async_trait::async_trait;
 use serde::{Serialize, de::DeserializeOwned};
 use sqlx::{FromRow, PgPool, QueryBuilder, postgres::PgRow};
-use std::sync::Arc;
 
 use crate::{model::module::{Module, Permission}, schema::{CreateModuleSchema, PermissionCreateSchema, PermissionUpdateSchema, UpdateModuleSchema}};
 

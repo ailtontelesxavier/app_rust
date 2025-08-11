@@ -1,5 +1,5 @@
 
-use crate::{model::{self, module::Permission}, repository, schema::{PermissionCreateSchema, PermissionUpdateSchema}};
+use crate::{model::module::Permission, repository::{self, Repository}, schema::{PermissionCreateSchema, PermissionUpdateSchema}};
 use anyhow::Result;
 use sqlx::PgPool;
 
@@ -43,7 +43,7 @@ impl ModuleService {
         find: Option<&str>,
         page: u32,
         page_size: u32,
-    ) -> Result<repository::PaginatedResponse<model::Module>> {
+    ) -> Result<repository::PaginatedResponse<Module>> {
         Ok(self.repo.get_paginated(pool, find, page, page_size).await?)
     }
 }

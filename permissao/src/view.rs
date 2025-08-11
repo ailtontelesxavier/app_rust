@@ -12,7 +12,7 @@ use shared::{SharedState, helpers, FlashStatus};
 use std::collections::{BTreeMap, HashMap};
 use tracing::debug;
 
-use crate::schema::{ModuleCreateShema, PermissionCreateShema, PermissionUpdateShema};
+use crate::schema::{CreateModuleSchema, PermissionCreateSchema, PermissionUpdateSchema};
 use crate::{
     repository::{ModuleRepository, PaginatedResponse, Repository},
 };
@@ -126,7 +126,7 @@ pub async fn list_modules(
 
 pub async fn create_model(
     State(state): State<SharedState>,
-    Form(body): Form<ModuleCreateShema>,
+    Form(body): Form<CreateModuleSchema>,
 ) -> Response {
     let query_result = sqlx::query_as!(
         Module,
@@ -366,7 +366,7 @@ pub async fn get_modulo(
 pub async fn update_modulo(
     State(state): State<SharedState>,
     Path(id): Path<i32>,
-    Form(body): Form<ModuleCreateShema>,
+    Form(body): Form<CreateModuleSchema>,
 ) -> Response {
     let query_result = sqlx::query_as!(
         Module,
@@ -626,7 +626,7 @@ pub async fn show_permission_form(
 
 pub async fn create_permission(
     State(state): State<SharedState>,
-    Form(body): Form<PermissionCreateShema>,
+    Form(body): Form<PermissionCreateSchema>,
 ) -> Response {
     match sqlx::query!(
         "INSERT INTO permission (name, description, module_id) VALUES ($1, $2, $3) RETURNING *",
@@ -726,7 +726,7 @@ pub async fn get_permission(
 pub async fn update_permission(
     State(state): State<SharedState>,
     Path(id): Path<i32>,
-    Form(input): Form<PermissionUpdateShema>,
+    Form(input): Form<PermissionUpdateSchema>,
 ) -> Response {
     let query_result = sqlx::query!(
         "UPDATE permission SET name = $1, description = $2, module_id = $3, updated_at = NOW() WHERE id = $4 RETURNING *",
