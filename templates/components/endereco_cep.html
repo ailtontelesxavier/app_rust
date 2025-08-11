@@ -1,0 +1,87 @@
+{% from 'core/components/cidades_br.html' import cidades_br_combobox %}
+{% from "core/components/macros.html" import legend, input, Button_blue, Button %}
+{% macro endereco_cep(cep, name, value='', name_cidade='name_cidade', value_cidade='', name_endereco='name_endereco', value_endereco='', value_id_cidade='' ) %}
+
+{% set id_name_cep = 'id_'+name|string %}
+{% set name_cidade = name_cidade %}
+{% set value_cidade = value_cidade %}
+{% set name_endereco = name_endereco %}
+
+{% set value_endereco = value_endereco %}
+
+{% set id_name_endereco = name|string + '_' + name_endereco|string + '_id' %}
+
+<div class="relative w-full mb-4 mx-auto">
+    <div class="flex flex-col sm:grid sm:grid-cols-2 gap-4">
+        <div class="flex flex-col">
+        {{ legend(attrs="", text="CEP") }}
+        {{ input(id=id_name_cep, name=name, placeholder="cep", type='number', value=value, attrs='required minlength=8 maxlength=8') }}
+        </div>
+        <div class="flex flex-col">
+        {{ legend(attrs="", text="Cidade") }}
+        {{ cidades_br_combobox(name_cidade, nome=value_cidade, value=value_id_cidade) }}
+        </div>
+    </div>
+    <div class="flex flex-col">
+    {{ legend(attrs="", text="Endereço") }}
+    {{ input(id=id_name_endereco, name=name_endereco, placeholder="endereço", value=value_endereco, attrs='required') }}
+    </div>
+</div>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    var cep{{id_name_cep}} = document.getElementById('{{id_name_cep}}').value;
+    document.getElementById('{{id_name_cep}}').addEventListener('input', async function(e) {
+        cep{{id_name_cep}} = e.target.value;
+        if(cep{{id_name_cep}}.length === 8) fetchCEP{{id_name_cep}}(cep{{id_name_cep}});
+    });
+
+
+    async function fetchCEP{{id_name_cep}}(cep) {
+        try {
+            showLoader();
+            const response = await axios.get(`/core/buscar-cep?cep=${cep}`);
+            const data = response.data;
+            hideLoader();
+
+            if (!data.ibge) {
+                console.warn("CEP não encontrado ou inválido.");
+                return;
+            }
+
+            const logradouro = data.logradouro || "N/A";
+            const bairro = data.bairro || "N/A";
+            const ibge = data.ibge;
+
+            console.log("Logradouro:", logradouro);
+            console.log("Bairro:", bairro);
+            console.log("IBGE:", ibge);
+
+            //preenche endereco_avalista
+            document.getElementById('{{id_name_endereco}}').value = logradouro + " Bairro " + bairro;
+            document.getElementById('{{id_name_endereco}}').dispatchEvent(new Event('input', { bubbles: true }));
+
+
+            // Chamar API para buscar informações da cidade
+            fetchCidadePorIBGE{{id_name_cep}}(ibge);
+        } catch (error) {
+            hideLoader();
+            console.error("Erro ao buscar CEP:", error);
+        }
+    }
+
+    async function fetchCidadePorIBGE{{id_name_cep}}(ibge_id) {
+        try {
+            const response = await axios.get(`/core/cidades-por-ibge?ibge_id=${ibge_id}`);
+            console.log("Dados da cidade:", response.data);
+
+            //preencher dados cidadedocument.querySelector('select[name="type"]');
+            document.querySelector('input[id="{{name_cidade}}"]').value = response.data.nome+'-'+response.data.uf;
+            document.querySelector('input[name="{{name_cidade|string}}"]').value = response.data.id;
+        } catch (error) {
+            console.error("Erro ao buscar cidade:", error);
+        }
+    }
+});
+</script>
+{% endmacro %}
+

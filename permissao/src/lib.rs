@@ -1,4 +1,4 @@
-mod handler;
+mod service;
 mod model;
 mod repository;
 mod router;
@@ -8,6 +8,6 @@ mod view;
 pub use shared::AppState;
 pub use shared::SharedState;
 
-pub use handler::home;
+pub use service::home;
 
 pub use router::router;

@@ -12,24 +12,24 @@ pub struct ParamOptions {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct ModuleCreateShema {
+pub struct CreateModuleSchema {
     pub title: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct ModuleUpdateShema {
+pub struct UpdateModuleSchema {
     pub title: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct PermissionCreateShema {
+pub struct PermissionCreateSchema {
     pub name: String,
     pub description: Option<String>,
     pub module_id: i32,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct PermissionUpdateShema {
+pub struct PermissionUpdateSchema {
     pub name: String,
     pub description: Option<String>,
     pub module_id: i32,

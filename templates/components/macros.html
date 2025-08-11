@@ -1,0 +1,353 @@
+
+{% from 'core/components/icons_svg.html' import eye, square_pen, book_text, save, trash_2 %}
+{% from 'core/components/icons_svg.html' import circle_check_big, circle_dashed, history %}
+
+{% macro card(title, class='', attrs='') %}
+    <div class="grid bg-white shadow-lg rounded-lg p-6 mx-auto w-full {{ class }}" {{ attrs }}>
+        <!-- Título do Card -->
+        <h2 class="text-xl font-semibold text-gray-800 mb-4">{{ title }}</h2>
+
+        <!-- Conteúdo do Card -->
+        <div class="space-y-4">
+            {{ caller() }} <!-- Bloco para conteúdo interno -->
+        </div>
+    </div>
+{% endmacro %}
+
+{# button #}
+{% macro button(id, text='', class='', attrs='',
+    button_class="inline-flex items-center justify-center bg-primary text-primary-foreground shadow hover:bg-emerald-300 h-9 px-4 py-2 cursor-pointer text-black hover:text-white rounded") %}
+    <span id="{{ id }}"
+            class="{{ class+' '+button_class }}" {{ attrs }}>
+        {{text}}
+    </span>
+{% endmacro %}
+
+{% macro Button(id, type='button', class='', title='', attrs='',
+    button_class=" items-center justify-center btn btn-active shadow h-9 px-4 py-2 cursor-pointer") %}
+    <button id="{{ id }}" type="{{ type }}" title="{{ title }}"
+            class="{{ class+' '+button_class }}" {{ attrs }}>
+        {{ caller() }}
+    </button>
+{% endmacro %}
+
+{% macro ButtonEdit(id, type='button', class='', title='', attrs='',
+    button_class="inline-flex items-center justify-center bg-primary text-primary-foreground shadow hover:bg-emerald-300 h-9 px-4 py-2 cursor-pointer text-black hover:text-white rounded") %}
+    <button id="{{ id }}" type="{{ type }}" type="button" title="{{ title }}"
+            class="{{ button_class + ' '+ class}}" {{ attrs }} {{ caller() }}>
+            {{square_pen()}}
+    </button>
+{% endmacro %}
+
+{% macro ButtonSave(id, type='button', class='', title='', attrs='',
+    button_class="inline-flex items-center justify-center shadow hover:bg-emerald-300 h-9 px-4 py-2 cursor-pointer text-black hover:text-white rounded") %}
+    <button id="{{ id }}" type="{{ type }}" type="button" title="{{ title }}"
+            class="{{ button_class + ' '+ class}}" {{ attrs }} {{ caller() }}>
+            {{save()}}
+    </button>
+{% endmacro %}
+
+{% macro ButtonSaveBlue(id, type='button', class='', title='', attrs='',
+    button_class="inline-flex items-center justify-center shadow bg-blue-500 shadow hover:bg-emerald-300 h-9 px-4 py-2 cursor-pointer text-white hover:text-black rounded") %}
+    <button id="{{ id }}" type="{{ type }}" type="button" title="{{ title }}"
+            class="{{ button_class + ' '+ class}}" {{ attrs }} {{ caller() }}>
+            {{save()}}
+    </button>
+{% endmacro %}
+
+{% macro ButtonTrash(id, type='button', class='', title='', attrs='',
+    button_class="inline-flex items-center justify-center shadow bg-red-300 shadow hover:bg-emerald-300 h-9 px-4 py-2 cursor-pointer text-white hover:text-black rounded") %}
+    <button id="{{ id }}" type="{{ type }}" type="button" title="{{ title }}"
+            class="{{ button_class + ' '+ class}}" {{ attrs }} {{ caller() }}>
+            {{trash_2()}}
+    </button>
+{% endmacro %}
+
+{% macro ButtonBookText(id, type='button', class='', title='', attrs='',
+    button_class="inline-flex items-center justify-center bg-primary text-primary-foreground shadow hover:bg-emerald-300 h-9 px-4 py-2 cursor-pointer text-black hover:text-white rounded") %}
+    <button id="{{ id }}" type="{{ type }}" type="button" title="{{ title }}"
+            class="{{ button_class + ' '+ class}}" {{ attrs }} {{ caller() }}>
+            {{book_text()}}
+    </button>
+{% endmacro %}
+
+{% macro ButtonHistory(id, type='button', class='', title='', attrs='',
+    button_class="inline-flex items-center justify-center bg-primary text-primary-foreground shadow hover:bg-emerald-300 h-9 px-4 py-2 cursor-pointer text-black hover:text-white rounded") %}
+    <button id="{{ id }}" type="{{ type }}" type="button" title="{{ title }}"
+            class="{{ button_class + ' '+ class}}" {{ attrs }} {{ caller() }}>
+            {{history()}}
+    </button>
+{% endmacro %}
+
+{% macro ButtonModal(id, type='button', class='', attrs='', title='',
+    button_class="inline-flex items-center justify-center bg-primary text-primary-foreground shadow hover:bg-emerald-300 h-9 px-4 py-2 cursor-pointer text-black hover:text-white rounded") %}
+    <button id="{{ id }}" type="{{ type }}" type="button" title="{{ title }}" data-modal-target="edit-user-modal" data-modal-toggle="edit-user-modal"
+            class="{{ button_class + ' '+ class}}" {{ attrs }} {{ caller() }}>
+            {{eye()}}
+    </button>
+{% endmacro %}
+
+{% macro button_edit(id, class='', data_id='', attrs='', title='Editar ou Visualizar',
+    button_class="inline-flex items-center justify-center bg-blue-500 text-primary-foreground shadow hover:bg-blue-600 h-9 px-4 py-2 cursor-pointer text-white hover:text-black rounded") %}
+    <span id="{{ id }}"
+            data-id="{{ data_id }}"
+            class="{{ button_class+' '+class}}" title="{{title}}" {{ attrs }}>
+        <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20"
+            xmlns="http://www.w3.org/2000/svg">
+            <path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z"></path>
+            <path fill-rule="evenodd"
+                d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"
+                clip-rule="evenodd"></path>
+        </svg>
+    </span>
+{% endmacro %}
+
+{% macro button_chevrons_down(id, class='', data_id='', attrs='',
+    button_class="inline-flex items-center justify-center bg-blue-500 text-primary-foreground shadow hover:bg-blue-600 h-9 px-4 py-2 cursor-pointer text-white hover:text-black rounded") %}
+    <span id="{{ id }}"
+            data-id="{{ data_id }}"
+            class="{{ button_class+' '+class}}" {{ attrs }}>
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" 
+            stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevrons-down">
+            <path d="m7 6 5 5 5-5"/>
+            <path d="m7 13 5 5 5-5"/>
+        </svg>
+    </span>
+{% endmacro %}
+
+
+{% macro button_delete(id, class='', data_id='', attrs='',
+    button_class="inline-flex items-center justify-center hover:cursor-pointer inline-flex items-center px-3 py-2 text-sm font-medium text-center text-white hover:text-black bg-red-700 rounded-lg hover:bg-red-800 focus:ring-4 focus:ring-red-300 dark:focus:ring-red-900") %}
+    <span id="{{ id }}"
+        data-id="{{ data_id }}"
+        class="{{ button_class + ' '+ class}}" {{ attrs }}>
+        <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20"
+            xmlns="http://www.w3.org/2000/svg">
+            <path fill-rule="evenodd"
+                d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+                clip-rule="evenodd"></path>
+        </svg>
+    </span>
+{% endmacro %}
+
+{% macro button_blue(id, text='', class='', attrs='',
+    button_class="inline-flex items-center justify-center bg-blue-500 shadow hover:bg-blue-600 h-9 px-4 py-2 cursor-pointer text-black hover:text-white rounded") %}
+    <span id="{{ id }}"
+    class="{{ button_class + ' '+ class}}" {{ attrs }}>
+        {{ text }}
+    </span>
+{% endmacro %}
+
+{% macro Button_blue(id='', type='button', text='', class='', attrs='',
+    button_class="inline-flex items-center justify-center bg-blue-500 shadow hover:bg-blue-600 h-9 px-4 py-2 cursor-pointer text-black hover:text-white rounded") %}
+    <button id="{{ id }}" type="{{ type }}"
+    class="{{ button_class + ' '+ class}}" {{ attrs }}>
+        {{ text }}
+    </button>
+{% endmacro %}
+
+{% macro button_zinc(id, text,class='',
+    button_class='inline-flex items-center justify-center bg-zinc-500 text-white font-medium px-4 py-2 rounded-lg shadow-md hover:bg-zinc-600 transition-colors duration-200') 
+    %}
+    <span id="{{ id }}"
+            class="{{ button_class + ' '+ class }}
+            >
+        {{ text }}
+    </span>
+{% endmacro %}
+
+{% macro button_green(id, text) %}
+    <span id="{{ id }}"
+            class="inline-flex items-center justify-center bg-green-500 text-white font-medium py-2 px-4 rounded-lg shadow-md hover:bg-green-600 transition-colors duration-200">
+        {{ text }}
+    </span>
+{% endmacro %}
+
+
+{% macro button_red(id, text) %}
+    <span id="{{ id }}"
+            class="inline-flex items-center justify-center bg-red-500 text-white font-medium py-2 px-4 rounded-lg shadow-md hover:bg-red-600 transition-colors duration-200">
+        {{ text }}
+    </span>
+{% endmacro %}
+
+{% macro button_yellow(id, text) %}
+    <span id="{{ id }}"
+            class="inline-flex items-center justify-center bg-yellow-500 text-white font-medium py-2 px-4 rounded-lg shadow-md hover:bg-yellow-600 transition-colors duration-200">
+        {{ text }}
+    </span>
+{% endmacro %}
+
+{% macro button_purple(id, text) %}
+    <span id="{{ id }}"
+            class="inline-flex items-center justify-center bg-purple-500 text-white font-medium py-2 px-4 rounded-lg shadow-md hover:bg-purple-600 transition-colors duration-200">
+        {{ text }}
+    </span>
+{% endmacro %}
+
+{% macro button_indigo(id, text) %}
+    <span id="{{ id }}"
+            class="inline-flex items-center justify-center bg-indigo-500 text-white font-medium py-2 px-4 rounded-lg shadow-md hover:bg-indigo-600 transition-colors duration-200">
+        {{ text }}
+    </span>
+{% endmacro %}
+
+{% macro button_pink(id, text) %}
+    <span id="{{ id }}"
+            class="inline-flex items-center justify-center bg-pink-500 text-white font-medium py-2 px-4 rounded-lg shadow-md hover:bg-pink-600 transition-colors duration-200">
+        {{ text }}
+    </span>
+{% endmacro %}
+
+{% macro button_gray(id, text) %}
+    <span id="{{ id }}"
+            class="inline-flex items-center justify-center bg-gray-500 text-white font-medium py-2 px-4 rounded-lg shadow-md hover:bg-gray-600 transition-colors duration-200">
+        {{ text }}
+    </span>
+{% endmacro %}
+
+{% macro button_black(id, text) %}
+    <span id="{{ id }}"
+            class="inline-flex items-center justify-center bg-black text-white font-medium py-2 px-4 rounded-lg shadow-md hover:bg-gray-900 transition-colors duration-200">
+        {{ text }}
+    </span>
+{% endmacro %}
+
+{# ############### inputs ################# #}
+
+{% macro label(text='', attrs='',
+    label_class='label', class='')%}
+    <label class="{{ label_class }} {{ class }}"
+        {{ attrs }}>
+        {{ text }}
+    </label>
+{% endmacro %}
+
+{% macro legend(text='', attrs='', legend_class='block text-sm font-medium text-gray-700', class='')%}
+    <legend class="{{legend_class}} {{class}}" {{ attrs }}>
+        {{ text }}
+    </legend>
+{% endmacro %}
+
+{# templates/macros.html #}
+{% macro input(id='', type='text', value='', name='', class='', attrs='',
+    placeholder='',
+    input_class="input input-bordered min-w-fullm") %}
+    <input type="{{ type }}"
+            placeholder="{{ placeholder }}"
+           id="{{ id }}"
+           name="{{ name }}"
+           value="{{value}}"
+           class="{{ input_class }} {{ class }}"
+           {{ attrs }}
+    />
+{% endmacro %}
+
+{% macro select(id='', name='', class='', options={}, selected='', placeholder='', select_class='border border-gray-300 bg-gray-50 rounded-md shadow-sm', attrs='') %}
+    <select id="{{ id }}"
+            name="{{ name }}"
+            class="{{ select_class }} {{ class }}"
+            {{ attrs }}>
+        {% if placeholder %}
+            <option value="0">{{ placeholder }}</option>
+        {% endif %}
+        {% for key, value in options.items() %}
+            <option value="{{ key }}" {% if key|string == selected|string %}selected{% endif %}>{{ value }}</option>
+        {% endfor %}
+    </select>
+{% endmacro %}
+
+{% macro textarea(id, placeholder='', name='', value='', class='', attrs='',
+    textarea_class="block p-2.5 w-full shadow text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500") %}
+    <textarea id="{{ id }}" rows="4"
+    class="{{ textarea_class }} {{ class }}"
+    name="{{ name }}"
+    placeholder="{{ placeholder }}"
+    {{ attrs }}
+    >{{ value }}</textarea>
+{% endmacro %}
+
+{# componente para Data em html #}
+{% macro datepicker(id='data', name='data-hidden', placeholder='Select Date..', value='') %}
+
+
+<div class="flex flex-col gap-1 w-full max-w-sm">
+    <div class="flex flex-col relative">
+        <input
+            type="text"
+            id="{{ id }}"
+            placeholder="{{ placeholder }}"
+            value="{{ value }}"
+            class="mt-1 px-3 py-2 border border-gray-300 text-gray-900 bg-gray-50 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+        >
+        <!-- Ícone de limpar -->
+        <span id="clear-{{ id }}" class="absolute right-2 top-1/2 transform -translate-y-1/2 cursor-pointer text-gray-400 hover:text-gray-600 hidden">
+            ×
+        </span>
+        <input type="hidden" id="{{ name }}-hidden" name="{{ name }}">
+    </div>
+</div>
+
+<link rel="stylesheet" href="/static/flatpickr/flatpickr.min.css">
+<script src="/static/flatpickr/flatpickr.js"></script>
+<script src="/static/flatpickr/pt.js"></script>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    const inputVisible = document.getElementById("{{ id }}");
+    const inputHidden = document.getElementById("{{ name }}-hidden");
+    const clearIcon = document.getElementById("clear-{{ id }}");
+
+    // Configura o flatpickr
+    const flatpickrInstance = flatpickr("#{{ id }}", {
+      locale: 'pt',  // Configura o locale para português
+      dateFormat: "d/m/Y",  // Formato exibido ao usuário
+      allowInput: true,  // Permite entrada manual
+      onChange: function(selectedDates, dateStr, instance) {
+        if (dateStr) {
+          // Atualiza o campo hidden com a data no formato ISO (YYYY-MM-DD)
+          inputHidden.value = selectedDates[0].toISOString().split('T')[0];
+          clearIcon.style.display = 'block';  // Mostra o ícone de limpar
+        } else {
+          // Se o campo visível estiver vazio, limpa o campo hidden
+          inputHidden.value = '';
+          clearIcon.style.display = 'none';  // Esconde o ícone de limpar
+        }
+      }
+    });
+
+    // Verifica se o input visível já tem um valor ao carregar a página
+    if (inputVisible.value) {
+      // Converte o valor do input visível para o formato ISO e preenche o input hidden
+      const dateObj = flatpickrInstance.parseDate(inputVisible.value, "d/m/Y");
+      if (dateObj) {
+        inputHidden.value = dateObj.toISOString().split('T')[0];
+        clearIcon.style.display = 'block';  // Mostra o ícone de limpar
+      }
+    }
+
+    // Adiciona o evento de clique ao ícone de limpar
+    clearIcon.addEventListener("click", function() {
+      flatpickrInstance.clear();  // Limpa o valor do flatpickr
+      inputHidden.value = '';  // Limpa o campo hidden
+      clearIcon.style.display = 'none';  // Esconde o ícone de limpar
+    });
+  });
+</script>
+{% endmacro %}
+
+
+{% macro view_data(data) %}
+    {% if data is boolean %}
+        {% if data %}
+            {{circle_check_big()}}
+        {% else %}
+            {{circle_dashed()}}
+        {% endif %}
+    {% elif data is string %}
+        {{ data }}
+    {% else %}
+        {{ data | safe }}
+    {% endif %}
+{% endmacro %}
+

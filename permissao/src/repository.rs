@@ -1,9 +1,9 @@
 use async_trait::async_trait;
-use serde::{Deserialize, Serialize, de::DeserializeOwned};
+use serde::{Serialize, de::DeserializeOwned};
 use sqlx::{FromRow, PgPool, QueryBuilder, postgres::PgRow};
 use std::sync::Arc;
 
-use crate::model::module::Module;
+use crate::{model::module::{Module, Permission}, schema::{CreateModuleSchema, PermissionCreateSchema, PermissionUpdateSchema, UpdateModuleSchema}};
 
 #[derive(Debug, Serialize)]
 pub struct PaginatedResponse<T> {
@@ -134,22 +134,13 @@ where
 //   pub title: String,
 //}
 
-#[derive(Debug, Deserialize)]
-pub struct CreateModule {
-    pub title: String,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct UpdateModule {
-    pub title: String,
-}
 
 pub struct ModuleRepository;
 
 #[async_trait]
 impl Repository<Module> for ModuleRepository {
-    type CreateInput = CreateModule;
-    type UpdateInput = UpdateModule;
+    type CreateInput = CreateModuleSchema;
+    type UpdateInput = UpdateModuleSchema;
 
     fn table_name(&self) -> &str {
         "module"
@@ -195,6 +186,73 @@ impl Repository<Module> for ModuleRepository {
 
     async fn delete(&self, pool: &PgPool, id: i32) -> Result<(), sqlx::Error> {
         sqlx::query!("DELETE FROM module WHERE id = $1", id)
+            .execute(pool)
+            .await?;
+        Ok(())
+    }
+}
+
+
+pub struct PermissionRepository;
+
+#[async_trait]
+impl Repository<Permission> for PermissionRepository {
+    type CreateInput = PermissionCreateSchema;
+    type UpdateInput = PermissionUpdateSchema;
+
+    fn table_name(&self) -> &str {
+        "permission"
+    }
+
+    fn searchable_fields(&self) -> &[&str] {
+        &["p.name", "p.description"]
+    }
+
+    fn select_clause(&self) -> &str {
+        "p.id, p.name, p.description, p.module_id, p.created_at, p.updated_at"
+    }
+
+    fn from_clause(&self) -> &str {
+        "permission p"
+    }
+
+    async fn create(&self, pool: &PgPool, input: Self::CreateInput) -> Result<Permission, sqlx::Error> {
+        sqlx::query_as!(
+            Permission,
+            r#"INSERT INTO permission (name, description, module_id) 
+               VALUES ($1, $2, $3) 
+               RETURNING id, name, description, module_id, created_at, updated_at"#,
+            input.name,
+            input.description,
+            input.module_id
+        )
+        .fetch_one(pool)
+        .await
+    }
+
+    async fn update(
+        &self,
+        pool: &PgPool,
+        id: i32,
+        input: Self::UpdateInput,
+    ) -> Result<Permission, sqlx::Error> {
+        sqlx::query_as!(
+            Permission,
+            r#"UPDATE permission 
+               SET name = $1, description = $2, module_id = $3 
+               WHERE id = $4 
+               RETURNING id, name, description, module_id, created_at, updated_at"#,
+            input.name,
+            input.description,
+            input.module_id,
+            id
+        )
+        .fetch_one(pool)
+        .await
+    }
+
+    async fn delete(&self, pool: &PgPool, id: i32) -> Result<(), sqlx::Error> {
+        sqlx::query!("DELETE FROM permission WHERE id = $1", id)
             .execute(pool)
             .await?;
         Ok(())

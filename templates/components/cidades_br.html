@@ -1,0 +1,126 @@
+{% from "core/components/macros.html" import input %}
+{% macro cidades_br_combobox(cidades_br_name, nome='', value='') %}
+{% set cidades_br_name = cidades_br_name %}
+{% set search_cidades_br = cidades_br_name %}
+{% set id_cidades_br_name = "hidden_"+cidades_br_name|string +"_id" %}
+<div class="relative w-full mb-4 mx-auto">
+    <input id="{{search_cidades_br}}" type="text" value="{{nome}}" placeholder="digite o nome da cidade e selecione no menu esquerdo a baixo..." autocomplete="off"
+           class="search_cidades w-full rounded-md border shadow border-gray-300 bg-gray-50 px-4 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500">
+    <div id="dropdown_cidades_br{{cidades_br_name}}" class="absolute z-10 mt-1 max-h-60 min-w-xs w-full overflow-auto rounded-md border border-gray-300 bg-white shadow-lg dark:bg-gray-700 dark:border-gray-600 hidden">
+        <ul class="py-1"></ul>
+        <div class="flex justify-between items-center px-4 py-2 shadow bg-gray-100 dark:bg-gray-600">
+            <button id="previous-page_cidades_br{{cidades_br_name}}" class="inline-flex items-center justify-center bg-primary text-primary-foreground shadow hover:bg-emerald-300 h-9 px-4 py-2 cursor-pointer text-black hover:text-white rounded disabled:opacity-50" disabled><-</button>
+            <div class="flex flex-col gap-2">
+                <div class="items-center justify-center">
+                    <span id="current-page_cidades_br{{cidades_br_name}}" class="text-gray-700 dark:text-gray-300">Pagina 0</span>
+                    <span id="total-pages_cidades_br{{cidades_br_name}}" class="text-gray-700 dark:text-gray-300"> de 0</span>
+                </div>
+                <span id="total-records_cidades_br{{cidades_br_name}}" class="text-gray-700 dark:text-gray-300">Linhas: 0</span>
+            </div>
+            <button id="next-page_cidades_br{{cidades_br_name}}" class="inline-flex items-center justify-center bg-primary text-primary-foreground shadow hover:bg-emerald-300 h-9 px-4 py-2 cursor-pointer text-black hover:text-white rounded disabled:opacity-50" disabled>-></button>
+        </div>
+    </div>
+    <!-- Inputs hidden cidade -->
+    {{ input(id=id_cidades_br_name, name=cidades_br_name, value=value, type="hidden") }}
+</div>
+<script>
+    var searchTerm = document.getElementById('{{search_cidades_br}}').value;
+    /*document.querySelectorAll(".search_cidades").forEach(input => {
+        input.addEventListener("input", function () {
+            searchTerm = e.target.value;
+            currentPage = 1;  // Reset to first page on new search
+            fetchDatacidades_br{{cidades_br_name}}(searchTerm, currentPage);
+        });
+      });
+      */
+    document.getElementById('{{search_cidades_br}}').addEventListener('input', async function(e) {
+        searchTerm = e.target.value;
+        currentPage = 1;  // Reset to first page on new search
+        fetchDatacidades_br{{cidades_br_name}}(searchTerm, currentPage);
+    });
+
+    document.getElementById('{{search_cidades_br}}').addEventListener('click', async function(e) {
+        searchTerm = e.target.value;
+        currentPage = 1;  // Reset to first page on new search
+        fetchDatacidades_br{{cidades_br_name}}(searchTerm || '%', currentPage);
+    });
+
+
+    document.getElementById('previous-page_cidades_br{{cidades_br_name}}').addEventListener('mouseover', async function() {
+        if (currentPage > 1) {
+            searchTerm = document.getElementById('{{search_cidades_br}}').value;
+            currentPage -= 1;
+            fetchDatacidades_br{{cidades_br_name}}(searchTerm, currentPage);
+        }
+    });
+
+    document.getElementById('next-page_cidades_br{{cidades_br_name}}').addEventListener('mouseover', async function() {
+        if (currentPage < totalPages) {
+            searchTerm = document.getElementById('{{search_cidades_br}}').value;
+            currentPage += 1;
+            fetchDatacidades_br{{cidades_br_name}}(searchTerm, currentPage);
+        }
+    });
+
+    //fechar ao clicar fora
+    document.addEventListener('click', function (evt) {
+        const dropdown = document.getElementById('dropdown_cidades_br{{cidades_br_name}}');
+        const searchInput = document.getElementById('{{search_cidades_br}}');
+    
+        if (!dropdown.contains(evt.target) && evt.target !== searchInput) {
+            dropdown.classList.add('hidden');
+        }
+    });
+    /*document.addEventListener("click", function (evt) {
+        if (!evt.target.closest(".relative")) {
+            document.querySelectorAll("#dropdown_cidades").forEach(dropdown => {
+                dropdown.classList.add("hidden");
+            });
+        }
+    });*/
+
+
+    async function fetchDatacidades_br{{cidades_br_name}}(searchTerm, page) {
+        try {
+            showLoader();
+            const response = await axios.get(`/core/cidades-br-api?find=${searchTerm}&page=${page}`);
+            hideLoader();
+            const data = response.data;
+            const dropdown = document.getElementById('dropdown_cidades_br{{cidades_br_name}}');
+            const ul = dropdown.querySelector('ul');
+            ul.innerHTML = '';
+            if (data.rows.length > 0) {
+                dropdown.classList.remove('hidden');
+                data.rows.forEach(data => {
+                    const li = document.createElement('li');
+                    li.className = 'cursor-pointer px-4 py-2 text-gray-900 hover:bg-cyan-200 hover:text-green-800 dark:text-white dark:hover:bg-primary-500 dark:hover:text-white';
+                    li.textContent = data.nome +' - '+ data.uf;
+                    li.addEventListener('mousedown', () => {
+                        document.getElementById('{{search_cidades_br}}').value = data.nome+' - '+ data.uf;
+                        document.getElementById('{{id_cidades_br_name}}').value = data.id;
+                        dropdown.classList.add('hidden');
+                    });
+                    ul.appendChild(li);
+                });
+                document.getElementById('total-records_cidades_br{{cidades_br_name}}').textContent = `Linhas: ${data.total_records}`;
+                document.getElementById('current-page_cidades_br{{cidades_br_name}}').textContent = `Pagina ${data.current_page}`;
+                document.getElementById('total-pages_cidades_br{{cidades_br_name}}').textContent = ` de ${data.total_pages}`;
+
+                // Atualizar o total de páginas
+                totalPages = data.total_pages;
+
+                // Habilitar/Desabilitar botões de navegação
+                document.getElementById('previous-page_cidades_br{{cidades_br_name}}').disabled = data.current_page === 1;
+                document.getElementById('next-page_cidades_br{{cidades_br_name}}').disabled = data.current_page === data.total_pages;
+            } else {
+                console.log('ocutar');
+                //dropdown.classList.add('hidden');
+            }
+        } catch (error) {
+            hideLoader();
+            console.error("There was an error fetching the options!", error);
+        }
+    }
+</script>
+{% endmacro %}
+
