@@ -12,7 +12,7 @@ use shared::{SharedState, helpers, FlashStatus};
 use std::collections::{BTreeMap, HashMap};
 use tracing::debug;
 
-use crate::schema::{CreateModuleSchema, PermissionCreateSchema, PermissionUpdateSchema};
+use crate::{schema::{CreateModuleSchema, PermissionCreateSchema, PermissionUpdateSchema}, service::ModuleService};
 use crate::{
     repository::{ModuleRepository, PaginatedResponse, Repository},
 };
@@ -128,15 +128,10 @@ pub async fn create_model(
     State(state): State<SharedState>,
     Form(body): Form<CreateModuleSchema>,
 ) -> Response {
-    let query_result = sqlx::query_as!(
-        Module,
-        "INSERT INTO module (title) VALUES ($1) RETURNING *",
-        body.title.to_string(),
-    )
-    .fetch_one(&*state.db)
-    .await;
 
-    match query_result {
+    let service = ModuleService::new();
+
+    match service.create(&state.db, body).await {
         Ok(module) => {
             // Redirecionar com mensagem de sucesso
             let redirect_url = helpers::create_flash_url(
@@ -146,8 +141,8 @@ pub async fn create_model(
             );
             Redirect::to(&redirect_url).into_response()
         }
-        Err(e) => {
-            let error_message = if e.to_string()
+        Err(err) => {
+            let error_message = if err.to_string()
                 .contains("duplicate key value violates unique constraint")
             {
                 "Este módulo já existe"
@@ -162,10 +157,11 @@ pub async fn create_model(
                 FlashStatus::Error
             );
             
-            debug!("Erro ao criar módulo: {}", e);
+            debug!("Erro ao criar módulo: {}", err);
             Redirect::to(&redirect_url).into_response()
         }
     }
+
 }
 
 #[derive(Debug, Deserialize)]

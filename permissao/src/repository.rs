@@ -160,8 +160,8 @@ impl Repository<Module> for ModuleRepository {
     async fn create(&self, pool: &PgPool, input: Self::CreateInput) -> Result<Module, sqlx::Error> {
         sqlx::query_as!(
             Module,
-            r#"INSERT INTO module (title) VALUES ($1) RETURNING id, title, created_at, updated_at"#,
-            input.title
+            "INSERT INTO module (title) VALUES ($1) RETURNING id, title, created_at, updated_at",
+            input.title.to_string()
         )
         .fetch_one(pool)
         .await
