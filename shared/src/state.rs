@@ -7,7 +7,7 @@ use std::sync::Arc;
 pub struct AppState {
     pub db: Arc<PgPool>,
     pub templates: Arc<Environment<'static>>,
-    pub message: Arc<MessageResponse>
+    pub message: Arc<MessageResponse>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

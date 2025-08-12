@@ -13,6 +13,6 @@ pub fn create_flash_url(base_url: &str, message: &str, status: FlashStatus) -> S
         FlashStatus::Error => "error",
         FlashStatus::Info => "info",
     };
-    
+
     format!("{}?msg={}&status={}", base_url, encoded_message, status_str)
 }

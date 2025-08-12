@@ -8,15 +8,19 @@ use axum::{
 use minijinja::Value;
 use minijinja::context;
 use serde::Deserialize;
-use shared::{SharedState, helpers, FlashStatus};
+use shared::{FlashStatus, SharedState, helpers};
 use std::collections::{BTreeMap, HashMap};
 use tracing::debug;
 
-use crate::{schema::{CreateModuleSchema, PermissionCreateSchema, PermissionUpdateSchema}, service::ModuleService};
-use crate::{
-    repository::{ModuleRepository, PaginatedResponse, Repository},
+use crate::model::{
+    module::Module,
+    permission::{Permission, PermissionWithModule},
 };
-use crate::model::{module::Module, permission::{Permission, PermissionWithModule}};
+use crate::repository::{ModuleRepository, PaginatedResponse, Repository};
+use crate::{
+    schema::{CreateModuleSchema, PermissionCreateSchema, PermissionUpdateSchema},
+    service::ModuleService,
+};
 
 #[derive(Deserialize)]
 pub struct ListParams {
@@ -39,15 +43,17 @@ pub async fn list_modules(
     let page = params.page.unwrap_or(1);
     let per_page = 10; // Itens por página
     let search_term = params.find.unwrap_or_default();
-    
+
     // Extrair mensagens flash dos parâmetros da query
-    let flash_message = params.msg.as_ref().map(|msg| urlencoding::decode(msg).unwrap_or_default().to_string());
-    let flash_status = params.status.as_ref()
-        .and_then(|s| match s.as_str() {
-            "success" => Some("success"),
-            "error" => Some("error"),
-            _ => None,
-        });
+    let flash_message = params
+        .msg
+        .as_ref()
+        .map(|msg| urlencoding::decode(msg).unwrap_or_default().to_string());
+    let flash_status = params.status.as_ref().and_then(|s| match s.as_str() {
+        "success" => Some("success"),
+        "error" => Some("error"),
+        _ => None,
+    });
 
     // Buscar módulos com filtro e paginação
     let (modules, total_records) = if search_term.is_empty() {
@@ -55,7 +61,7 @@ pub async fn list_modules(
         let count_result = sqlx::query_scalar!("SELECT COUNT(*) FROM module")
             .fetch_one(&*state.db)
             .await;
-            
+
         let modules_result = sqlx::query_as!(
             Module,
             "SELECT * FROM module ORDER BY id DESC LIMIT $1 OFFSET $2",
@@ -72,14 +78,14 @@ pub async fn list_modules(
     } else {
         // Buscar com filtro
         let search_pattern = format!("%{}%", search_term);
-        
+
         let count_result = sqlx::query_scalar!(
             "SELECT COUNT(*) FROM module WHERE title ILIKE $1",
             search_pattern
         )
         .fetch_one(&*state.db)
         .await;
-            
+
         let modules_result = sqlx::query_as!(
             Module,
             "SELECT * FROM module WHERE title ILIKE $1 ORDER BY id DESC LIMIT $2 OFFSET $3",
@@ -115,12 +121,14 @@ pub async fn list_modules(
             Err(err) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 format!("Falha ao renderizar template: {}", err),
-            ).into_response(),
+            )
+                .into_response(),
         },
         Err(err) => (
             StatusCode::INTERNAL_SERVER_ERROR,
             format!("Falha ao carregar template: {}", err),
-        ).into_response(),
+        )
+            .into_response(),
     }
 }
 
@@ -128,7 +136,6 @@ pub async fn create_model(
     State(state): State<SharedState>,
     Form(body): Form<CreateModuleSchema>,
 ) -> Response {
-
     let service = ModuleService::new();
 
     match service.create(&state.db, body).await {
@@ -137,31 +144,31 @@ pub async fn create_model(
             let redirect_url = helpers::create_flash_url(
                 &format!("/permissao/modulo-form/{}", module.id),
                 "Módulo criado com sucesso!",
-                FlashStatus::Success
+                FlashStatus::Success,
             );
             Redirect::to(&redirect_url).into_response()
         }
         Err(err) => {
-            let error_message = if err.to_string()
+            let error_message = if err
+                .to_string()
                 .contains("duplicate key value violates unique constraint")
             {
                 "Este módulo já existe"
             } else {
                 "Ocorreu um erro ao criar o módulo"
             };
-            
+
             // Redirecionar com mensagem de erro
             let redirect_url = helpers::create_flash_url(
                 "/permissao/modulo-form",
                 error_message,
-                FlashStatus::Error
+                FlashStatus::Error,
             );
-            
+
             debug!("Erro ao criar módulo: {}", err);
             Redirect::to(&redirect_url).into_response()
         }
     }
-
 }
 
 #[derive(Debug, Deserialize)]
@@ -171,7 +178,7 @@ pub struct PaginationQuery {
     pub page_size: Option<u32>,
 }
 
-pub async fn list_modules_api(
+pub async fn modules_list_api(
     Query(q): Query<PaginationQuery>,
     State(state): State<SharedState>,
 ) -> Result<Json<PaginatedResponse<Module>>, StatusCode> {
@@ -204,13 +211,14 @@ pub async fn show_module_form(
     Query(params): Query<HashMap<String, String>>,
 ) -> impl IntoResponse {
     // Extrair mensagens flash dos parâmetros da query
-    let flash_message = params.get("msg").map(|msg| urlencoding::decode(msg).unwrap_or_default().to_string());
-    let flash_status = params.get("status")
-        .and_then(|s| match s.as_str() {
-            "success" => Some("success"),
-            "error" => Some("error"),
-            _ => None,
-        });
+    let flash_message = params
+        .get("msg")
+        .map(|msg| urlencoding::decode(msg).unwrap_or_default().to_string());
+    let flash_status = params.get("status").and_then(|s| match s.as_str() {
+        "success" => Some("success"),
+        "error" => Some("error"),
+        _ => None,
+    });
 
     let ctx = context! {
         title => "Cadastro de Módulo",
@@ -316,13 +324,14 @@ pub async fn get_modulo(
         .await;
 
     // Extrair mensagens flash dos parâmetros da query
-    let flash_message = params.get("msg").map(|msg| urlencoding::decode(msg).unwrap_or_default().to_string());
-    let flash_status = params.get("status")
-        .and_then(|s| match s.as_str() {
-            "success" => Some("success"),
-            "error" => Some("error"),
-            _ => None,
-        });
+    let flash_message = params
+        .get("msg")
+        .map(|msg| urlencoding::decode(msg).unwrap_or_default().to_string());
+    let flash_status = params.get("status").and_then(|s| match s.as_str() {
+        "success" => Some("success"),
+        "error" => Some("error"),
+        _ => None,
+    });
 
     // Carregar o template
     let template = match state.templates.get_template("permissao/modulo_form.html") {
@@ -379,36 +388,34 @@ pub async fn update_modulo(
             let redirect_url = helpers::create_flash_url(
                 &format!("/permissao/modulo-form/{}", id),
                 "Módulo atualizado com sucesso!",
-                FlashStatus::Success
+                FlashStatus::Success,
             );
             Redirect::to(&redirect_url).into_response()
         }
         Err(e) => {
-            let error_message = if e.to_string()
+            let error_message = if e
+                .to_string()
                 .contains("duplicate key value violates unique constraint")
             {
                 "Este título já existe para outro módulo"
             } else {
                 "Ocorreu um erro ao atualizar o módulo"
             };
-            
+
             // Redirecionar com mensagem de erro
             let redirect_url = helpers::create_flash_url(
                 &format!("/permissao/modulo-form/{}", id),
                 error_message,
-                FlashStatus::Error
+                FlashStatus::Error,
             );
-            
+
             debug!("Erro ao atualizar módulo: {}", e);
             Redirect::to(&redirect_url).into_response()
         }
     }
 }
 
-pub async fn delete_module(
-    State(state): State<SharedState>,
-    Path(id): Path<i32>,
-) -> Response {
+pub async fn delete_module(State(state): State<SharedState>, Path(id): Path<i32>) -> Response {
     let query_result = sqlx::query!("DELETE FROM module WHERE id = $1", id)
         .execute(&*state.db)
         .await;
@@ -420,7 +427,7 @@ pub async fn delete_module(
                 let redirect_url = helpers::create_flash_url(
                     "/permissao/modulo",
                     "Módulo excluído com sucesso!",
-                    FlashStatus::Success
+                    FlashStatus::Success,
                 );
                 Redirect::to(&redirect_url).into_response()
             } else {
@@ -428,7 +435,7 @@ pub async fn delete_module(
                 let redirect_url = helpers::create_flash_url(
                     "/permissao/modulo",
                     "Módulo não encontrado",
-                    FlashStatus::Error
+                    FlashStatus::Error,
                 );
                 Redirect::to(&redirect_url).into_response()
             }
@@ -438,7 +445,7 @@ pub async fn delete_module(
             let redirect_url = helpers::create_flash_url(
                 "/permissao/modulo",
                 "Erro ao excluir módulo",
-                FlashStatus::Error
+                FlashStatus::Error,
             );
             Redirect::to(&redirect_url).into_response()
         }
@@ -451,38 +458,40 @@ pub struct PermissionHandler;
 impl PermissionHandler {
     pub async fn count_items(
         &self,
-        pool: &sqlx::Pool<sqlx::Postgres>, 
-        params: &shared::generic_list::GenericListParams
+        pool: &sqlx::Pool<sqlx::Postgres>,
+        params: &shared::generic_list::GenericListParams,
     ) -> Result<usize, sqlx::Error> {
         let search_term = params.search.as_deref().unwrap_or("");
-        
+
         let count: i64 = if search_term.is_empty() {
-            sqlx::query_scalar("SELECT COUNT(*) FROM permission p INNER JOIN module m ON p.module_id = m.id")
-                .fetch_one(pool)
-                .await?
+            sqlx::query_scalar(
+                "SELECT COUNT(*) FROM permission p INNER JOIN module m ON p.module_id = m.id",
+            )
+            .fetch_one(pool)
+            .await?
         } else {
             sqlx::query_scalar(
                 "SELECT COUNT(*) FROM permission p INNER JOIN module m ON p.module_id = m.id 
-                 WHERE p.permission ILIKE $1 OR m.name ILIKE $1"
+                 WHERE p.permission ILIKE $1 OR m.name ILIKE $1",
             )
             .bind(format!("%{}%", search_term))
             .fetch_one(pool)
             .await?
         };
-        
+
         Ok(count as usize)
     }
-    
+
     pub async fn fetch_items(
         &self,
-        pool: &sqlx::Pool<sqlx::Postgres>, 
-        params: &shared::generic_list::GenericListParams
+        pool: &sqlx::Pool<sqlx::Postgres>,
+        params: &shared::generic_list::GenericListParams,
     ) -> Result<Vec<crate::model::permission::PermissionWithModule>, sqlx::Error> {
         let page = params.page.unwrap_or(1);
         let limit = 10_i64;
         let offset = ((page - 1) * 10) as i64;
         let search_term = params.search.as_deref().unwrap_or("");
-        
+
         let items = if search_term.is_empty() {
             sqlx::query_as::<_, crate::model::permission::PermissionWithModule>(
                 "SELECT p.id, p.name, p.description, p.module_id, p.created_at, p.updated_at, m.title as module_name
@@ -510,7 +519,7 @@ impl PermissionHandler {
             .fetch_all(pool)
             .await?
         };
-        
+
         Ok(items)
     }
 }
@@ -534,15 +543,15 @@ pub async fn list_permissions(
         searchable_fields: vec!["permission".to_string(), "module_name".to_string()],
         items_per_page: 10,
     };
-    
+
     let items_result = handler.fetch_items(&state.db, &params).await;
     let count_result = handler.count_items(&state.db, &params).await;
-    
+
     match (items_result, count_result) {
         (Ok(items), Ok(total_count)) => {
             let page = params.page.unwrap_or(1);
             let total_pages = (total_count + config.items_per_page - 1) / config.items_per_page;
-            
+
             let context = minijinja::context! {
                 items => items,
                 config => config,
@@ -553,25 +562,28 @@ pub async fn list_permissions(
                 flash_status => params.flash_status,
                 flash_message => params.flash_message,
             };
-            
+
             match state.templates.get_template("shared/generic_list.html") {
                 Ok(template) => match template.render(context) {
                     Ok(rendered) => Html(rendered).into_response(),
                     Err(err) => (
                         StatusCode::INTERNAL_SERVER_ERROR,
                         format!("Erro ao renderizar template: {}", err),
-                    ).into_response(),
+                    )
+                        .into_response(),
                 },
                 Err(err) => (
                     StatusCode::INTERNAL_SERVER_ERROR,
                     format!("Erro ao carregar template: {}", err),
-                ).into_response(),
+                )
+                    .into_response(),
             }
         }
         _ => (
             StatusCode::INTERNAL_SERVER_ERROR,
             "Erro ao carregar dados das permissões".to_string(),
-        ).into_response(),
+        )
+            .into_response(),
     }
 }
 
@@ -591,13 +603,14 @@ pub async fn show_permission_form(
     };
 
     // Extrair mensagens flash dos parâmetros da query
-    let flash_message = params.get("msg").map(|msg| urlencoding::decode(msg).unwrap_or_default().to_string());
-    let flash_status = params.get("status")
-        .and_then(|s| match s.as_str() {
-            "success" => Some("success"),
-            "error" => Some("error"),
-            _ => None,
-        });
+    let flash_message = params
+        .get("msg")
+        .map(|msg| urlencoding::decode(msg).unwrap_or_default().to_string());
+    let flash_status = params.get("status").and_then(|s| match s.as_str() {
+        "success" => Some("success"),
+        "error" => Some("error"),
+        _ => None,
+    });
 
     let context = minijinja::context! {
         modules => modules,
@@ -605,18 +618,23 @@ pub async fn show_permission_form(
         flash_status => flash_status,
     };
 
-    match state.templates.get_template("permissao/permission_form.html") {
+    match state
+        .templates
+        .get_template("permissao/permission_form.html")
+    {
         Ok(template) => match template.render(context) {
             Ok(html) => Ok(Html(html)),
             Err(err) => Err((
                 StatusCode::INTERNAL_SERVER_ERROR,
                 format!("Erro ao renderizar template: {}", err),
-            ).into_response()),
+            )
+                .into_response()),
         },
         Err(err) => Err((
             StatusCode::INTERNAL_SERVER_ERROR,
             format!("Erro ao carregar template: {}", err),
-        ).into_response()),
+        )
+            .into_response()),
     }
 }
 
@@ -658,33 +676,37 @@ pub async fn get_permission(
     Query(params): Query<HashMap<String, String>>,
 ) -> Result<Html<String>, Response> {
     // Buscar a permissão no banco de dados
-    let permission_result = sqlx::query_as::<_, Permission>("SELECT * FROM permission WHERE id = $1 RETURNING *")
-        .bind(id)
-        .fetch_one(&*state.db)
-        .await;
+    let permission_result =
+        sqlx::query_as::<_, Permission>("SELECT * FROM permission WHERE id = $1 RETURNING *")
+            .bind(id)
+            .fetch_one(&*state.db)
+            .await;
 
     // Buscar todos os módulos para o dropdown
-    let modules = match sqlx::query_as::<_, Module>("SELECT * FROM module ORDER BY title RETURNING *")
-        .fetch_all(&*state.db)
-        .await
-    {
-        Ok(modules) => modules,
-        Err(_) => {
-            return Err((
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "Erro ao carregar módulos".to_string(),
-            ).into_response())
-        }
-    };
+    let modules =
+        match sqlx::query_as::<_, Module>("SELECT * FROM module ORDER BY title RETURNING *")
+            .fetch_all(&*state.db)
+            .await
+        {
+            Ok(modules) => modules,
+            Err(_) => {
+                return Err((
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "Erro ao carregar módulos".to_string(),
+                )
+                    .into_response());
+            }
+        };
 
     // Extrair mensagens flash dos parâmetros da query
-    let flash_message = params.get("msg").map(|msg| urlencoding::decode(msg).unwrap_or_default().to_string());
-    let flash_status = params.get("status")
-        .and_then(|s| match s.as_str() {
-            "success" => Some("success"),
-            "error" => Some("error"),
-            _ => None,
-        });
+    let flash_message = params
+        .get("msg")
+        .map(|msg| urlencoding::decode(msg).unwrap_or_default().to_string());
+    let flash_status = params.get("status").and_then(|s| match s.as_str() {
+        "success" => Some("success"),
+        "error" => Some("error"),
+        _ => None,
+    });
 
     match permission_result {
         Ok(permission) => {
@@ -694,18 +716,23 @@ pub async fn get_permission(
                 flash_message => flash_message,
                 flash_status => flash_status,
             };
-            match state.templates.get_template("permissao/permission_form.html") {
+            match state
+                .templates
+                .get_template("permissao/permission_form.html")
+            {
                 Ok(template) => match template.render(context) {
                     Ok(html) => Ok(Html(html)),
                     Err(err) => Err((
                         StatusCode::INTERNAL_SERVER_ERROR,
                         format!("Erro ao renderizar template: {}", err),
-                    ).into_response()),
+                    )
+                        .into_response()),
                 },
                 Err(err) => Err((
                     StatusCode::INTERNAL_SERVER_ERROR,
                     format!("Erro ao carregar template: {}", err),
-                ).into_response()),
+                )
+                    .into_response()),
             }
         }
         Err(_) => {
@@ -741,7 +768,6 @@ pub async fn update_permission(
                 FlashStatus::Success,
             );
             Redirect::to(&flash_url).into_response()
-            
         }
         Err(err) => {
             let flash_url = helpers::create_flash_url(
@@ -754,10 +780,7 @@ pub async fn update_permission(
     }
 }
 
-pub async fn delete_permission(
-    State(state): State<SharedState>,
-    Path(id): Path<i32>,
-) -> Response {
+pub async fn delete_permission(State(state): State<SharedState>, Path(id): Path<i32>) -> Response {
     match sqlx::query!("DELETE FROM permission WHERE id = $1", id)
         .execute(&*state.db)
         .await

@@ -1,13 +1,18 @@
-
-use crate::{model::module::Permission, repository::{self, Repository}, schema::{PermissionCreateSchema, PermissionUpdateSchema}};
+use crate::{
+    model::module::Permission,
+    repository::{self, Repository},
+    schema::{PermissionCreateSchema, PermissionUpdateSchema},
+};
 use anyhow::Result;
 use sqlx::PgPool;
 
 use axum::{extract::State, response::Html};
 use shared::SharedState;
 
-use crate::{model::module::Module, schema::{CreateModuleSchema, UpdateModuleSchema}};
-
+use crate::{
+    model::module::Module,
+    schema::{CreateModuleSchema, UpdateModuleSchema},
+};
 
 pub struct ModuleService {
     repo: repository::ModuleRepository,

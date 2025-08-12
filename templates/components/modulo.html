@@ -58,7 +58,7 @@
 
     async function fetchModules(searchTerm, page) {
         try {
-            const response = await axios.get(`/core/module-api?find=${searchTerm}&page=${page}`);
+            const response = await axios.get(`/permissao/module-api?find=${searchTerm}&page=${page}`);
             const data = response.data;
             const dropdown = document.getElementById('dropdown');
             const ul = dropdown.querySelector('ul');

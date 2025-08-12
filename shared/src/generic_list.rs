@@ -1,10 +1,7 @@
-use axum::{
-    extract::Query,
-    response::Html,
-};
+use crate::SharedState;
+use axum::{extract::Query, response::Html};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
-use crate::SharedState;
 
 #[derive(Deserialize)]
 pub struct GenericListParams {
@@ -28,17 +25,17 @@ pub struct ListConfig {
 #[async_trait::async_trait]
 pub trait GenericListHandler {
     type Item: serde::Serialize + Send + Sync;
-    
+
     async fn count_items(
         &self,
-        pool: &PgPool, 
-        params: &GenericListParams
+        pool: &PgPool,
+        params: &GenericListParams,
     ) -> Result<usize, sqlx::Error>;
-    
+
     async fn fetch_items(
         &self,
-        pool: &PgPool, 
-        params: &GenericListParams
+        pool: &PgPool,
+        params: &GenericListParams,
     ) -> Result<Vec<Self::Item>, sqlx::Error>;
 }
 
@@ -46,9 +43,18 @@ pub trait GenericListHandler {
 pub trait GenericCrudHandler: GenericListHandler {
     type CreateData: for<'de> serde::Deserialize<'de> + Send;
     type UpdateData: for<'de> serde::Deserialize<'de> + Send;
-    
-    async fn create_item(&self, pool: &PgPool, data: Self::CreateData) -> Result<Self::Item, sqlx::Error>;
-    async fn update_item(&self, pool: &PgPool, id: i32, data: Self::UpdateData) -> Result<Self::Item, sqlx::Error>;
+
+    async fn create_item(
+        &self,
+        pool: &PgPool,
+        data: Self::CreateData,
+    ) -> Result<Self::Item, sqlx::Error>;
+    async fn update_item(
+        &self,
+        pool: &PgPool,
+        id: i32,
+        data: Self::UpdateData,
+    ) -> Result<Self::Item, sqlx::Error>;
     async fn delete_item(&self, pool: &PgPool, id: i32) -> Result<u64, sqlx::Error>;
     async fn get_item_by_id(&self, pool: &PgPool, id: i32) -> Result<Self::Item, sqlx::Error>;
 }

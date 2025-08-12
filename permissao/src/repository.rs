@@ -1,8 +1,14 @@
 use async_trait::async_trait;
 use serde::{Serialize, de::DeserializeOwned};
 use sqlx::{FromRow, PgPool, QueryBuilder, postgres::PgRow};
+use tracing::{debug, info};
 
-use crate::{model::module::{Module, Permission}, schema::{CreateModuleSchema, PermissionCreateSchema, PermissionUpdateSchema, UpdateModuleSchema}};
+use crate::{
+    model::module::{Module, Permission},
+    schema::{
+        CreateModuleSchema, PermissionCreateSchema, PermissionUpdateSchema, UpdateModuleSchema,
+    },
+};
 
 #[derive(Debug, Serialize)]
 pub struct PaginatedResponse<T> {
@@ -36,81 +42,76 @@ where
         find: Option<&str>,
         page: u32,
         page_size: u32,
-    ) -> Result<PaginatedResponse<T>, sqlx::Error> {
+    ) -> Result<PaginatedResponse<T>, sqlx::Error>
+    where
+        T: for<'r> sqlx::FromRow<'r, sqlx::postgres::PgRow> + Send + Unpin,
+    {
         let page = page.max(1);
+        let page_size = page_size.min(100);
         let offset = (page - 1) * page_size;
-        let limit = page_size.min(100);
 
-        // === WHERE clause builder ===
-        let mut where_parts = vec![];
-        let mut bindings = vec![];
+        // WHERE builder
+        let mut where_parts = Vec::new();
 
-        if let Some(find) = find {
-            let like = format!("%{}%", find);
-            let mut filter_parts = vec![];
+        if let Some(term) = find {
+            let like_term = format!("%{}%", term);
+            let search_fields = self.searchable_fields();
 
-            for field in self.searchable_fields() {
-                filter_parts.push(format!(r#"{field} ILIKE ?"#));
-                bindings.push(like.clone());
-            }
-
-            if !filter_parts.is_empty() {
-                where_parts.push(format!("({})", filter_parts.join(" OR ")));
+            if !search_fields.is_empty() {
+                let mut field_parts = Vec::new();
+                for field in search_fields {
+                    field_parts.push(format!("{} ILIKE '{}'", field, like_term));
+                }
+                where_parts.push(format!("({})", field_parts.join(" OR ")));
             }
         }
 
         if let Some(extra) = self.extra_where() {
-            where_parts.push(format!("({})", extra));
+            where_parts.push(extra.to_string());
         }
 
-        let where_clause = if !where_parts.is_empty() {
-            format!("WHERE {}", where_parts.join(" AND "))
+        let where_clause = if where_parts.is_empty() {
+            String::new()
         } else {
-            "".to_string()
+            format!("WHERE {}", where_parts.join(" AND "))
         };
 
         // === COUNT ===
-        let count_sql = format!(
+        let mut count_builder = QueryBuilder::new(format!(
             "SELECT COUNT(*) FROM {} {}",
             self.from_clause(),
             where_clause
-        );
-
-        let mut count_builder: QueryBuilder<'_, sqlx::Postgres> = QueryBuilder::new(&count_sql);
-        for val in &bindings {
-            count_builder.push_bind(val);
-        }
+        ));
 
         let total: (i64,) = count_builder.build_query_as().fetch_one(pool).await?;
 
-        // === SELECT data ===
-        let data_sql = format!(
-            "SELECT {} FROM {} {} ORDER BY 1 DESC OFFSET {} LIMIT {}",
+        // === DATA ===
+        let mut data_builder = QueryBuilder::new(format!(
+            "SELECT {} FROM {} {} ORDER BY 1 DESC",
             self.select_clause(),
             self.from_clause(),
-            where_clause,
-            offset,
-            limit
-        );
+            where_clause
+        ));
 
-        let mut data_builder: QueryBuilder<'_, sqlx::Postgres> = QueryBuilder::new(&data_sql);
-        for val in &bindings {
-            data_builder.push_bind(val);
-        }
+        data_builder
+            .push(" OFFSET ")
+            .push_bind(offset as i64)
+            .push(" LIMIT ")
+            .push_bind(page_size as i64);
 
         let data = data_builder.build_query_as::<T>().fetch_all(pool).await?;
 
         let total_pages = if total.0 == 0 {
             1
         } else {
-            ((total.0 as f32) / (limit as f32)).ceil() as u32
+            ((total.0 as f32) / (page_size as f32)).ceil() as u32
         };
 
         Ok(PaginatedResponse {
             data,
             total_records: total.0,
             page,
-            page_size: limit,
+            page_size,
             total_pages,
         })
     }
@@ -132,7 +133,6 @@ where
 //    pub id: i32,
 //   pub title: String,
 //}
-
 
 pub struct ModuleRepository;
 
@@ -191,7 +191,6 @@ impl Repository<Module> for ModuleRepository {
     }
 }
 
-
 pub struct PermissionRepository;
 
 #[async_trait]
@@ -215,7 +214,11 @@ impl Repository<Permission> for PermissionRepository {
         "permission p"
     }
 
-    async fn create(&self, pool: &PgPool, input: Self::CreateInput) -> Result<Permission, sqlx::Error> {
+    async fn create(
+        &self,
+        pool: &PgPool,
+        input: Self::CreateInput,
+    ) -> Result<Permission, sqlx::Error> {
         sqlx::query_as!(
             Permission,
             r#"INSERT INTO permission (name, description, module_id) 

@@ -1,16 +1,16 @@
 use axum::{
-    routing::{get, post, delete},
     Router,
+    routing::{delete, get, post},
 };
 
-use shared::SharedState;
 use crate::view;
+use shared::SharedState;
 
 pub fn router() -> Router<SharedState> {
     Router::new()
         .route("/index", get(view::home))
         .route("/saudacao", get(view::saudacao))
-        .route("/lista", get(view::list_modules_api))
+        .route("/modulo-api", get(view::modules_list_api))
         .route("/modulo", get(view::list_modules))
         .route("/modulo-list", get(view::list_modulo))
         .route(

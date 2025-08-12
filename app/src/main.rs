@@ -1,9 +1,14 @@
 mod filters;
 use axum::{
-    http::{header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE}, HeaderValue, Method}, routing::get, Router
+    Router,
+    http::{
+        HeaderValue, Method,
+        header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE},
+    },
+    routing::get,
 };
 
-use tower_sessions::{SessionManagerLayer, MemoryStore};
+use tower_sessions::{MemoryStore, SessionManagerLayer};
 
 use filters::register_filters;
 use minijinja::{Environment, path_loader};
@@ -12,8 +17,8 @@ use tower_http::trace::TraceLayer;
 use tracing::{debug, info};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-use tower_http::services::ServeDir;
 use tower_http::cors::CorsLayer;
+use tower_http::services::ServeDir;
 
 use sqlx::postgres::PgPoolOptions;
 
@@ -81,7 +86,7 @@ async fn main() {
         .route("/hello", get(hello_world))
         .nest("/permissao", router_permissao())
         .nest_service("/static", server_dir)
-        .layer(session_layer)  // Sessões devem vir antes do CORS
+        .layer(session_layer) // Sessões devem vir antes do CORS
         .layer(cors)
         .layer(TraceLayer::new_for_http())
         .with_state(state.clone());
