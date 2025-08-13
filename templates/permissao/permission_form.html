@@ -48,13 +48,15 @@
                     <label class="label">
                         <span class="label-text font-semibold">Módulo</span>
                     </label>
+                    {% set value_module = modulo.id if modulo else '' %}
+                    {% set title_module = modulo.title if modulo else '' %}
                     {{ combobox(
                         field_name="module_id", 
                         field_label="Selecione o modulo",
                         endpoint="/permissao/modulo-api",
                         attrs="required",
-                        search='teste',
-                        value='{% if module %}{{ module.id }}{% else %}""{% endif %}',
+                        search=title_module,
+                        value=value_module,
                     ) }}
                     {#
                     <select name="module_id" class="select select-bordered w-full" required>
