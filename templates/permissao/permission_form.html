@@ -54,7 +54,7 @@
                         endpoint="/permissao/modulo-api",
                         attrs="required",
                         search='teste',
-                        value='',
+                        value='{% if module %}{{ module.id }}{% else %}""{% endif %}',
                     ) }}
                     {#
                     <select name="module_id" class="select select-bordered w-full" required>
