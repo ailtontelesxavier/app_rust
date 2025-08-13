@@ -1,10 +1,12 @@
-{% macro combobox(field_name, field_label, endpoint, attrs="") %}
+{% macro combobox(field_name, field_label, endpoint, attrs="", search='', value='') %}
 {% set field_name = field_name %}
 {% set field_label = field_label %}
 {% set attrs = attrs %}
 {% set endpoint = endpoint %}
+{% set search = search %}
+{% set value = value %}
 <div class="relative w-full mb-4 mx-auto">
-    <input id="search_{{ field_name }}" type="text" placeholder="{{ field_label }}..."
+    <input id="search_{{ field_name }}" type="text" placeholder="{{ field_label }}..." value="{{ search }}"
            class="w-full rounded-md border shadow border-gray-300 bg-gray-50 px-4 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500"
            {{ attrs }}>
     <div id="dropdown_{{ field_name }}" class="absolute z-10 mt-1 max-h-60 min-w-xs w-full overflow-auto rounded-md border border-gray-300 bg-white shadow-lg dark:bg-gray-700 dark:border-gray-600 hidden">
@@ -21,7 +23,7 @@
             <button id="next-page_{{ field_name }}" class="inline-flex items-center justify-center bg-primary text-primary-foreground shadow hover:bg-emerald-300 h-9 px-4 py-2 cursor-pointer text-black hover:text-white rounded disabled:opacity-50" disabled>-></button>
         </div>
     </div>
-    <input type="hidden" id="hidden_{{ field_name }}_id" name="{{ field_name }}">
+    <input type="hidden" id="hidden_{{ field_name }}_id" name="{{ field_name }}" value="{{ value }}">
 </div>
 
 <script>

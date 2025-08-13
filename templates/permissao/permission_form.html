@@ -35,7 +35,7 @@
                         name="name" 
                         placeholder="Ex: CREATE_USER, VIEW_REPORTS, etc."
                         class="input input-bordered w-full" 
-                        value="{{ row.permission if row else '' }}"
+                        value="{{ row.name if row else '' }}"
                         required 
                     />
                     <label class="label">
@@ -45,15 +45,18 @@
 
                 <!-- Seleção de Módulo -->
                 <div class="form-control">
-                    {{ combobox(
-                        field_name="modulo_id", 
-                        field_label="Selecione o modulo",
-                        endpoint="/permissao/modulo-api",
-                        attrs="required"
-                    ) }}
                     <label class="label">
                         <span class="label-text font-semibold">Módulo</span>
                     </label>
+                    {{ combobox(
+                        field_name="module_id", 
+                        field_label="Selecione o modulo",
+                        endpoint="/permissao/modulo-api",
+                        attrs="required",
+                        search='teste',
+                        value='',
+                    ) }}
+                    {#
                     <select name="module_id" class="select select-bordered w-full" required>
                         <option value="">Selecione um módulo</option>
                         {% for module in modules %}
@@ -63,6 +66,7 @@
                         </option>
                         {% endfor %}
                     </select>
+                    #}
                 </div>
 
                 <!-- Botões -->

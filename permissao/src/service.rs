@@ -1,5 +1,5 @@
 use crate::{
-    model::module::Permission,
+    model::module::{Permission, PermissionWithModule},
     repository::{self, Repository},
     schema::{PermissionCreateSchema, PermissionUpdateSchema},
 };
@@ -23,6 +23,10 @@ impl ModuleService {
         Self {
             repo: repository::ModuleRepository,
         }
+    }
+
+    pub async fn get_by_id(&self, pool: &PgPool, id: i32) -> Result<Module> {
+        Ok(self.repo.get_by_id(pool, id).await?)
     }
 
     pub async fn create(&self, pool: &PgPool, input: CreateModuleSchema) -> Result<Module> {
@@ -62,6 +66,10 @@ impl PermissionService {
         Self {
             repo: repository::PermissionRepository,
         }
+    }
+
+    pub async fn get_by_id(&self, pool: &PgPool, id: i32) -> Result<Permission> {
+        Ok(self.repo.get_by_id(pool, id).await?)
     }
 
     pub async fn create(&self, pool: &PgPool, input: PermissionCreateSchema) -> Result<Permission> {

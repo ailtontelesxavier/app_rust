@@ -33,7 +33,7 @@ pub struct Permission {
 }
 
 // Estrutura para relacionamento com Module
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct PermissionWithModule {
     #[serde(flatten)]
     pub permission: Permission,

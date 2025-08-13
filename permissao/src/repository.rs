@@ -1,11 +1,11 @@
 use async_trait::async_trait;
 use serde::{Serialize, de::DeserializeOwned};
-use sqlx::{FromRow, PgPool, Postgres, QueryBuilder, Type, postgres::PgRow, Encode};
+use sqlx::{Encode, FromRow, PgPool, Postgres, QueryBuilder, Type, postgres::PgRow};
 use std::fmt::Display;
 use tracing::{debug, info};
 
 use crate::{
-    model::module::{Module, Permission},
+    model::module::{Module, Permission, PermissionWithModule},
     schema::{
         CreateModuleSchema, PermissionCreateSchema, PermissionUpdateSchema, UpdateModuleSchema,
     },

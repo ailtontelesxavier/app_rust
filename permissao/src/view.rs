@@ -12,11 +12,14 @@ use shared::{FlashStatus, SharedState, helpers};
 use std::collections::{BTreeMap, HashMap};
 use tracing::debug;
 
-use crate::model::{
-    module::Module,
-    permission::{Permission, PermissionWithModule},
-};
 use crate::repository::{ModuleRepository, PaginatedResponse, Repository};
+use crate::{
+    model::{
+        module::Module,
+        permission::{Permission, PermissionWithModule},
+    },
+    service::PermissionService,
+};
 use crate::{
     schema::{CreateModuleSchema, PermissionCreateSchema, PermissionUpdateSchema},
     service::ModuleService,
@@ -675,75 +678,71 @@ pub async fn get_permission(
     Path(id): Path<i32>,
     Query(params): Query<HashMap<String, String>>,
 ) -> Result<Html<String>, Response> {
-    // Buscar a permissão no banco de dados
-    let permission_result =
-        sqlx::query_as::<_, Permission>("SELECT * FROM permission WHERE id = $1 RETURNING *")
-            .bind(id)
-            .fetch_one(&*state.db)
-            .await;
-
-    // Buscar todos os módulos para o dropdown
-    let modules =
-        match sqlx::query_as::<_, Module>("SELECT * FROM module ORDER BY title RETURNING *")
-            .fetch_all(&*state.db)
-            .await
-        {
-            Ok(modules) => modules,
-            Err(_) => {
-                return Err((
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    "Erro ao carregar módulos".to_string(),
-                )
-                    .into_response());
-            }
-        };
+    let service = PermissionService::new();
+    let serv_module = ModuleService::new();
 
     // Extrair mensagens flash dos parâmetros da query
     let flash_message = params
         .get("msg")
         .map(|msg| urlencoding::decode(msg).unwrap_or_default().to_string());
+    
     let flash_status = params.get("status").and_then(|s| match s.as_str() {
         "success" => Some("success"),
         "error" => Some("error"),
         _ => None,
     });
 
-    match permission_result {
-        Ok(permission) => {
-            let context = minijinja::context! {
-                row => permission,
-                modules => modules,
-                flash_message => flash_message,
-                flash_status => flash_status,
-            };
-            match state
-                .templates
-                .get_template("permissao/permission_form.html")
-            {
-                Ok(template) => match template.render(context) {
-                    Ok(html) => Ok(Html(html)),
-                    Err(err) => Err((
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        format!("Erro ao renderizar template: {}", err),
-                    )
-                        .into_response()),
-                },
-                Err(err) => Err((
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    format!("Erro ao carregar template: {}", err),
-                )
-                    .into_response()),
-            }
+    // Carregar o template
+    let template = match state.templates.get_template("permissao/permission_form.html") {
+        Ok(t) => t,
+        Err(err) => {
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Falha ao carregar template: {}", err),
+            ).into_response());
         }
-        Err(_) => {
+    };
+
+    // Buscar a permissão
+    let permission = match service.get_by_id(&state.db, id).await {
+        Ok(p) => p,
+        Err(e) => {
+            debug!("Erro ao buscar permissão: {}", e);
             let flash_url = helpers::create_flash_url(
-                &format!("/permissao/permission"),
-                &format!("Permissão não encontrada"),
+                "/permissao/permission",
+                &format!("Permissão não encontrada: {}", e),
                 FlashStatus::Error,
             );
-            Err(Redirect::to(&flash_url).into_response())
+            return Err(Redirect::to(&flash_url).into_response());
         }
+    };
+
+    // Buscar o módulo associado
+    let module = match serv_module.get_by_id(&state.db, permission.module_id).await {
+        Ok(m) => Some(m),
+        Err(e) => {
+            debug!("Erro ao buscar módulo: {}", e);
+            None
+        }
+    };
+
+    // Preparar o contexto
+    let ctx = context! {
+        row => permission,
+        modulo => module,
+        flash_message => flash_message,
+        flash_status => flash_status,
+    };
+
+    // Renderizar o template
+    match template.render(&ctx) {
+        Ok(html) => Ok(Html(html)),
+        Err(err) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Falha ao renderizar template: {}", err),
+        ).into_response()),
     }
+
 }
 
 pub async fn update_permission(
