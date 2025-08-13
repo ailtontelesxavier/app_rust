@@ -247,9 +247,9 @@ pub async fn list_modulo(
     Query(q): Query<PaginationQuery>,
     State(state): State<SharedState>,
 ) -> Result<Html<String>, StatusCode> {
-    let repo = ModuleRepository;
+    let service = ModuleService::new();
 
-    let res = repo
+    let res = service
         .get_paginated(
             &state.db,
             q.find.as_deref(),

@@ -1,7 +1,8 @@
 use async_trait::async_trait;
 use serde::{Serialize, de::DeserializeOwned};
-use sqlx::{FromRow, PgPool, QueryBuilder, postgres::PgRow};
+use sqlx::{FromRow, PgPool, Postgres, Type, QueryBuilder, postgres::PgRow};
 use tracing::{debug, info};
+use std::fmt::Display;
 
 use crate::{
     model::module::{Module, Permission},
@@ -20,10 +21,21 @@ pub struct PaginatedResponse<T> {
 }
 
 #[async_trait]
-pub trait Repository<T>
+pub trait Repository<T, ID>
 where
     T: for<'r> FromRow<'r, PgRow> + Send + Unpin + Serialize + 'static,
+    ID: Type<Postgres> + Send + Sync + Display + 'static,
 {
+
+    /*
+    use uuid::Uuid;
+    impl Repository<User, Uuid> for UserRepository 
+    async fn get_by_id(&self, pool: &PgPool, id: Uuid) -> Result<User, sqlx::Error>
+
+    impl Repository<Module, i32> for ModuleRepository
+    async fn get_by_id(&self, pool: &PgPool, id: i32) -> Result<Module, sqlx::Error>
+    
+     */
     type CreateInput: DeserializeOwned + Send + Sync;
     type UpdateInput: DeserializeOwned + Send + Sync;
 
@@ -31,6 +43,9 @@ where
     fn searchable_fields(&self) -> &[&str];
     fn select_clause(&self) -> &str;
     fn from_clause(&self) -> &str;
+    fn id_column(&self) -> &str {
+        "id"
+    }
 
     fn extra_where(&self) -> Option<&str> {
         None
@@ -116,6 +131,19 @@ where
         })
     }
 
+    async fn get_by_id(&self, pool: &PgPool, id: ID) -> Result<T, sqlx::Error> {
+        let query = format!(
+            "SELECT * FROM {} WHERE {} = $1 LIMIT 1",
+            self.table_name(),
+            self.id_column()
+        );
+        
+        sqlx::query_as(&query)
+            .bind(id)
+            .fetch_one(pool)
+            .await
+    }
+    
     async fn create(&self, pool: &PgPool, input: Self::CreateInput) -> Result<T, sqlx::Error>;
 
     async fn update(
@@ -125,7 +153,7 @@ where
         input: Self::UpdateInput,
     ) -> Result<T, sqlx::Error>;
 
-    async fn delete(&self, pool: &PgPool, id: i32) -> Result<(), sqlx::Error>;
+    async fn delete(&self, pool: &PgPool, id: ID) -> Result<(), sqlx::Error>;
 }
 
 //#[derive(Debug, Serialize, FromRow)]
@@ -137,7 +165,7 @@ where
 pub struct ModuleRepository;
 
 #[async_trait]
-impl Repository<Module> for ModuleRepository {
+impl Repository<Module, i32> for ModuleRepository {
     type CreateInput = CreateModuleSchema;
     type UpdateInput = UpdateModuleSchema;
 
