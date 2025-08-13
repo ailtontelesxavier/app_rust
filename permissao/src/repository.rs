@@ -1,8 +1,8 @@
 use async_trait::async_trait;
 use serde::{Serialize, de::DeserializeOwned};
-use sqlx::{FromRow, PgPool, Postgres, Type, QueryBuilder, postgres::PgRow};
-use tracing::{debug, info};
+use sqlx::{FromRow, PgPool, Postgres, QueryBuilder, Type, postgres::PgRow, Encode};
 use std::fmt::Display;
+use tracing::{debug, info};
 
 use crate::{
     model::module::{Module, Permission},
@@ -24,17 +24,16 @@ pub struct PaginatedResponse<T> {
 pub trait Repository<T, ID>
 where
     T: for<'r> FromRow<'r, PgRow> + Send + Unpin + Serialize + 'static,
-    ID: Type<Postgres> + Send + Sync + Display + 'static,
+    ID: Type<Postgres> + for<'q> Encode<'q, Postgres> + Send + Sync + Display + 'static,
 {
-
     /*
     use uuid::Uuid;
-    impl Repository<User, Uuid> for UserRepository 
+    impl Repository<User, Uuid> for UserRepository
     async fn get_by_id(&self, pool: &PgPool, id: Uuid) -> Result<User, sqlx::Error>
 
     impl Repository<Module, i32> for ModuleRepository
     async fn get_by_id(&self, pool: &PgPool, id: i32) -> Result<Module, sqlx::Error>
-    
+
      */
     type CreateInput: DeserializeOwned + Send + Sync;
     type UpdateInput: DeserializeOwned + Send + Sync;
@@ -137,13 +136,10 @@ where
             self.table_name(),
             self.id_column()
         );
-        
-        sqlx::query_as(&query)
-            .bind(id)
-            .fetch_one(pool)
-            .await
+
+        sqlx::query_as(&query).bind(id).fetch_one(pool).await
     }
-    
+
     async fn create(&self, pool: &PgPool, input: Self::CreateInput) -> Result<T, sqlx::Error>;
 
     async fn update(
@@ -222,7 +218,7 @@ impl Repository<Module, i32> for ModuleRepository {
 pub struct PermissionRepository;
 
 #[async_trait]
-impl Repository<Permission> for PermissionRepository {
+impl Repository<Permission, i32> for PermissionRepository {
     type CreateInput = PermissionCreateSchema;
     type UpdateInput = PermissionUpdateSchema;
 

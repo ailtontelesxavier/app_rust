@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% include "components/modulo.html"%}
+{% include "components/combobox.html"%}
 
 {% block title %}
     {% if row %}Editar Permissão{% else %}Nova Permissão{% endif %}
@@ -45,7 +45,12 @@
 
                 <!-- Seleção de Módulo -->
                 <div class="form-control">
-                    {{modulo_combobox("modulo_id")}}
+                    {{ combobox(
+                        field_name="modulo_id", 
+                        field_label="Selecione o modulo",
+                        endpoint="/permissao/modulo-api",
+                        attrs="required"
+                    ) }}
                     <label class="label">
                         <span class="label-text font-semibold">Módulo</span>
                     </label>

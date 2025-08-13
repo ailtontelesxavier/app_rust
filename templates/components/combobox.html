@@ -1,0 +1,104 @@
+{% macro combobox(field_name, field_label, endpoint, attrs="") %}
+{% set field_name = field_name %}
+{% set field_label = field_label %}
+{% set attrs = attrs %}
+{% set endpoint = endpoint %}
+<div class="relative w-full mb-4 mx-auto">
+    <input id="search_{{ field_name }}" type="text" placeholder="{{ field_label }}..."
+           class="w-full rounded-md border shadow border-gray-300 bg-gray-50 px-4 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500"
+           {{ attrs }}>
+    <div id="dropdown_{{ field_name }}" class="absolute z-10 mt-1 max-h-60 min-w-xs w-full overflow-auto rounded-md border border-gray-300 bg-white shadow-lg dark:bg-gray-700 dark:border-gray-600 hidden">
+        <ul class="py-1"></ul>
+        <div class="flex justify-between items-center px-4 py-2 shadow bg-gray-100 dark:bg-gray-600">
+            <button id="previous-page_{{ field_name }}" class="inline-flex items-center justify-center bg-primary text-primary-foreground shadow hover:bg-emerald-300 h-9 px-4 py-2 cursor-pointer text-black hover:text-white rounded disabled:opacity-50" disabled><-</button>
+            <div class="flex flex-col gap-2">
+                <div class="items-center justify-center">
+                    <span id="current-page_{{ field_name }}" class="text-gray-700 dark:text-gray-300">Pagina 0</span>
+                    <span id="total-pages_{{ field_name }}" class="text-gray-700 dark:text-gray-300"> de 0</span>
+                </div>
+                <span id="total-records_{{ field_name }}" class="text-gray-700 dark:text-gray-300">Linhas: 0</span>
+            </div>
+            <button id="next-page_{{ field_name }}" class="inline-flex items-center justify-center bg-primary text-primary-foreground shadow hover:bg-emerald-300 h-9 px-4 py-2 cursor-pointer text-black hover:text-white rounded disabled:opacity-50" disabled>-></button>
+        </div>
+    </div>
+    <input type="hidden" id="hidden_{{ field_name }}_id" name="{{ field_name }}">
+</div>
+
+<script>
+    (function() {
+        const fieldName = "{{ field_name }}";
+        let currentPage = 1;
+        let totalPages = 0;
+        
+        document.getElementById('search_' + fieldName).addEventListener('input', async function(e) {
+            const searchTerm = e.target.value;
+            currentPage = 1;
+            await fetchOptions(searchTerm, currentPage);
+        });
+
+        document.getElementById('previous-page_' + fieldName).addEventListener('click', async function() {
+            if (currentPage > 1) {
+                const searchTerm = document.getElementById('search_' + fieldName).value;
+                currentPage -= 1;
+                await fetchOptions(searchTerm, currentPage);
+            }
+        });
+
+        document.getElementById('next-page_' + fieldName).addEventListener('click', async function() {
+            if (currentPage < totalPages) {
+                const searchTerm = document.getElementById('search_' + fieldName).value;
+                currentPage += 1;
+                await fetchOptions(searchTerm, currentPage);
+            }
+        });
+
+        document.addEventListener('click', function (evt) {
+            const dropdown = document.getElementById('dropdown_' + fieldName);
+            const searchInput = document.getElementById('search_' + fieldName);
+        
+            if (!dropdown.contains(evt.target) && evt.target !== searchInput) {
+                dropdown.classList.add('hidden');
+            }
+        });
+
+        async function fetchOptions(searchTerm, page) {
+            try {
+                const response = await axios.get(`{{ endpoint|safe }}?find=${searchTerm}&page=${page}`);
+                const data = response.data;
+                const dropdown = document.getElementById('dropdown_' + fieldName);
+                const ul = dropdown.querySelector('ul');
+                ul.innerHTML = '';
+                
+                if (data.data.length > 0) {
+                    dropdown.classList.remove('hidden');
+                    data.data.forEach(item => {
+                        const li = document.createElement('li');
+                        li.className = 'cursor-pointer px-4 py-2 text-gray-900 hover:bg-cyan-200 hover:text-green-800 dark:text-white dark:hover:bg-primary-500 dark:hover:text-white';
+                        li.textContent = item.title || item.name;
+                        li.addEventListener('mousedown', () => {
+                            document.getElementById('search_' + fieldName).value = item.title || item.name;
+                            document.getElementById('hidden_' + fieldName + '_id').value = item.id;
+                            dropdown.classList.add('hidden');
+                        });
+                        ul.appendChild(li);
+                    });
+                    
+                    document.getElementById('total-records_' + fieldName).textContent = `Linhas: ${data.total_records}`;
+                    document.getElementById('current-page_' + fieldName).textContent = `Pagina ${data.page}`;
+                    document.getElementById('total-pages_' + fieldName).textContent = ` de ${data.total_pages}`;
+
+                    totalPages = data.total_pages;
+
+                    document.getElementById('previous-page_' + fieldName).disabled = data.page === 1;
+                    document.getElementById('next-page_' + fieldName).disabled = data.page === data.total_pages;
+                } else {
+                    dropdown.classList.add('hidden');
+                }
+            } catch (error) {
+                console.error("Erro ao buscar opções!", error);
+            }
+        }
+    })();
+</script>
+{% endmacro %}
+
