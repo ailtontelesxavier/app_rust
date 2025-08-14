@@ -40,6 +40,13 @@ pub struct PermissionWithModule {
     pub module: Module,
 }
 
+
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+pub struct Perfil {
+    pub id: i32,
+    pub name: String,
+}
+
 /*
 #[derive(Deserialize, Validate)]
 pub struct AuthFormModel {

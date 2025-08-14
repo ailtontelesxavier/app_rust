@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}
+    {% if row %}Editar Perfil{% else %}Novo Perfil{% endif %}
+{% endblock %}
+
+{% block body %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Flash Messages -->
+    {% if flash_message %}
+        <div class="alert alert-{{ flash_status or 'info' }} mb-6">
+            <span>{{ flash_message }}</span>
+        </div>
+    {% endif %}
+
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <h2 class="card-title text-2xl mb-6">
+                {% if row %}
+                    <i class="fas fa-edit"></i> Editar Perfil
+                {% else %}
+                    <i class="fas fa-plus"></i> Novo Perfil
+                {% endif %}
+            </h2>
+
+            <form method="post" class="space-y-6">
+                <!-- Nome da Permissão -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-semibold">Nome do Perfil</span>
+                    </label>
+                    <input 
+                        type="text" 
+                        name="name" 
+                        placeholder="."
+                        class="input input-bordered w-full" 
+                        value="{{ row.name if row else '' }}"
+                        required 
+                    />
+                </div>
+
+                <!-- Botões -->
+                <div class="flex gap-4 pt-4">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i>
+                        {% if row %}Atualizar{% else %}Criar{% endif %} Perfil
+                    </button>
+
+                    <a href="/permissao/perfil" class="btn btn-ghost">
+                        <i class="fas fa-arrow-left"></i>
+                        Voltar à Lista
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

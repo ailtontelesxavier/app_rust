@@ -12,6 +12,7 @@ pub fn router() -> Router<SharedState> {
         .route("/saudacao", get(view::saudacao))
         .merge(modulo_router())
         .merge(permission_router())
+        .merge(perfil_router())
 }
 
 fn modulo_router() -> Router<SharedState> {
@@ -35,6 +36,7 @@ fn api_modulo_router() -> Router<SharedState> {
 }
 
 fn permission_router() -> Router<SharedState> {
+
     Router::new()
     .route("/permission", get(view::list_permissions))
         .route(
@@ -46,4 +48,18 @@ fn permission_router() -> Router<SharedState> {
             get(view::get_permission).post(view::update_permission),
         )
         .route("/permission/{id}", delete(view::delete_permission))
+}
+
+fn perfil_router() -> Router<SharedState> {
+    Router::new()
+        .route("/perfil", get(view::list_perfil))
+        .route(
+            "/perfil-form",
+            get(view::show_perfil_form).post(view::create_perfil),
+        )
+        .route(
+            "/perfil-form/{id}",
+            get(view::get_perfil).post(view::update_perfil),
+        )
+        .route("/perfil/{id}", delete(view::delete_perfil))
 }

@@ -12,7 +12,7 @@ use shared::{FlashStatus, SharedState, helpers};
 use std::collections::{BTreeMap, HashMap};
 use tracing::debug;
 
-use crate::repository::{ModuleRepository, PaginatedResponse, PermissionRepository, Repository};
+use crate::{model::module::Perfil, repository::{ModuleRepository, PaginatedResponse, PermissionRepository, Repository}, schema::{PerfilCreateSchema, PerfilUpdateSchema}, service::PerfilService};
 use crate::{
     model::{
         module::Module,
@@ -744,6 +744,281 @@ pub async fn delete_permission(State(state): State<SharedState>, Path(id): Path<
             let flash_url = helpers::create_flash_url(
                 "/permissao/permission",
                 &format!("Erro ao excluir permissão: {}", err),
+                FlashStatus::Error,
+            );
+            Redirect::to(&flash_url).into_response()
+        }
+    }
+}
+
+
+//===========================
+// PERFIL(ROLE)
+//===========================
+
+
+pub async fn list_perfil(
+    Query(params): Query<ListParams>,
+    State(state): State<SharedState>,
+) -> impl IntoResponse {
+    let service = PerfilService::new();
+
+    // Extrair mensagens flash dos parâmetros da query
+    let flash_message = params
+        .msg
+        .as_ref()
+        .map(|msg| urlencoding::decode(msg).unwrap_or_default().to_string());
+    let flash_status = params.status.as_ref().and_then(|s| match s.as_str() {
+        "success" => Some("success"),
+        "error" => Some("error"),
+        _ => None,
+    });
+
+    // Usar o PermissionService para buscar dados paginados
+    let permissions_result = service
+        .get_paginated(
+            &state.db,
+            params.find.as_deref(),
+            params.page.unwrap_or(1),
+            params.page_size.unwrap_or(10),
+        )
+        .await;
+
+    match permissions_result {
+        Ok(paginated_response) => {
+            let context = minijinja::context! {
+                rows => paginated_response.data,
+                current_page => paginated_response.page,
+                total_pages => paginated_response.total_pages,
+                page_size => paginated_response.page_size,
+                total_records => paginated_response.total_records,
+                find => params.find.unwrap_or_default(),
+                flash_message => flash_message,
+                flash_status => flash_status,
+            };
+
+            match state
+                .templates
+                .get_template("permissao/perfil_list.html")
+            {
+                Ok(template) => match template.render(context) {
+                    Ok(html) => Html(html).into_response(),
+                    Err(err) => {
+                        debug!("Erro ao renderizar template: {}", err);
+                        StatusCode::INTERNAL_SERVER_ERROR.into_response()
+                    }
+                },
+                Err(err) => {
+                    debug!("Erro ao carregar template: {}", err);
+                    StatusCode::INTERNAL_SERVER_ERROR.into_response()
+                }
+            }
+        }
+        Err(err) => {
+            debug!("Erro ao buscar permissions: {}", err);
+            let redirect_url = helpers::create_flash_url(
+                "/perfil",
+                &format!("Erro ao carregar permissions: {}", err),
+                FlashStatus::Error,
+            );
+            Redirect::to(&redirect_url).into_response()
+        }
+    }
+}
+
+pub async fn show_perfil_form(
+    State(state): State<SharedState>,
+    Query(params): Query<HashMap<String, String>>,
+) -> Result<Html<String>, Response> {
+
+    // Extrair mensagens flash dos parâmetros da query
+    let flash_message = params
+        .get("msg")
+        .map(|msg| urlencoding::decode(msg).unwrap_or_default().to_string());
+    let flash_status = params.get("status").and_then(|s| match s.as_str() {
+        "success" => Some("success"),
+        "error" => Some("error"),
+        _ => None,
+    });
+
+    let context = minijinja::context! {
+        flash_message => flash_message,
+        flash_status => flash_status,
+    };
+
+    match state
+        .templates
+        .get_template("permissao/perfil_form.html")
+    {
+        Ok(template) => match template.render(context) {
+            Ok(html) => Ok(Html(html)),
+            Err(err) => Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Erro ao renderizar template: {}", err),
+            )
+                .into_response()),
+        },
+        Err(err) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Erro ao carregar template: {}", err),
+        )
+            .into_response()),
+    }
+}
+
+pub async fn create_perfil(
+    State(state): State<SharedState>,
+    Form(body): Form<PerfilCreateSchema>,
+) -> Response {
+    match sqlx::query!(
+        "INSERT INTO roles (name) VALUES ($1) RETURNING *",
+        body.name.to_string(),
+    )
+    .fetch_one(&*state.db)
+    .await
+    {
+        Ok(_) => {
+            let flash_url = helpers::create_flash_url(
+                "/permissao/perfil",
+                "Perfil criado com sucesso!",
+                FlashStatus::Success,
+            );
+            Redirect::to(&flash_url).into_response()
+        }
+        Err(err) => {
+            let flash_url = helpers::create_flash_url(
+                "/permissao/perfil-form",
+                &format!("Erro ao criar perfil: {}", err),
+                FlashStatus::Error,
+            );
+            Redirect::to(&flash_url).into_response()
+        }
+    }
+}
+
+pub async fn get_perfil(
+    State(state): State<SharedState>,
+    Path(id): Path<i32>,
+    Query(params): Query<HashMap<String, String>>,
+) -> Result<Html<String>, Response> {
+    let service = PerfilService::new();
+
+    // Extrair mensagens flash dos parâmetros da query
+    let flash_message = params
+        .get("msg")
+        .map(|msg| urlencoding::decode(msg).unwrap_or_default().to_string());
+
+    let flash_status = params.get("status").and_then(|s| match s.as_str() {
+        "success" => Some("success"),
+        "error" => Some("error"),
+        _ => None,
+    });
+
+    // Carregar o template
+    let template = match state
+        .templates
+        .get_template("permissao/perfil_form.html")
+    {
+        Ok(t) => t,
+        Err(err) => {
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Falha ao carregar template: {}", err),
+            )
+                .into_response());
+        }
+    };
+
+    // Buscar o perfil
+    let perfil = match service.get_by_id(&state.db, id).await {
+        Ok(p) => p,
+        Err(e) => {
+            debug!("Erro ao buscar perfil: {}", e);
+            let flash_url = helpers::create_flash_url(
+                "/permissao/perfil",
+                &format!("Perfil não encontrado: {}", e),
+                FlashStatus::Error,
+            );
+            return Err(Redirect::to(&flash_url).into_response());
+        }
+    };
+
+    // Preparar o contexto
+    let ctx = context! {
+        row => perfil,
+        flash_message => flash_message,
+        flash_status => flash_status,
+    };
+
+    // Renderizar o template
+    match template.render(&ctx) {
+        Ok(html) => Ok(Html(html)),
+        Err(err) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Falha ao renderizar template: {}", err),
+        )
+            .into_response()),
+    }
+}
+
+pub async fn update_perfil(
+    State(state): State<SharedState>,
+    Path(id): Path<i32>,
+    Form(input): Form<PerfilUpdateSchema>,
+) -> Response {
+    let query_result = sqlx::query!(
+        "UPDATE roles SET name = $1 WHERE id = $2 RETURNING *",
+        input.name,
+        id
+    )
+    .fetch_one(&*state.db)
+    .await;
+    match query_result {
+        Ok(_) => {
+            let flash_url = helpers::create_flash_url(
+                &format!("/permissao/perfil"),
+                &format!("Perfil atualizado com sucesso!"),
+                FlashStatus::Success,
+            );
+            Redirect::to(&flash_url).into_response()
+        }
+        Err(err) => {
+            let flash_url = helpers::create_flash_url(
+                &format!("/permissao/perfil-form/{}", id),
+                &format!("Erro ao atualizar perfil: {}", err),
+                FlashStatus::Error,
+            );
+            Redirect::to(&flash_url).into_response()
+        }
+    }
+}
+
+pub async fn delete_perfil(State(state): State<SharedState>, Path(id): Path<i32>) -> Response {
+    match sqlx::query!("DELETE FROM roles WHERE id = $1", id)
+        .execute(&*state.db)
+        .await
+    {
+        Ok(result) => {
+            if result.rows_affected() > 0 {
+                let flash_url = helpers::create_flash_url(
+                    "/permissao/perfil",
+                    "Perfil excluído com sucesso!",
+                    FlashStatus::Success,
+                );
+                Redirect::to(&flash_url).into_response()
+            } else {
+                let flash_url = helpers::create_flash_url(
+                    "/permissao/perfil",
+                    "Perfil não encontrado",
+                    FlashStatus::Error,
+                );
+                Redirect::to(&flash_url).into_response()
+            }
+        }
+        Err(err) => {
+            let flash_url = helpers::create_flash_url(
+                "/permissao/perfil",
+                &format!("Erro ao excluir perfil: {}", err),
                 FlashStatus::Error,
             );
             Redirect::to(&flash_url).into_response()

@@ -34,3 +34,13 @@ pub struct PermissionUpdateSchema {
     pub description: Option<String>,
     pub module_id: i32,
 }
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct PerfilCreateSchema {
+    pub name: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct PerfilUpdateSchema {
+    pub name: String,
+}

@@ -1,0 +1,309 @@
+{% extends 'base.html' %}
+
+{% block title %}Lista de Perfil{% endblock %}
+
+{% block body %}
+<div class="container mx-auto p-4">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold">Lista de Perfil</h1>
+        <button id="btnNovo" class="btn btn-primary">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+            </svg>
+            Novo Perfil
+        </button>
+    </div>
+
+    {# Exibir mensagem flash se existir #}
+    {% if flash_message %}
+    <div class="alert {% if flash_status == 'success' %}alert-success{% elif flash_status == 'error' %}alert-error{% else %}alert-info{% endif %} mb-4">
+        <span>{{ flash_message }}</span>
+    </div>
+    {% endif %}
+
+    <!-- Formulário de busca -->
+    <div class="card bg-base-100 shadow-xl mb-6">
+        <div class="card-body">
+            <form action="/permissao/perfil" method="GET" class="flex gap-4 items-end">
+                <div class="form-control flex-1">
+                    <label class="label" for="find">
+                        <span class="label-text">Buscar perfis</span>
+                    </label>
+                    <div class="relative">
+                        <input 
+                            type="text" 
+                            name="find" 
+                            id="find" 
+                            placeholder="Digite o nome do perfil..." 
+                            class="input input-bordered w-full pr-10" 
+                            value="{{ find or '' }}"
+                        >
+                        <button type="submit" class="absolute inset-y-0 right-0 flex items-center pr-3">
+                            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <input type="hidden" name="page" value="1">
+                <button type="button" onclick="clearSearch()" class="btn btn-ghost">Limpar</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tabela de módulos -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body p-0">
+            {% if rows and rows|length > 0 %}
+            <!-- Tabela para telas grandes -->
+            <div class="overflow-x-auto">
+                <table class="table table-zebra w-full">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nome</th>
+                            <th class="text-center">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in rows %}
+                        <tr class="hover">
+                            <td class="font-mono text-sm">{{ row.id }}</td>
+                            <td class="font-medium">{{ row.name }}</td>
+                            <td class="text-center">
+                                <div class="flex justify-center gap-2">
+                                    <button 
+                                        class="btn btn-sm btn-primary updateRowButton" 
+                                        data-id="{{ row.id }}"
+                                        title="Editar"
+                                    >
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                        </svg>
+                                    </button>
+                                    <button 
+                                        class="btn btn-sm btn-error deleteRowButton" 
+                                        data-id="{{ row.id }}"
+                                        title="Excluir"
+                                        onclick="openDeleteModal({{ row.id }}, '{{ row.name }}')"
+                                    >
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Cards para telas pequenas -->
+            <div class="lg:hidden p-4">
+                {% for row in rows %}
+                <div class="card bg-base-200 shadow-sm mb-4">
+                    <div class="card-body p-4">
+                        <div class="flex justify-between items-start">
+                            <div class="flex-1">
+                                <h3 class="card-title text-lg">{{ row.name }}</h3>
+                                <p class="text-sm text-gray-600">ID: {{ row.id }}</p>
+                            </div>
+                            <div class="flex gap-2">
+                                <button 
+                                    class="btn btn-sm btn-primary updateRowButton" 
+                                    data-id="{{ row.id }}"
+                                >
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                    </svg>
+                                </button>
+                                <button 
+                                    class="btn btn-sm btn-error deleteRowButton" 
+                                    data-id="{{ row.id }}"
+                                    onclick="openDeleteModal({{ row.id }}, '{{ row.name }}')"
+                                >
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            {% else %}
+            <!-- Estado vazio -->
+            <div class="flex flex-col items-center justify-center py-12">
+                <svg class="w-16 h-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2 2v-5m16 0h-2M4 13h2m0 0V9a2 2 0 012-2h2m0 0V6a1 1 0 011-1h2a1 1 0 011 1v1m0 0v1a2 2 0 002 2h2m0 0v1"></path>
+                </svg>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">Nenhum módulo encontrado</h3>
+                <p class="text-gray-500 text-center mb-4">
+                    {% if find %}
+                        Não encontramos módulos que correspondam à sua busca por "{{ find }}".
+                    {% else %}
+                        Comece criando seu primeiro módulo.
+                    {% endif %}
+                </p>
+                <button id="btnNovoEmpty" class="btn btn-primary">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                    </svg>
+                    Criar Primeiro Módulo
+                </button>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Paginação -->
+    {% if total_pages and total_pages > 1 %}
+    <div class="flex justify-center mt-6">
+        <div class="join">
+            <!-- Botão anterior -->
+            {% if current_page > 1 %}
+                <a href="?page={{ current_page - 1 }}{% if find %}&find={{ find }}{% endif %}" class="join-item btn">«</a>
+            {% else %}
+                <button class="join-item btn btn-disabled">«</button>
+            {% endif %}
+
+            <!-- Números das páginas -->
+            {% set start_page = [1, current_page - 2]|max %}
+            {% set end_page = [total_pages, current_page + 2]|min %}
+
+            {% if start_page > 1 %}
+                <a href="?page=1{% if find %}&find={{ find }}{% endif %}" class="join-item btn">1</a>
+                {% if start_page > 2 %}
+                    <button class="join-item btn btn-disabled">...</button>
+                {% endif %}
+            {% endif %}
+
+            {% for page_num in range(start_page, end_page + 1) %}
+                {% if page_num == current_page %}
+                    <button class="join-item btn btn-active">{{ page_num }}</button>
+                {% else %}
+                    <a href="?page={{ page_num }}{% if find %}&find={{ find }}{% endif %}" class="join-item btn">{{ page_num }}</a>
+                {% endif %}
+            {% endfor %}
+
+            {% if end_page < total_pages %}
+                {% if end_page < total_pages - 1 %}
+                    <button class="join-item btn btn-disabled">...</button>
+                {% endif %}
+                <a href="?page={{ total_pages }}{% if find %}&find={{ find }}{% endif %}" class="join-item btn">{{ total_pages }}</a>
+            {% endif %}
+
+            <!-- Botão próximo -->
+            {% if current_page < total_pages %}
+                <a href="?page={{ current_page + 1 }}{% if find %}&find={{ find }}{% endif %}" class="join-item btn">»</a>
+            {% else %}
+                <button class="join-item btn btn-disabled">»</button>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Informações da paginação -->
+    <div class="text-center mt-4 text-sm text-gray-600">
+        {% if total_records %}
+            Página {{ current_page }} de {{ total_pages }} - Total: {{ total_records }} registro(s)
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<!-- Modal de confirmação de exclusão -->
+<dialog id="delete_modal" class="modal">
+    <div class="modal-box">
+        <h3 class="font-bold text-lg">Confirmar Exclusão</h3>
+        <p class="py-4">Tem certeza que deseja excluir o módulo "<span id="module_name_to_delete"></span>"?</p>
+        <p class="text-sm text-gray-500 mb-4">Esta ação não pode ser desfeita.</p>
+        <div class="modal-action">
+            <form method="dialog">
+                <button class="btn">Cancelar</button>
+            </form>
+            <button id="confirm_delete" class="btn btn-error">Excluir</button>
+        </div>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+        <button>close</button>
+    </form>
+</dialog>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let moduleToDelete = null;
+
+    // Função para abrir modal de exclusão
+    function openDeleteModal(id, name) {
+        moduleToDelete = id;
+        document.getElementById('module_name_to_delete').textContent = name;
+        document.getElementById('delete_modal').showModal();
+    }
+
+    // Confirmar exclusão
+    document.getElementById('confirm_delete').addEventListener('click', function() {
+        if (moduleToDelete) {
+            // Implementar lógica de exclusão aqui
+            // Por exemplo, fazer uma requisição DELETE ou POST para excluir
+            fetch(`/permissao/perfil/${moduleToDelete}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    // Recarregar a página ou remover o item da lista
+                    window.location.reload();
+                } else {
+                    alert('Erro ao excluir módulo');
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                alert('Erro ao excluir módulo');
+            });
+        }
+        document.getElementById('delete_modal').close();
+    });
+
+    // Função para editar módulo
+    document.querySelectorAll('.updateRowButton').forEach(function(button) {
+        button.addEventListener('click', function() {
+            const itemId = this.getAttribute('data-id');
+            window.location.href = `/permissao/perfil-form/${itemId}`;
+        });
+    });
+
+    // Adicionar novo módulo
+    document.getElementById('btnNovo').addEventListener('click', function() {
+        window.location.href = '/permissao/perfil-form';
+    });
+
+    // Botão de novo módulo no estado vazio
+    const btnNovoEmpty = document.getElementById('btnNovoEmpty');
+    if (btnNovoEmpty) {
+        btnNovoEmpty.addEventListener('click', function() {
+            window.location.href = '/permissao/perfil-form';
+        });
+    }
+
+    // Função para limpar busca
+    function clearSearch() {
+        document.getElementById('find').value = '';
+        window.location.href = '/permissao/perfil';
+    }
+
+    // Auto-submit do formulário de busca quando Enter é pressionado
+    document.getElementById('find').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            this.form.submit();
+        }
+    });
+</script>
+{% endblock %}
