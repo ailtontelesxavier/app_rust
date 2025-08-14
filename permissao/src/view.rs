@@ -12,7 +12,7 @@ use shared::{FlashStatus, SharedState, helpers};
 use std::collections::{BTreeMap, HashMap};
 use tracing::debug;
 
-use crate::{model::module::Perfil, repository::{ModuleRepository, PaginatedResponse, PermissionRepository, Repository}, schema::{PerfilCreateSchema, PerfilUpdateSchema}, service::PerfilService};
+use crate::{model::module::Perfil, repository::{ModuleRepository, PaginatedResponse, PermissionRepository, Repository}, schema::{PerfilCreateSchema, PerfilUpdateSchema, UserCreateSchema}, service::{PerfilService, UserService}};
 use crate::{
     model::{
         module::Module,
@@ -1019,6 +1019,158 @@ pub async fn delete_perfil(State(state): State<SharedState>, Path(id): Path<i32>
             let flash_url = helpers::create_flash_url(
                 "/permissao/perfil",
                 &format!("Erro ao excluir perfil: {}", err),
+                FlashStatus::Error,
+            );
+            Redirect::to(&flash_url).into_response()
+        }
+    }
+}
+
+
+
+//===========================
+// User
+//===========================
+
+
+pub async fn list_user(
+    Query(params): Query<ListParams>,
+    State(state): State<SharedState>,
+) -> impl IntoResponse {
+    let service = UserService::new();
+
+    // Extrair mensagens flash dos parâmetros da query
+    let flash_message = params
+        .msg
+        .as_ref()
+        .map(|msg| urlencoding::decode(msg).unwrap_or_default().to_string());
+    let flash_status = params.status.as_ref().and_then(|s| match s.as_str() {
+        "success" => Some("success"),
+        "error" => Some("error"),
+        _ => None,
+    });
+
+    // Usar o UserService para buscar dados paginados
+    let result = service
+        .get_paginated(
+            &state.db,
+            params.find.as_deref(),
+            params.page.unwrap_or(1),
+            params.page_size.unwrap_or(10),
+        )
+        .await;
+
+    match result {
+        Ok(paginated_response) => {
+            let context = minijinja::context! {
+                rows => paginated_response.data,
+                current_page => paginated_response.page,
+                total_pages => paginated_response.total_pages,
+                page_size => paginated_response.page_size,
+                total_records => paginated_response.total_records,
+                find => params.find.unwrap_or_default(),
+                flash_message => flash_message,
+                flash_status => flash_status,
+            };
+
+            match state
+                .templates
+                .get_template("permissao/user_list.html")
+            {
+                Ok(template) => match template.render(context) {
+                    Ok(html) => Html(html).into_response(),
+                    Err(err) => {
+                        debug!("Erro ao renderizar template: {}", err);
+                        StatusCode::INTERNAL_SERVER_ERROR.into_response()
+                    }
+                },
+                Err(err) => {
+                    debug!("Erro ao carregar template: {}", err);
+                    StatusCode::INTERNAL_SERVER_ERROR.into_response()
+                }
+            }
+        }
+        Err(err) => {
+            debug!("Erro ao buscar users: {}", err);
+            let redirect_url = helpers::create_flash_url(
+                "/user",
+                &format!("Erro ao carregar users: {}", err),
+                FlashStatus::Error,
+            );
+            Redirect::to(&redirect_url).into_response()
+        }
+    }
+}
+
+pub async fn show_user_form(
+    State(state): State<SharedState>,
+    Query(params): Query<HashMap<String, String>>,
+) -> Result<Html<String>, Response> {
+
+    // Extrair mensagens flash dos parâmetros da query
+    let flash_message = params
+        .get("msg")
+        .map(|msg| urlencoding::decode(msg).unwrap_or_default().to_string());
+    let flash_status = params.get("status").and_then(|s| match s.as_str() {
+        "success" => Some("success"),
+        "error" => Some("error"),
+        _ => None,
+    });
+
+    let context = minijinja::context! {
+        flash_message => flash_message,
+        flash_status => flash_status,
+    };
+
+    match state
+        .templates
+        .get_template("permissao/user_form.html")
+    {
+        Ok(template) => match template.render(context) {
+            Ok(html) => Ok(Html(html)),
+            Err(err) => Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Erro ao renderizar template: {}", err),
+            )
+                .into_response()),
+        },
+        Err(err) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Erro ao carregar template: {}", err),
+        )
+            .into_response()),
+    }
+}
+
+pub async fn create_user(
+    State(state): State<SharedState>,
+    Form(body): Form<UserCreateSchema>,
+) -> Response {
+    let service = UserService::new();
+
+    /* service.validate_email(&body.email).await.map_err(|err| {
+        let flash_url = helpers::create_flash_url(
+            "/permissao/user-form",
+            &format!("Erro ao validar email: {}", err),
+            FlashStatus::Error,
+        );
+        Redirect::to(&flash_url).into_response()
+    })?; */
+
+    match service.create(&state.db, body).await
+    {
+        Ok(user) => {
+            let flash_url = helpers::create_flash_url(
+                &format!("/permissao/user-form/{}", user.id),
+                "User criado com sucesso!",
+                FlashStatus::Success,
+            );
+            Redirect::to(&flash_url).into_response()
+        }
+        Err(err) => {
+            let flash_url = helpers::create_flash_url(
+                "/permissao/user-form",
+                &format!("Erro ao criar user: {}", err),
                 FlashStatus::Error,
             );
             Redirect::to(&flash_url).into_response()

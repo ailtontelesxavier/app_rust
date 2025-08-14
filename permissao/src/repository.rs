@@ -5,9 +5,9 @@ use std::fmt::Display;
 use tracing::{debug, info};
 
 use crate::{
-    model::module::{Module, Perfil, Permission, PermissionWithModule},
+    model::module::{Module, Perfil, Permission, User},
     schema::{
-        CreateModuleSchema, PerfilCreateSchema, PerfilUpdateSchema, PermissionCreateSchema, PermissionUpdateSchema, UpdateModuleSchema
+        CreateModuleSchema, PerfilCreateSchema, PerfilUpdateSchema, PermissionCreateSchema, PermissionUpdateSchema, UpdateModuleSchema, UserCreateSchema, UserUpdateSchema
     },
 };
 
@@ -145,7 +145,7 @@ where
     async fn update(
         &self,
         pool: &PgPool,
-        id: i32,
+        id: ID,
         input: Self::UpdateInput,
     ) -> Result<T, sqlx::Error>;
 
@@ -346,6 +346,100 @@ impl Repository<Perfil, i32> for PerfilRepository {
 
     async fn delete(&self, pool: &PgPool, id: i32) -> Result<(), sqlx::Error> {
         sqlx::query!("DELETE FROM roles WHERE id = $1", id)
+            .execute(pool)
+            .await?;
+        Ok(())
+    }
+}
+
+pub struct UserRepository;
+
+#[async_trait]
+impl Repository<User, i64> for UserRepository {
+    type CreateInput = UserCreateSchema;
+    type UpdateInput = UserUpdateSchema;
+
+    fn table_name(&self) -> &str {
+        "users"
+    }
+
+    fn searchable_fields(&self) -> &[&str] {
+        &["u.username", "u.email", "u.full_name"]
+    }
+
+    fn select_clause(&self) -> &str {
+        "u.id, u.username, u.password, u.email, u.full_name, u.otp_base32, \
+        u.is_active, u.is_staff, u.is_superuser, u.ip_last_login, \
+        u.last_login, u.created_at, u.updated_at"
+    }
+
+    fn from_clause(&self) -> &str {
+        "users u"
+    }
+
+    async fn create(
+        &self,
+        pool: &PgPool,
+        input: Self::CreateInput,
+    ) -> Result<User, sqlx::Error> {
+        sqlx::query_as!(
+            User,
+            r#"INSERT INTO users (username, password, email, full_name, otp_base32, is_active, is_staff, is_superuser) 
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
+               RETURNING * "#,
+            input.username,
+            input.password,
+            input.email,
+            input.full_name,
+            input.otp_base32,
+            input.is_active,
+            input.is_staff,
+            input.is_superuser
+        )
+        .fetch_one(pool)
+        .await
+    }
+
+    async fn update(
+        &self,
+        pool: &PgPool,
+        id: i64,
+        input: Self::UpdateInput,
+    ) -> Result<User, sqlx::Error> {
+        sqlx::query_as!(
+            User,
+            r#"
+            UPDATE users
+            SET 
+                username = $1,
+                email = $2,
+                full_name = $3,
+                otp_base32 = $4,
+                is_active = $5,
+                is_staff = $6,
+                is_superuser = $7,
+                updated_at = NOW()
+            WHERE id = $8
+            RETURNING 
+                id, username, password, email, full_name, otp_base32,
+                is_active, is_staff, is_superuser, ip_last_login,
+                last_login, created_at, updated_at
+            "#,
+            input.username,
+            input.email,
+            input.full_name,
+            input.otp_base32,
+            input.is_active,
+            input.is_staff,
+            input.is_superuser,
+            id
+        )
+        .fetch_one(pool)
+        .await
+    }
+
+    async fn delete(&self, pool: &PgPool, id: i64) -> Result<(), sqlx::Error> {
+        sqlx::query!(r#"DELETE FROM users WHERE id = $1"#, id as i64)
             .execute(pool)
             .await?;
         Ok(())

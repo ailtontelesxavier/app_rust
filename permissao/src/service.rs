@@ -1,7 +1,7 @@
 use crate::{
-    model::module::{Perfil, Permission, PermissionWithModule},
+    model::module::{Perfil, Permission, PermissionWithModule, User},
     repository::{self, Repository},
-    schema::{PerfilCreateSchema, PerfilUpdateSchema, PermissionCreateSchema, PermissionUpdateSchema},
+    schema::{PerfilCreateSchema, PerfilUpdateSchema, PermissionCreateSchema, PermissionUpdateSchema, UserCreateSchema, UserUpdateSchema},
 };
 use anyhow::Result;
 use sqlx::PgPool;
@@ -139,6 +139,50 @@ impl PerfilService {
         page: i32,
         page_size: i32,
     ) -> Result<repository::PaginatedResponse<Perfil>> {
+        Ok(self.repo.get_paginated(pool, find, page, page_size).await?)
+    }
+}
+
+
+pub struct UserService {
+    repo: repository::UserRepository,
+}
+
+impl UserService {
+    pub fn new() -> Self {
+        Self {
+            repo: repository::UserRepository,
+        }
+    }
+
+    pub async fn get_by_id(&self, pool: &PgPool, id: i64) -> Result<User> {
+        Ok(self.repo.get_by_id(pool, id).await?)
+    }
+
+    pub async fn create(&self, pool: &PgPool, input: UserCreateSchema) -> Result<User> {
+        Ok(self.repo.create(pool, input).await?)
+    }
+
+    pub async fn update(
+        &self,
+        pool: &PgPool,
+        id: i64,
+        input: UserUpdateSchema,
+    ) -> Result<User> {
+        Ok(self.repo.update(pool, id, input).await?)
+    }
+
+    pub async fn delete(&self, pool: &PgPool, id: i64) -> Result<()> {
+        Ok(self.repo.delete(pool, id).await?)
+    }
+
+    pub async fn get_paginated(
+        &self,
+        pool: &PgPool,
+        find: Option<&str>,
+        page: i32,
+        page_size: i32,
+    ) -> Result<repository::PaginatedResponse<User>> {
         Ok(self.repo.get_paginated(pool, find, page, page_size).await?)
     }
 }

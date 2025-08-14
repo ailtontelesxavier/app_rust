@@ -1,3 +1,6 @@
+use std::net::IpAddr;
+
+use ipnetwork::IpNetwork;
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Debug, Default)]
@@ -43,4 +46,29 @@ pub struct PerfilCreateSchema {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct PerfilUpdateSchema {
     pub name: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UserCreateSchema {
+    pub username: String,
+    pub password: String,
+    pub email: String,
+    pub full_name: String,
+    pub otp_base32: Option<String>,
+    pub is_active: bool,
+    pub is_staff: bool,
+    pub is_superuser: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UserUpdateSchema {
+    pub username: Option<String>,
+    pub password: Option<String>,
+    pub email: Option<String>,
+    pub full_name: Option<String>,
+    pub otp_base32: Option<String>,
+    pub is_active: Option<bool>,
+    pub is_staff: Option<bool>,
+    pub is_superuser: Option<bool>,
+    pub ip_last_login: Option<IpNetwork>,
 }

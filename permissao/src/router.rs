@@ -13,6 +13,7 @@ pub fn router() -> Router<SharedState> {
         .merge(modulo_router())
         .merge(permission_router())
         .merge(perfil_router())
+        .merge(user_router())
 }
 
 fn modulo_router() -> Router<SharedState> {
@@ -62,4 +63,19 @@ fn perfil_router() -> Router<SharedState> {
             get(view::get_perfil).post(view::update_perfil),
         )
         .route("/perfil/{id}", delete(view::delete_perfil))
+}
+
+fn user_router() -> Router<SharedState> {
+    Router::new()
+        .route("/user", get(view::list_user))
+        .route(
+            "/user-form",
+            get(view::show_user_form).post(view::create_user),
+        )
+        /*.route(
+            "/user-form/{id}",
+            get(view::get_user).post(view::update_user),
+        )
+        .route("/user/{id}", delete(view::delete_user))
+        */
 }
