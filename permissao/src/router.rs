@@ -10,7 +10,12 @@ pub fn router() -> Router<SharedState> {
     Router::new()
         .route("/index", get(view::home))
         .route("/saudacao", get(view::saudacao))
-        .route("/modulo-api", get(view::modules_list_api))
+        .merge(modulo_router())
+        .merge(permission_router())
+}
+
+fn modulo_router() -> Router<SharedState> {
+    Router::new()
         .route("/modulo", get(view::list_modules))
         .route("/modulo-list", get(view::list_modulo))
         .route(
@@ -22,7 +27,16 @@ pub fn router() -> Router<SharedState> {
             get(view::get_modulo).post(view::update_modulo),
         )
         .route("/modulo/{id}", delete(view::delete_module))
-        .route("/permission", get(view::list_permissions))
+        .merge(api_modulo_router())
+}
+
+fn api_modulo_router() -> Router<SharedState> {
+    Router::new().route("/modulo-api", get(view::modules_list_api))
+}
+
+fn permission_router() -> Router<SharedState> {
+    Router::new()
+    .route("/permission", get(view::list_permissions))
         .route(
             "/permission-form",
             get(view::show_permission_form).post(view::create_permission),

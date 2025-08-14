@@ -496,7 +496,10 @@ pub async fn list_permissions(
                 flash_status => flash_status,
             };
 
-            match state.templates.get_template("permissao/permission_list.html") {
+            match state
+                .templates
+                .get_template("permissao/permission_list.html")
+            {
                 Ok(template) => match template.render(context) {
                     Ok(html) => Html(html).into_response(),
                     Err(err) => {
