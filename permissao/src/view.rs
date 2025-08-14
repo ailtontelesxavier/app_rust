@@ -12,7 +12,7 @@ use shared::{FlashStatus, SharedState, helpers};
 use std::collections::{BTreeMap, HashMap};
 use tracing::debug;
 
-use crate::repository::{ModuleRepository, PaginatedResponse, Repository};
+use crate::repository::{ModuleRepository, PaginatedResponse, PermissionRepository, Repository};
 use crate::{
     model::{
         module::Module,
@@ -27,10 +27,11 @@ use crate::{
 
 #[derive(Deserialize)]
 pub struct ListParams {
-    pub page: Option<usize>,
+    pub page: Option<i32>,
     pub find: Option<String>,
     pub msg: Option<String>,
     pub status: Option<String>,
+    pub page_size: Option<i32>,
 }
 
 pub async fn home(State(state): State<SharedState>) -> Html<String> {
@@ -105,7 +106,7 @@ pub async fn list_modules(
         }
     };
 
-    let total_pages = (total_records + per_page - 1) / per_page;
+    let total_pages = (total_records + per_page as usize - 1) / per_page as usize;
 
     let ctx = context! {
         title => "Lista de Módulos",
@@ -190,8 +191,8 @@ pub async fn modules_list_api(
         .get_paginated(
             &state.db,
             q.find.as_deref(),
-            q.page.unwrap_or(1),
-            q.page_size.unwrap_or(10),
+            q.page.unwrap_or(1) as i32,
+            q.page_size.unwrap_or(10) as i32,
         )
         .await
         .map_err(|err| {
@@ -256,8 +257,8 @@ pub async fn list_modulo(
         .get_paginated(
             &state.db,
             q.find.as_deref(),
-            q.page.unwrap_or(1),
-            q.page_size.unwrap_or(10),
+            q.page.unwrap_or(1) as i32,
+            q.page_size.unwrap_or(10) as i32,
         )
         .await
         .map_err(|err| {
@@ -455,138 +456,69 @@ pub async fn delete_module(State(state): State<SharedState>, Path(id): Path<i32>
     }
 }
 
-// Implementação simplificada do handler de permissões
-pub struct PermissionHandler;
-
-impl PermissionHandler {
-    pub async fn count_items(
-        &self,
-        pool: &sqlx::Pool<sqlx::Postgres>,
-        params: &shared::generic_list::GenericListParams,
-    ) -> Result<usize, sqlx::Error> {
-        let search_term = params.search.as_deref().unwrap_or("");
-
-        let count: i64 = if search_term.is_empty() {
-            sqlx::query_scalar(
-                "SELECT COUNT(*) FROM permission p INNER JOIN module m ON p.module_id = m.id",
-            )
-            .fetch_one(pool)
-            .await?
-        } else {
-            sqlx::query_scalar(
-                "SELECT COUNT(*) FROM permission p INNER JOIN module m ON p.module_id = m.id 
-                 WHERE p.permission ILIKE $1 OR m.name ILIKE $1",
-            )
-            .bind(format!("%{}%", search_term))
-            .fetch_one(pool)
-            .await?
-        };
-
-        Ok(count as usize)
-    }
-
-    pub async fn fetch_items(
-        &self,
-        pool: &sqlx::Pool<sqlx::Postgres>,
-        params: &shared::generic_list::GenericListParams,
-    ) -> Result<Vec<crate::model::permission::PermissionWithModule>, sqlx::Error> {
-        let page = params.page.unwrap_or(1);
-        let limit = 10_i64;
-        let offset = ((page - 1) * 10) as i64;
-        let search_term = params.search.as_deref().unwrap_or("");
-
-        let items = if search_term.is_empty() {
-            sqlx::query_as::<_, crate::model::permission::PermissionWithModule>(
-                "SELECT p.id, p.name, p.description, p.module_id, p.created_at, p.updated_at, m.title as module_name
-                 FROM permission p 
-                 INNER JOIN module m ON p.module_id = m.id
-                 ORDER BY p.id DESC
-                 LIMIT $1 OFFSET $2"
-            )
-            .bind(limit)
-            .bind(offset)
-            .fetch_all(pool)
-            .await?
-        } else {
-            sqlx::query_as::<_, crate::model::permission::PermissionWithModule>(
-                "SELECT p.id, p.name, p.description, p.module_id, p.created_at, p.updated_at, m.title as module_name
-                 FROM permission p 
-                 INNER JOIN module m ON p.module_id = m.id
-                 WHERE p.name ILIKE $1 OR m.name ILIKE $1
-                 ORDER BY p.id DESC
-                 LIMIT $2 OFFSET $3"
-            )
-            .bind(format!("%{}%", search_term))
-            .bind(limit)
-            .bind(offset)
-            .fetch_all(pool)
-            .await?
-        };
-
-        Ok(items)
-    }
-}
-
 pub async fn list_permissions(
-    Query(params): Query<shared::generic_list::GenericListParams>,
+    Query(params): Query<ListParams>,
     State(state): State<SharedState>,
 ) -> impl IntoResponse {
-    let handler = PermissionHandler;
-    let config = shared::generic_list::ListConfig {
-        entity_name: "permission".to_string(),
-        entity_label: "Permissão".to_string(),
-        plural_label: "Permissões".to_string(),
-        base_url: "/permission".to_string(),
-        fields: vec![
-            ("id".to_string(), "ID".to_string()),
-            ("permission".to_string(), "Permissão".to_string()),
-            ("module_name".to_string(), "Módulo".to_string()),
-            ("created_at".to_string(), "Criado em".to_string()),
-        ],
-        searchable_fields: vec!["permission".to_string(), "module_name".to_string()],
-        items_per_page: 10,
-    };
+    let service = PermissionService::new();
 
-    let items_result = handler.fetch_items(&state.db, &params).await;
-    let count_result = handler.count_items(&state.db, &params).await;
+    // Extrair mensagens flash dos parâmetros da query
+    let flash_message = params
+        .msg
+        .as_ref()
+        .map(|msg| urlencoding::decode(msg).unwrap_or_default().to_string());
+    let flash_status = params.status.as_ref().and_then(|s| match s.as_str() {
+        "success" => Some("success"),
+        "error" => Some("error"),
+        _ => None,
+    });
 
-    match (items_result, count_result) {
-        (Ok(items), Ok(total_count)) => {
-            let page = params.page.unwrap_or(1);
-            let total_pages = (total_count + config.items_per_page - 1) / config.items_per_page;
+    // Usar o PermissionService para buscar dados paginados
+    let permissions_result = service
+        .get_paginated(
+            &state.db,
+            params.find.as_deref(),
+            params.page.unwrap_or(1),
+            params.page_size.unwrap_or(10),
+        )
+        .await;
 
+    match permissions_result {
+        Ok(paginated_response) => {
             let context = minijinja::context! {
-                items => items,
-                config => config,
-                search => params.search.as_deref().unwrap_or(""),
-                current_page => page,
-                total_pages => total_pages,
-                total_count => total_count,
-                flash_status => params.flash_status,
-                flash_message => params.flash_message,
+                rows => paginated_response.data,
+                current_page => paginated_response.page,
+                total_pages => paginated_response.total_pages,
+                page_size => paginated_response.page_size,
+                total_records => paginated_response.total_records,
+                find => params.find.unwrap_or_default(),
+                flash_message => flash_message,
+                flash_status => flash_status,
             };
 
-            match state.templates.get_template("shared/generic_list.html") {
+            match state.templates.get_template("permissao/permission_list.html") {
                 Ok(template) => match template.render(context) {
-                    Ok(rendered) => Html(rendered).into_response(),
-                    Err(err) => (
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        format!("Erro ao renderizar template: {}", err),
-                    )
-                        .into_response(),
+                    Ok(html) => Html(html).into_response(),
+                    Err(err) => {
+                        debug!("Erro ao renderizar template: {}", err);
+                        StatusCode::INTERNAL_SERVER_ERROR.into_response()
+                    }
                 },
-                Err(err) => (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    format!("Erro ao carregar template: {}", err),
-                )
-                    .into_response(),
+                Err(err) => {
+                    debug!("Erro ao carregar template: {}", err);
+                    StatusCode::INTERNAL_SERVER_ERROR.into_response()
+                }
             }
         }
-        _ => (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "Erro ao carregar dados das permissões".to_string(),
-        )
-            .into_response(),
+        Err(err) => {
+            debug!("Erro ao buscar permissions: {}", err);
+            let redirect_url = helpers::create_flash_url(
+                "/permission",
+                &format!("Erro ao carregar permissions: {}", err),
+                FlashStatus::Error,
+            );
+            Redirect::to(&redirect_url).into_response()
+        }
     }
 }
 
@@ -685,7 +617,7 @@ pub async fn get_permission(
     let flash_message = params
         .get("msg")
         .map(|msg| urlencoding::decode(msg).unwrap_or_default().to_string());
-    
+
     let flash_status = params.get("status").and_then(|s| match s.as_str() {
         "success" => Some("success"),
         "error" => Some("error"),
@@ -693,13 +625,17 @@ pub async fn get_permission(
     });
 
     // Carregar o template
-    let template = match state.templates.get_template("permissao/permission_form.html") {
+    let template = match state
+        .templates
+        .get_template("permissao/permission_form.html")
+    {
         Ok(t) => t,
         Err(err) => {
             return Err((
                 StatusCode::INTERNAL_SERVER_ERROR,
                 format!("Falha ao carregar template: {}", err),
-            ).into_response());
+            )
+                .into_response());
         }
     };
 
@@ -740,9 +676,9 @@ pub async fn get_permission(
         Err(err) => Err((
             StatusCode::INTERNAL_SERVER_ERROR,
             format!("Falha ao renderizar template: {}", err),
-        ).into_response()),
+        )
+            .into_response()),
     }
-
 }
 
 pub async fn update_permission(

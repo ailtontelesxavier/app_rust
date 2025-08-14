@@ -50,8 +50,8 @@ impl ModuleService {
         &self,
         pool: &PgPool,
         find: Option<&str>,
-        page: u32,
-        page_size: u32,
+        page: i32,
+        page_size: i32,
     ) -> Result<repository::PaginatedResponse<Module>> {
         Ok(self.repo.get_paginated(pool, find, page, page_size).await?)
     }
@@ -93,8 +93,8 @@ impl PermissionService {
         &self,
         pool: &PgPool,
         find: Option<&str>,
-        page: u32,
-        page_size: u32,
+        page: i32,
+        page_size: i32,
     ) -> Result<repository::PaginatedResponse<Permission>> {
         Ok(self.repo.get_paginated(pool, find, page, page_size).await?)
     }

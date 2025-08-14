@@ -15,9 +15,9 @@ use crate::{
 pub struct PaginatedResponse<T> {
     pub data: Vec<T>,
     pub total_records: i64,
-    pub page: u32,
-    pub page_size: u32,
-    pub total_pages: u32,
+    pub page: i32,
+    pub page_size: i32,
+    pub total_pages: i32,
 }
 
 #[async_trait]
@@ -54,8 +54,8 @@ where
         &self,
         pool: &PgPool,
         find: Option<&str>,
-        page: u32,
-        page_size: u32,
+        page: i32,
+        page_size: i32,
     ) -> Result<PaginatedResponse<T>, sqlx::Error>
     where
         T: for<'r> sqlx::FromRow<'r, sqlx::postgres::PgRow> + Send + Unpin,
@@ -115,10 +115,10 @@ where
 
         let data = data_builder.build_query_as::<T>().fetch_all(pool).await?;
 
-        let total_pages = if total.0 == 0 {
+        let total_pages: i32 = if total.0 == 0 {
             1
         } else {
-            ((total.0 as f32) / (page_size as f32)).ceil() as u32
+            ((total.0 as f32) / (page_size as f32)).ceil() as i32
         };
 
         Ok(PaginatedResponse {
