@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% include "components/combobox.html"%}
+{% include "components/icons_svg.html"%}
 
 {% block title %}
 {% if row %}Editar Usuario{% else %}Novo Usuario{% endif %}
@@ -26,6 +27,7 @@
 
             <form method="post" class="space-y-6">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                   
                     <!-- Checkbox e ID -->
                     <div class="col-span-2 md:col-span-1">
                         <div class="flex flex-row gap-4">
@@ -69,6 +71,24 @@
                         </div>
                     </div>
 
+                     <!-- Seletor de Ação -->
+                    <div class="flex justify-start">
+                        <div class="flex justify-center gap-2">
+                            <div>
+                                <label class="label-text" for="id_acoes">Ação</label>
+                                <select id="id_acoes" class="select" name="tipo_solicitacao">
+                                    <option value="0" selected>Selecione uma ação</option>
+                                    <option value="1">Alterar Senha</option>
+                                    <option value="2">Alterar OTP</option>
+                                </select>
+                            </div>
+                            <button id="btnOTP" type="button" title=""
+                                class=" bg-gray-200 hover:bg-gray-300 mt-5 hidden items-center justify-center btn btn-active shadow h-9 px-4 py-2">
+                                {{ chevrons_right() }}
+                            </button>
+                        </div>
+                    </div>
+
                     <!-- Campos de texto -->
                     <div class="col-span-2 md:col-span-1 flex flex-col gap-2">
                         <div class="flex flex-col">
@@ -101,18 +121,21 @@
                     <div class="col-span-2 flex flex-col gap-4 md:flex-row">
                         <div class="mb-4">
                             <label class="label-text" for="id_created_at">Criado</label>
-                            <input id="id_created_at" name="created_at" value="{{ row.created_at.strftime('%d/%m/%Y %H:%M') if row and row.created_at else '' }}" required placeholder="email"
-                                class="input min-w-full" disabled />
+                            <input id="id_created_at" name="created_at"
+                                value="{{ row.created_at.strftime('%d/%m/%Y %H:%M') if row and row.created_at else '' }}"
+                                required placeholder="email" class="input min-w-full" disabled />
                         </div>
                         <div class="mb-4">
                             <label class="label-text" for="id_updated_at">Atualizado</label>
-                            <input id="id_updated_at" name="updated_at" value="{{ row.updated_at.strftime('%d/%m/%Y %H:%M') if row and row.updated_at else '' }}" required placeholder="email"
-                                class="input min-w-full" disabled />
+                            <input id="id_updated_at" name="updated_at"
+                                value="{{ row.updated_at.strftime('%d/%m/%Y %H:%M') if row and row.updated_at else '' }}"
+                                required placeholder="email" class="input min-w-full" disabled />
                         </div>
                         <div class="mb-4">
                             <label class="label-text" for="id_last_login">Último Login</label>
-                            <input id="id_last_login" name="last_login" value="{{ row.last_login.strftime('%d/%m/%Y %H:%M') if row and row.last_login else '' }}" required placeholder="email"
-                                class="input min-w-full" disabled />
+                            <input id="id_last_login" name="last_login"
+                                value="{{ row.last_login.strftime('%d/%m/%Y %H:%M') if row and row.last_login else '' }}"
+                                required placeholder="email" class="input min-w-full" disabled />
                         </div>
                     </div>
 
@@ -121,34 +144,6 @@
                             <label class="label-text" for="id_otp">OTP</label>
                             <img src="{{ qrcode|safe }}" alt="QR Code">
                         </div>
-                    </div>
-
-                    <!-- Seleção de Módulo -->
-                    <div class="form-control">
-                        <label class="label">
-                            <span class="label-text font-semibold">Módulo</span>
-                        </label>
-                        {% set value_module = modulo.id if modulo else '' %}
-                        {% set title_module = modulo.title if modulo else '' %}
-                        {{ combobox(
-                        field_name="module_id",
-                        field_label="Selecione o modulo",
-                        endpoint="/permissao/modulo-api",
-                        attrs="required",
-                        search=title_module,
-                        value=value_module,
-                        ) }}
-                        {#
-                        <select name="module_id" class="select select-bordered w-full" required>
-                            <option value="">Selecione um módulo</option>
-                            {% for module in modules %}
-                            <option value="{{ module.id }}" {% if row and row.module_id==module.id %}selected{% endif
-                                %}>
-                                {{ module.name }} - {{ module.title }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                        #}
                     </div>
 
                     <!-- Botões -->
