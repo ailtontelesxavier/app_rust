@@ -69,10 +69,10 @@ fn user_router() -> Router<SharedState> {
         "/user-form",
         get(view::show_user_form).post(view::create_user),
     )
-    /*.route(
+    .route(
         "/user-form/{id}",
-        get(view::get_user).post(view::update_user),
+        get(view::get_user),//.post(view::update_user),
     )
-    .route("/user/{id}", delete(view::delete_user))
+    /*.route("/user/{id}", delete(view::delete_user))
     */
 }

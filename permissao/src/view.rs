@@ -1160,3 +1160,65 @@ pub async fn create_user(
         }
     }
 }
+
+pub async fn get_user(
+    State(state): State<SharedState>,
+    Path(id): Path<i32>,
+    Query(params): Query<HashMap<String, String>>,
+) -> Result<Html<String>, Response> {
+    let service = UserService::new();
+
+    // Extrair mensagens flash dos parâmetros da query
+    let flash_message = params
+        .get("msg")
+        .map(|msg| urlencoding::decode(msg).unwrap_or_default().to_string());
+
+    let flash_status = params.get("status").and_then(|s| match s.as_str() {
+        "success" => Some("success"),
+        "error" => Some("error"),
+        _ => None,
+    });
+
+    // Carregar o template
+    let template = match state.templates.get_template("permissao/user_form.html") {
+        Ok(t) => t,
+        Err(err) => {
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Falha ao carregar template: {}", err),
+            )
+                .into_response());
+        }
+    };
+
+    // Buscar o perfil
+    let perfil = match service.get_by_id(&state.db, id as i64).await {
+        Ok(p) => p,
+        Err(e) => {
+            debug!("Erro ao buscar perfil: {}", e);
+            let flash_url = helpers::create_flash_url(
+                "/permissao/perfil",
+                &format!("Perfil não encontrado: {}", e),
+                FlashStatus::Error,
+            );
+            return Err(Redirect::to(&flash_url).into_response());
+        }
+    };
+
+    // Preparar o contexto
+    let ctx = context! {
+        row => perfil,
+        flash_message => flash_message,
+        flash_status => flash_status,
+    };
+
+    // Renderizar o template
+    match template.render(&ctx) {
+        Ok(html) => Ok(Html(html)),
+        Err(err) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Falha ao renderizar template: {}", err),
+        )
+            .into_response()),
+    }
+}

@@ -34,3 +34,7 @@ validator = { version = "0.20", features = ["derive"] }
 regex = "1.10.6"
 async-trait = "0.1"
 anyhow = "1.0"
+
+qrcode = "0.14"
+image = "0.25"
+base64 = "0.22"

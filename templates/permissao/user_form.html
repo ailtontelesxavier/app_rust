@@ -122,19 +122,19 @@
                         <div class="mb-4">
                             <label class="label-text" for="id_created_at">Criado</label>
                             <input id="id_created_at" name="created_at"
-                                value="{{ row.created_at.strftime('%d/%m/%Y %H:%M') if row and row.created_at else '' }}"
+                                value="{{ row.created_at|format_datetime if row and row.created_at else '' }}"
                                 required placeholder="email" class="input min-w-full" disabled />
                         </div>
                         <div class="mb-4">
                             <label class="label-text" for="id_updated_at">Atualizado</label>
                             <input id="id_updated_at" name="updated_at"
-                                value="{{ row.updated_at.strftime('%d/%m/%Y %H:%M') if row and row.updated_at else '' }}"
+                                value="{{ row.updated_at|format_datetime if row and row.updated_at else '' }}"
                                 required placeholder="email" class="input min-w-full" disabled />
                         </div>
                         <div class="mb-4">
                             <label class="label-text" for="id_last_login">Último Login</label>
                             <input id="id_last_login" name="last_login"
-                                value="{{ row.last_login.strftime('%d/%m/%Y %H:%M') if row and row.last_login else '' }}"
+                                value="{{ row.last_login|format_datetime if row and row.last_login else '' }}"
                                 required placeholder="email" class="input min-w-full" disabled />
                         </div>
                     </div>

@@ -259,6 +259,11 @@ impl UserService {
         totp.generate(30, Utc::now().timestamp() as u64).to_string()
     }
 
+    pub fn get_otp_url(username: &str, otp_base32: &str) -> String {
+        let totp = TOTP::new(otp_base32.to_string());
+        totp.to_uri(username.to_string(), username.to_string())
+    }
+
 
 }
 
