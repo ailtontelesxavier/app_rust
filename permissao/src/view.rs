@@ -8,11 +8,17 @@ use axum::{
 use minijinja::Value;
 use minijinja::context;
 use serde::Deserialize;
-use shared::{FlashStatus, SharedState, helpers};
+use shared::{helpers, AppError, FlashStatus, SharedState};
+use validator::Validate;
 use std::collections::{BTreeMap, HashMap};
 use tracing::debug;
 
-use crate::{model::module::Perfil, repository::{ModuleRepository, PaginatedResponse, PermissionRepository, Repository}, schema::{PerfilCreateSchema, PerfilUpdateSchema, UserCreateSchema}, service::{PerfilService, UserService}};
+use crate::{
+    model::module::Perfil,
+    repository::{ModuleRepository, PaginatedResponse, PermissionRepository, Repository},
+    schema::{PerfilCreateSchema, PerfilUpdateSchema, UserCreateSchema},
+    service::{PerfilService, UserService},
+};
 use crate::{
     model::{
         module::Module,
@@ -751,11 +757,9 @@ pub async fn delete_permission(State(state): State<SharedState>, Path(id): Path<
     }
 }
 
-
 //===========================
 // PERFIL(ROLE)
 //===========================
-
 
 pub async fn list_perfil(
     Query(params): Query<ListParams>,
@@ -797,10 +801,7 @@ pub async fn list_perfil(
                 flash_status => flash_status,
             };
 
-            match state
-                .templates
-                .get_template("permissao/perfil_list.html")
-            {
+            match state.templates.get_template("permissao/perfil_list.html") {
                 Ok(template) => match template.render(context) {
                     Ok(html) => Html(html).into_response(),
                     Err(err) => {
@@ -830,7 +831,6 @@ pub async fn show_perfil_form(
     State(state): State<SharedState>,
     Query(params): Query<HashMap<String, String>>,
 ) -> Result<Html<String>, Response> {
-
     // Extrair mensagens flash dos parâmetros da query
     let flash_message = params
         .get("msg")
@@ -846,10 +846,7 @@ pub async fn show_perfil_form(
         flash_status => flash_status,
     };
 
-    match state
-        .templates
-        .get_template("permissao/perfil_form.html")
-    {
+    match state.templates.get_template("permissao/perfil_form.html") {
         Ok(template) => match template.render(context) {
             Ok(html) => Ok(Html(html)),
             Err(err) => Err((
@@ -915,10 +912,7 @@ pub async fn get_perfil(
     });
 
     // Carregar o template
-    let template = match state
-        .templates
-        .get_template("permissao/perfil_form.html")
-    {
+    let template = match state.templates.get_template("permissao/perfil_form.html") {
         Ok(t) => t,
         Err(err) => {
             return Err((
@@ -1026,12 +1020,9 @@ pub async fn delete_perfil(State(state): State<SharedState>, Path(id): Path<i32>
     }
 }
 
-
-
 //===========================
 // User
 //===========================
-
 
 pub async fn list_user(
     Query(params): Query<ListParams>,
@@ -1073,10 +1064,7 @@ pub async fn list_user(
                 flash_status => flash_status,
             };
 
-            match state
-                .templates
-                .get_template("permissao/user_list.html")
-            {
+            match state.templates.get_template("permissao/user_list.html") {
                 Ok(template) => match template.render(context) {
                     Ok(html) => Html(html).into_response(),
                     Err(err) => {
@@ -1106,7 +1094,6 @@ pub async fn show_user_form(
     State(state): State<SharedState>,
     Query(params): Query<HashMap<String, String>>,
 ) -> Result<Html<String>, Response> {
-
     // Extrair mensagens flash dos parâmetros da query
     let flash_message = params
         .get("msg")
@@ -1122,10 +1109,7 @@ pub async fn show_user_form(
         flash_status => flash_status,
     };
 
-    match state
-        .templates
-        .get_template("permissao/user_form.html")
-    {
+    match state.templates.get_template("permissao/user_form.html") {
         Ok(template) => match template.render(context) {
             Ok(html) => Ok(Html(html)),
             Err(err) => Err((
@@ -1157,8 +1141,7 @@ pub async fn create_user(
         Redirect::to(&flash_url).into_response()
     })?; */
 
-    match service.create(&state.db, body).await
-    {
+    match service.create(&state.db, body).await {
         Ok(user) => {
             let flash_url = helpers::create_flash_url(
                 &format!("/permissao/user-form/{}", user.id),

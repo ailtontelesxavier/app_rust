@@ -12,6 +12,8 @@ pub enum AppError {
     NotFound,
     InternalServerError,
     SessionError(String),
+    InvalidSecret,
+    VerificationFailed,
 }
 
 impl fmt::Display for AppError {
@@ -21,6 +23,8 @@ impl fmt::Display for AppError {
             AppError::NotFound => write!(f, "Não encontrado"),
             AppError::InternalServerError => write!(f, "Erro interno do servidor"),
             AppError::SessionError(msg) => write!(f, "Erro de sessão: {}", msg),
+            AppError::InvalidSecret => write!(f, "Invalid base32 secret"),
+            AppError::VerificationFailed => write!(f, "OTP verification failed"),
         }
     }
 }
@@ -45,6 +49,8 @@ impl IntoResponse for AppError {
                 StatusCode::INTERNAL_SERVER_ERROR,
                 format!("Session error: {}", msg),
             ),
+            AppError::InvalidSecret => (StatusCode::NOT_FOUND, "".to_string()),
+            AppError::VerificationFailed => (StatusCode::INTERNAL_SERVER_ERROR, "".to_string()),
         };
 
         let body = Json(ErrorResponse { error: error_msg });

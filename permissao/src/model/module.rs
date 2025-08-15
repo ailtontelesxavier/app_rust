@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 //use uuid::Uuid;
 use regex::Regex;
-use std::{net::IpAddr, sync::LazyLock};
+use std::{sync::LazyLock};
 //use validator::Validate;
 
 static EMAIL_RX: LazyLock<Regex> =
@@ -40,7 +40,6 @@ pub struct PermissionWithModule {
     pub permission: Permission,
     pub module: Module,
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct Perfil {

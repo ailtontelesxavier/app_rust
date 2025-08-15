@@ -1,3 +1,5 @@
+use anyhow::Ok;
+use anyhow::Result;
 use async_trait::async_trait;
 use serde::{Serialize, de::DeserializeOwned};
 use sqlx::{Encode, FromRow, PgPool, Postgres, QueryBuilder, Type, postgres::PgRow};
@@ -7,7 +9,8 @@ use tracing::{debug, info};
 use crate::{
     model::module::{Module, Perfil, Permission, User},
     schema::{
-        CreateModuleSchema, PerfilCreateSchema, PerfilUpdateSchema, PermissionCreateSchema, PermissionUpdateSchema, UpdateModuleSchema, UserCreateSchema, UserUpdateSchema
+        CreateModuleSchema, PerfilCreateSchema, PerfilUpdateSchema, PermissionCreateSchema,
+        PermissionUpdateSchema, UpdateModuleSchema, UserCreateSchema, UserUpdateSchema,
     },
 };
 
@@ -56,7 +59,7 @@ where
         find: Option<&str>,
         page: i32,
         page_size: i32,
-    ) -> Result<PaginatedResponse<T>, sqlx::Error>
+    ) -> Result<PaginatedResponse<T>>
     where
         T: for<'r> sqlx::FromRow<'r, sqlx::postgres::PgRow> + Send + Unpin,
     {
@@ -130,26 +133,26 @@ where
         })
     }
 
-    async fn get_by_id(&self, pool: &PgPool, id: ID) -> Result<T, sqlx::Error> {
+    async fn get_by_id(&self, pool: &PgPool, id: ID) -> Result<T> {
         let query = format!(
             "SELECT * FROM {} WHERE {} = $1 LIMIT 1",
             self.table_name(),
             self.id_column()
         );
 
-        sqlx::query_as(&query).bind(id).fetch_one(pool).await
+        Ok(sqlx::query_as(&query).bind(id).fetch_one(pool).await?)
     }
 
-    async fn create(&self, pool: &PgPool, input: Self::CreateInput) -> Result<T, sqlx::Error>;
+    async fn create(&self, pool: &PgPool, input: Self::CreateInput) -> Result<T>;
 
     async fn update(
         &self,
         pool: &PgPool,
         id: ID,
         input: Self::UpdateInput,
-    ) -> Result<T, sqlx::Error>;
+    ) -> Result<T>;
 
-    async fn delete(&self, pool: &PgPool, id: ID) -> Result<(), sqlx::Error>;
+    async fn delete(&self, pool: &PgPool, id: ID) -> Result<()>;
 }
 
 //#[derive(Debug, Serialize, FromRow)]
@@ -181,14 +184,14 @@ impl Repository<Module, i32> for ModuleRepository {
         "module m"
     }
 
-    async fn create(&self, pool: &PgPool, input: Self::CreateInput) -> Result<Module, sqlx::Error> {
-        sqlx::query_as!(
+    async fn create(&self, pool: &PgPool, input: Self::CreateInput) -> Result<Module> {
+        Ok(sqlx::query_as!(
             Module,
             "INSERT INTO module (title) VALUES ($1) RETURNING id, title, created_at, updated_at",
             input.title.to_string()
         )
         .fetch_one(pool)
-        .await
+        .await?)
     }
 
     async fn update(
@@ -196,18 +199,18 @@ impl Repository<Module, i32> for ModuleRepository {
         pool: &PgPool,
         id: i32,
         input: Self::UpdateInput,
-    ) -> Result<Module, sqlx::Error> {
-        sqlx::query_as!(
+    ) -> Result<Module> {
+        Ok(sqlx::query_as!(
             Module,
             r#"UPDATE module SET title = $1 WHERE id = $2 RETURNING id, title, created_at, updated_at"#,
             input.title,
             id
         )
         .fetch_one(pool)
-        .await
+        .await?)
     }
 
-    async fn delete(&self, pool: &PgPool, id: i32) -> Result<(), sqlx::Error> {
+    async fn delete(&self, pool: &PgPool, id: i32) -> Result<()> {
         sqlx::query!("DELETE FROM module WHERE id = $1", id)
             .execute(pool)
             .await?;
@@ -242,8 +245,8 @@ impl Repository<Permission, i32> for PermissionRepository {
         &self,
         pool: &PgPool,
         input: Self::CreateInput,
-    ) -> Result<Permission, sqlx::Error> {
-        sqlx::query_as!(
+    ) -> Result<Permission> {
+        Ok(sqlx::query_as!(
             Permission,
             r#"INSERT INTO permission (name, description, module_id) 
                VALUES ($1, $2, $3) 
@@ -253,7 +256,7 @@ impl Repository<Permission, i32> for PermissionRepository {
             input.module_id
         )
         .fetch_one(pool)
-        .await
+        .await?)
     }
 
     async fn update(
@@ -261,8 +264,8 @@ impl Repository<Permission, i32> for PermissionRepository {
         pool: &PgPool,
         id: i32,
         input: Self::UpdateInput,
-    ) -> Result<Permission, sqlx::Error> {
-        sqlx::query_as!(
+    ) -> Result<Permission> {
+        Ok(sqlx::query_as!(
             Permission,
             r#"UPDATE permission 
                SET name = $1, description = $2, module_id = $3 
@@ -274,10 +277,10 @@ impl Repository<Permission, i32> for PermissionRepository {
             id
         )
         .fetch_one(pool)
-        .await
+        .await?)
     }
 
-    async fn delete(&self, pool: &PgPool, id: i32) -> Result<(), sqlx::Error> {
+    async fn delete(&self, pool: &PgPool, id: i32) -> Result<()> {
         sqlx::query!("DELETE FROM permission WHERE id = $1", id)
             .execute(pool)
             .await?;
@@ -297,7 +300,7 @@ impl Repository<Perfil, i32> for PerfilRepository {
     }
 
     fn searchable_fields(&self) -> &[&str] {
-        &["p.name",]
+        &["p.name"]
     }
 
     fn select_clause(&self) -> &str {
@@ -308,21 +311,16 @@ impl Repository<Perfil, i32> for PerfilRepository {
         "roles p"
     }
 
-    async fn create(
-        &self,
-        pool: &PgPool,
-        input: Self::CreateInput,
-    ) -> Result<Perfil, sqlx::Error> {
-        sqlx::query_as!(
+    async fn create(&self, pool: &PgPool, input: Self::CreateInput) -> Result<Perfil> {
+        Ok(sqlx::query_as!(
             Perfil,
             r#"INSERT INTO roles (name) 
                VALUES ($1) 
                RETURNING id, name"#,
             input.name,
-
         )
         .fetch_one(pool)
-        .await
+        .await?)
     }
 
     async fn update(
@@ -330,8 +328,8 @@ impl Repository<Perfil, i32> for PerfilRepository {
         pool: &PgPool,
         id: i32,
         input: Self::UpdateInput,
-    ) -> Result<Perfil, sqlx::Error> {
-        sqlx::query_as!(
+    ) -> Result<Perfil> {
+        Ok(sqlx::query_as!(
             Perfil,
             r#"UPDATE roles 
                SET name = $1
@@ -341,10 +339,10 @@ impl Repository<Perfil, i32> for PerfilRepository {
             id
         )
         .fetch_one(pool)
-        .await
+        .await?)
     }
 
-    async fn delete(&self, pool: &PgPool, id: i32) -> Result<(), sqlx::Error> {
+    async fn delete(&self, pool: &PgPool, id: i32) -> Result<()> {
         sqlx::query!("DELETE FROM roles WHERE id = $1", id)
             .execute(pool)
             .await?;
@@ -377,12 +375,29 @@ impl Repository<User, i64> for UserRepository {
         "users u"
     }
 
-    async fn create(
-        &self,
-        pool: &PgPool,
-        input: Self::CreateInput,
-    ) -> Result<User, sqlx::Error> {
-        sqlx::query_as!(
+    async fn create(&self, pool: &PgPool, input: Self::CreateInput) -> anyhow::Result<User> {
+        // 1. Checar se já existe usuário com email ou username
+        if let Some(db_user) = sqlx::query_as!(
+            User,
+            r#"
+            SELECT * FROM users
+            WHERE email = $1 OR username = $2
+            "#,
+            input.email,
+            input.username
+        )
+        .fetch_optional(pool)
+        .await?
+        {
+            if db_user.email == input.email {
+                anyhow::bail!("Email already registered");
+            } else {
+                anyhow::bail!("Username already registered");
+            }
+        }
+
+        // 2. Inserir novo usuário
+        let new_user = sqlx::query_as!(
             User,
             r#"INSERT INTO users (username, password, email, full_name, otp_base32, is_active, is_staff, is_superuser) 
                VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
@@ -397,7 +412,9 @@ impl Repository<User, i64> for UserRepository {
             input.is_superuser
         )
         .fetch_one(pool)
-        .await
+        .await?;
+
+        Ok(new_user)
     }
 
     async fn update(
@@ -405,8 +422,8 @@ impl Repository<User, i64> for UserRepository {
         pool: &PgPool,
         id: i64,
         input: Self::UpdateInput,
-    ) -> Result<User, sqlx::Error> {
-        sqlx::query_as!(
+    ) -> Result<User> {
+        Ok(sqlx::query_as!(
             User,
             r#"
             UPDATE users
@@ -435,10 +452,10 @@ impl Repository<User, i64> for UserRepository {
             id
         )
         .fetch_one(pool)
-        .await
+        .await?)
     }
 
-    async fn delete(&self, pool: &PgPool, id: i64) -> Result<(), sqlx::Error> {
+    async fn delete(&self, pool: &PgPool, id: i64) -> Result<()> {
         sqlx::query!(r#"DELETE FROM users WHERE id = $1"#, id as i64)
             .execute(pool)
             .await?;

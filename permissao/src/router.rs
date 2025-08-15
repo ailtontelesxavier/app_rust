@@ -37,9 +37,8 @@ fn api_modulo_router() -> Router<SharedState> {
 }
 
 fn permission_router() -> Router<SharedState> {
-
     Router::new()
-    .route("/permission", get(view::list_permissions))
+        .route("/permission", get(view::list_permissions))
         .route(
             "/permission-form",
             get(view::show_permission_form).post(view::create_permission),
@@ -66,16 +65,14 @@ fn perfil_router() -> Router<SharedState> {
 }
 
 fn user_router() -> Router<SharedState> {
-    Router::new()
-        .route("/user", get(view::list_user))
-        .route(
-            "/user-form",
-            get(view::show_user_form).post(view::create_user),
-        )
-        /*.route(
-            "/user-form/{id}",
-            get(view::get_user).post(view::update_user),
-        )
-        .route("/user/{id}", delete(view::delete_user))
-        */
+    Router::new().route("/user", get(view::list_user)).route(
+        "/user-form",
+        get(view::show_user_form).post(view::create_user),
+    )
+    /*.route(
+        "/user-form/{id}",
+        get(view::get_user).post(view::update_user),
+    )
+    .route("/user/{id}", delete(view::delete_user))
+    */
 }
