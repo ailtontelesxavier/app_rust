@@ -9,7 +9,7 @@ use std::{
 use axum::{
     body::Body,
     http::{
-        header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE, SET_COOKIE},
+        header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE, SET_COOKIE, COOKIE},
         HeaderValue, Method, Request, Response, StatusCode,
     },
     middleware::{self, Next},
@@ -17,6 +17,7 @@ use axum::{
     routing::{get, post},
     Router,
 };
+use axum::extract::FromRequestParts;
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 use minijinja::{path_loader, Environment};
 use percent_encoding::{percent_encode, NON_ALPHANUMERIC};
@@ -29,7 +30,7 @@ use tower_http::{
     services::ServeDir,
     trace::TraceLayer,
 };
-use tower_sessions::{MemoryStore, SessionManagerLayer};
+use tower_sessions::{cookie::CookieJar, MemoryStore, SessionManagerLayer};
 use tracing::{debug, info};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
@@ -48,7 +49,7 @@ async fn hello_world() -> &'static str {
 
 static SECRET: &[u8] = b"chave_secreta_super_segura";
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct Claims {
     sub: String,
     exp: usize,
@@ -95,23 +96,62 @@ fn verificar_credenciais(username: &str, password: &str) -> bool {
 
 // Middleware de autenticação JWT
 async fn autenticar(req: Request<Body>, next: Next) -> Response<Body> {
-    let headers = req.headers();
+    // Primeiro tenta pegar o token do header Authorization
+    let auth_header = req
+        .headers()
+        .get(AUTHORIZATION)
+        .and_then(|h| h.to_str().ok())
+        .and_then(|h| h.strip_prefix("Bearer "))
+        .map(|s| s.to_string());
 
-    if let Some(auth_header) = headers.get("Authorization") {
-        if let Ok(auth_str) = auth_header.to_str() {
-            if let Some(token) = auth_str.strip_prefix("Bearer ") {
-                let validation = Validation::default();
-                let resultado =
-                    decode::<Claims>(token, &DecodingKey::from_secret(SECRET), &validation);
+    // Se não encontrou no header, tenta pegar do cookie
+    let cookie_token = req
+        .headers()
+        .get(COOKIE)
+        .and_then(|h| h.to_str().ok())
+        .and_then(|cookie_str| {
+            // Parse manual dos cookies
+            cookie_str
+                .split(';')
+                .find_map(|cookie| {
+                    let cookie = cookie.trim();
+                    if cookie.starts_with("access_token=") {
+                        Some(cookie.trim_start_matches("access_token=").to_string())
+                    } else {
+                        None
+                    }
+                })
+        });
 
-                if resultado.is_ok() {
-                    return next.run(req).await;
+    // Usa o token do header ou do cookie
+    let token = auth_header.or(cookie_token);
+
+    match token {
+        Some(token) => {
+            // Decodifica o token percent-encoded se necessário
+            let decoded_token = percent_encoding::percent_decode_str(&token)
+                .decode_utf8()
+                .unwrap_or_default()
+                .to_string();
+
+            match decode::<Claims>(&decoded_token, &DecodingKey::from_secret(SECRET), &Validation::default()) {
+                Ok(data) => {
+                    // Adiciona as claims do usuário às extensões da requisição
+                    let mut req = req;
+                    req.extensions_mut().insert(data.claims);
+                    next.run(req).await
+                }
+                Err(e) => {
+                    debug!("Erro ao decodificar token: {}", e);
+                    (StatusCode::UNAUTHORIZED, "Token inválido").into_response()
                 }
             }
         }
+        None => {
+            debug!("Token não encontrado no header Authorization nem no cookie");
+            (StatusCode::UNAUTHORIZED, "Token ausente").into_response()
+        }
     }
-
-    (StatusCode::UNAUTHORIZED, "Token inválido ou ausente").into_response()
 }
 
 #[derive(Debug, Deserialize)]
