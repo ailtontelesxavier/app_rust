@@ -65,7 +65,8 @@
         })
         .then(response => {
             if (response.ok) {
-                window.location.reload();
+                //console.log(response);
+                window.location.href = response.url;
             } else {
                 return response.text().then(err => {
                     throw new Error(err || 'Erro ao atualizar senha');
