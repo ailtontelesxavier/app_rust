@@ -8,7 +8,7 @@ use axum::{
 use minijinja::Value;
 use minijinja::context;
 use serde::Deserialize;
-use shared::{helpers, AppError, FlashStatus, SharedState};
+use shared::{helpers::{self, get_qr_code_base64}, AppError, FlashStatus, SharedState};
 use validator::Validate;
 use std::collections::{BTreeMap, HashMap};
 use tracing::debug;
@@ -1205,9 +1205,24 @@ pub async fn get_user(
         }
     };
 
+    let otp_url = match &perfil.otp_base32 {
+        Some(secret) => UserService::get_otp_url(&perfil.full_name, secret),
+        None => {
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Usuário não possui OTP configurado".to_string(),
+            )
+                .into_response());
+        }
+    };
+
+    // gera o QR Code em Base64 a partir da URL
+    let qrcode = get_qr_code_base64(&otp_url).unwrap();
+
     // Preparar o contexto
     let ctx = context! {
         row => perfil,
+        qrcode => qrcode,
         flash_message => flash_message,
         flash_status => flash_status,
     };
