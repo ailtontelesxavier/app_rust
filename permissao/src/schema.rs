@@ -73,8 +73,6 @@ pub struct UserCreateSchema {
 #[derive(Debug, Serialize, Deserialize, Validate)]
 pub struct UserUpdateSchema {
     pub username: Option<String>,
-    #[validate(length(min = 8, message = "Password must have at least 8 characters"))]
-    pub password: Option<String>,
     #[validate(regex(path=*EMAIL_RX, message = "Invalid email"))]
     pub email: Option<String>,
     pub full_name: Option<String>,
@@ -86,7 +84,7 @@ pub struct UserUpdateSchema {
 }
 
 #[derive(Debug, Validate, Default, Clone, Serialize, Deserialize)]
-pub struct UserPasswordUpdateDto {
+pub struct UserPasswordUpdateDtoSchema {
     #[validate(
         length(min = 6, message = "new password must be at least 6 characters")
     )]
@@ -102,6 +100,14 @@ pub struct UserPasswordUpdateDto {
         length(min = 6, message = "Old password must be at least 6 characters")
     )]
     pub old_password: String,
+}
+
+#[derive(Debug, Validate, Default, Clone, Serialize, Deserialize)]
+pub struct UserPasswordUpdateSchema {
+    #[validate(
+        length(min = 6, message = "new password must be at least 6 characters")
+    )]
+    pub password: String,
 }
 
 /* 

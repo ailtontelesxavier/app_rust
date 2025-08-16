@@ -1,0 +1,94 @@
+{% include "components/icons_svg.html"%}
+<!-- Modal de confirmação de exclusão -->
+<dialog id="senha_modal" class="modal">
+    <div class="modal-box">
+        <h3 class="font-bold text-lg">Atualizar senha</h3>
+        <p class="py-4"></p>
+        <form id="form_password">
+            <div class="mb-4">
+                <label for="new_password">Nova Senha</label>
+                <div class="flex items-center">
+                    <input type="password" name="password" id="new_password" class="input min-w-full"
+                        autocomplete="off">
+                    <span class="-ml-10 hover:cursor-pointer" type="button" id="togglePassword">
+                        {{eye()}}
+                </div>
+                </span>
+            </div>
+        </form>
+        <div class="modal-action">
+            <form method="dialog">
+                <button class="btn">Cancelar</button>
+            </form>
+
+            <button id="confirm_atualizar_senha_btn" class="btn btn-error">Atualizar</button>
+        </div>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+        <button>close</button>
+    </form>
+</dialog>
+
+<script>
+    let user_id = {% if row and row.id %}{{row.id}}{% else %}null{% endif %};
+
+    // Função para abrir modal
+    function openSenhaModal() {
+        document.getElementById('senha_modal').showModal();
+    }
+
+    // Confirmar atualização de senha
+    document.getElementById('confirm_atualizar_senha_btn').addEventListener('click', function () {
+        if (!user_id) {
+            alert('ID do usuário não encontrado');
+            return;
+        }
+
+        const passwordInput = document.getElementById('new_password');
+        const newPassword = passwordInput.value.trim();
+
+        if (!newPassword) {
+            alert('Por favor, insira uma nova senha');
+            return;
+        }
+
+        // Codifica os parâmetros no formato x-www-form-urlencoded
+        const formData = new URLSearchParams();
+        formData.append('password', newPassword);
+
+        fetch(`/permissao/user-form-senha/${user_id}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: formData
+        })
+        .then(response => {
+            if (response.ok) {
+                window.location.reload();
+            } else {
+                return response.text().then(err => {
+                    throw new Error(err || 'Erro ao atualizar senha');
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Erro:', error);
+            alert(error.message || 'Erro ao atualizar senha');
+        })
+        .finally(() => {
+            document.getElementById('senha_modal').close();
+        });
+    });
+
+    // exibir a senha ou ocultar
+    document.getElementById("togglePassword").addEventListener("click", function () {
+        const passwordInput = document.getElementById("new_password");
+
+        if (passwordInput.type === "password") {
+            passwordInput.type = "text";
+        } else {
+            passwordInput.type = "password";
+        }
+    });
+</script>

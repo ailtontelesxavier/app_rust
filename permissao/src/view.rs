@@ -16,7 +16,7 @@ use tracing::debug;
 use crate::{
     model::module::Perfil,
     repository::{ModuleRepository, PaginatedResponse, PermissionRepository, Repository},
-    schema::{PerfilCreateSchema, PerfilUpdateSchema, UserCreateSchema},
+    schema::{PerfilCreateSchema, PerfilUpdateSchema, UserCreateSchema, UserPasswordUpdateSchema},
     service::{PerfilService, UserService},
 };
 use crate::{
@@ -1235,5 +1235,40 @@ pub async fn get_user(
             format!("Falha ao renderizar template: {}", err),
         )
             .into_response()),
+    }
+}
+
+
+pub async fn update_senha_user(
+    State(state): State<SharedState>,
+    Path(id): Path<i64>,
+    Form(body): Form<UserPasswordUpdateSchema>,
+) -> Response {
+    match UserService::update_password(&state.db, id, body).await {
+        Ok(result) => {
+            if result.id > 0 {
+                let flash_url = helpers::create_flash_url(
+                    &format!("/permissao/user-form/{}", result.id),
+                    "Senha atualizada com sucesso!",
+                    FlashStatus::Success,
+                );
+                Redirect::to(&flash_url).into_response()
+            } else {
+                let flash_url = helpers::create_flash_url(
+                    "/permissao/user-form",
+                    "Senha não atualizada",
+                    FlashStatus::Error,
+                );
+                Redirect::to(&flash_url).into_response()
+            }
+        }
+        Err(err) => {
+            let flash_url = helpers::create_flash_url(
+                "/permissao/user-form",
+                &format!("Erro ao atualizar senha: {}", err),
+                FlashStatus::Error,
+            );
+            Redirect::to(&flash_url).into_response()
+        }
     }
 }

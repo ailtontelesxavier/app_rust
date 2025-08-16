@@ -2,8 +2,7 @@ use crate::{
     model::module::{Perfil, Permission, PermissionWithModule, User},
     repository::{self, Repository},
     schema::{
-        PerfilCreateSchema, PerfilUpdateSchema, PermissionCreateSchema, PermissionUpdateSchema,
-        UserCreateSchema, UserUpdateSchema,
+        PerfilCreateSchema, PerfilUpdateSchema, PermissionCreateSchema, PermissionUpdateSchema, UserCreateSchema, UserPasswordUpdateSchema, UserUpdateSchema
     },
 };
 use anyhow::Result;
@@ -264,6 +263,34 @@ impl UserService {
         totp.to_uri("YourApp", username)
     }
 
+
+    pub async fn update_password(
+        pool: &PgPool,
+        id: i64,
+        input: UserPasswordUpdateSchema,
+    ) -> Result<User> {
+
+        let password = Self::get_password_hash(&input.password).unwrap();
+
+        Ok(sqlx::query_as!(
+            User,
+            r#"
+            UPDATE users
+            SET 
+                password = $1,
+                updated_at = NOW()
+            WHERE id = $2
+            RETURNING 
+                id, username, password, email, full_name, otp_base32,
+                is_active, is_staff, is_superuser, ip_last_login,
+                last_login, created_at, updated_at
+            "#,
+            password,
+            id
+        )
+        .fetch_one(pool)
+        .await?)
+    }
 
 }
 

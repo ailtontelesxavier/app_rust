@@ -92,19 +92,19 @@
                     <!-- Campos de texto -->
                     <div class="col-span-2 md:col-span-2">
                         <div class="flex flex-col">
-                            <label class="label-text">Username</label>
+                            <label class="label-text" for="id_username">Username</label>
                             <input name="username" id="id_username" class="input min-w-full" {% if row and row.username
-                                %} value="{{ row.username }}" {% endif %}>
+                                %} value="{{ row.username }}" {% endif %} autocomplete="false">
                         </div>
 
                         <div class="flex flex-col">
-                            <label class="label-text">Nome</label>
+                            <label class="label-text" for="id_full_name">Nome</label>
                             <input name="full_name" id="id_full_name" class="input min-w-full" {% if row and
                                 row.full_name %} value="{{ row.full_name }}" {% endif %}>
                         </div>
 
                         <div class="flex flex-col">
-                            <label class="label-text">Email</label>
+                            <label class="label-text" for="id_email">Email</label>
                             {% if row %}
                             <input id="id_email" name="email" value="{{ row.email }}" required placeholder="email"
                                 class="input min-w-full" />
@@ -162,4 +162,78 @@
         </div>
     </div>
 </div>
+
+<!-- modal senha -->
+{% include "permissao/parts/user_modal_senha.html" %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+
+  /* document.getElementById("btnCancelar").addEventListener('click', function () {
+    var updateUrl = '/core/user';
+    window.location.href = updateUrl;
+  }); */
+
+  //observer par ações
+document.addEventListener("DOMContentLoaded", function () {
+  const selectElement = document.getElementById("id_acoes");
+  const modelButton = document.getElementById("modelButton");
+
+  // atualizar OTP
+  document.getElementById("btnOTP").addEventListener('click', async function () {
+    const id = document.getElementById("id_user").value;
+    url = `/core/update-otp/${id}`;
+    method = "put";
+    Content_Type =  'application/json';
+
+    // Envia os dados do formulário usando Axios
+    showLoader(); // Exibe o loader antes da requisição
+    try{
+      await axios({
+        method: method,
+        url: url
+      }).then(function(response) {
+
+        showMessage2(response.data.message);
+      })
+      .catch(function(error) {
+        showMessage2("Erro ao processar requisição: " +error.response?.data?.detail);
+        if (axios.isAxiosError(error)) {
+          showMessage2("Erro ao processar requisição: " +error.response?.data?.detail);
+        } else {
+            console.error("Erro inesperado:", error);
+            //throw error;
+        }
+      });
+      setTimeout(() => {
+        hideLoader(); // Esconde o loader após a requisição
+      }, 2000);
+    }finally {
+      setTimeout(() => {
+        hideLoader(); // Esconde o loader após a requisição
+      }, 10000);
+      setTimeout(() => {
+        location.reload();
+      }, 3000);
+    }
+  });
+
+
+  // Adiciona um listener para capturar mudanças na seleção
+  selectElement.addEventListener("change", function () {
+    if (selectElement.value == 1) {
+      openSenhaModal();
+      btnOTP.classList.add("hidden"); // Esconde o botão
+    }
+    else if (selectElement.value == 2) {
+      document.getElementById("btnOTP").classList.toggle("hidden"); 
+    }else{
+      btnOTP.classList.add("hidden");
+    }
+
+  });
+});
+</script>
 {% endblock %}
