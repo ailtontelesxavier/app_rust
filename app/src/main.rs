@@ -1,35 +1,123 @@
 mod filters;
-use axum::{
-    Router,
-    http::{
-        HeaderValue, Method,
-        header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE},
-    },
-    routing::get,
+
+use std::{
+    env,
+    sync::Arc,
+    time::{Instant, SystemTime, UNIX_EPOCH},
 };
 
+use axum::{
+    body::Body,
+    http::{
+        header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE, SET_COOKIE},
+        HeaderValue, Method, Request, Response, StatusCode,
+    },
+    middleware::{self, Next},
+    response::IntoResponse,
+    routing::{get, post},
+    Router,
+};
+use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
+use minijinja::{path_loader, Environment};
+use percent_encoding::{percent_encode, NON_ALPHANUMERIC};
+use serde::{Deserialize, Serialize};
+use serde_json::json;
+use time::{format_description::well_known::Rfc2822, Duration, OffsetDateTime};
+use tokio;
+use tower_http::{
+    cors::CorsLayer,
+    services::ServeDir,
+    trace::TraceLayer,
+};
 use tower_sessions::{MemoryStore, SessionManagerLayer};
-
-use filters::register_filters;
-use minijinja::{Environment, path_loader};
-use std::sync::Arc;
-use tower_http::trace::TraceLayer;
 use tracing::{debug, info};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-use tower_http::cors::CorsLayer;
-use tower_http::services::ServeDir;
-
+use dotenv::dotenv;
 use sqlx::postgres::PgPoolOptions;
 
-use dotenv::dotenv;
-
 use permissao::router as router_permissao;
-
 use shared::{AppState, MessageResponse};
+
+use crate::filters::register_filters;
+
 
 async fn hello_world() -> &'static str {
     "Welcome!"
+}
+
+static SECRET: &[u8] = b"chave_secreta_super_segura";
+
+#[derive(Debug, Serialize, Deserialize)]
+struct Claims {
+    sub: String,
+    exp: usize,
+}
+
+fn gerar_token(usuario: &str) -> String {
+    let expiracao = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs()
+        + 3600;
+
+    let claims = Claims {
+        sub: usuario.to_string(),
+        exp: expiracao as usize,
+    };
+
+    encode(
+        &Header::default(),
+        &claims,
+        &EncodingKey::from_secret(SECRET),
+    )
+    .unwrap()
+}
+
+// Middleware de log
+async fn log_middleware(req: Request<Body>, next: Next) -> Response<Body> {
+    let start = Instant::now();
+    let method = req.method().clone();
+    let uri = req.uri().clone();
+
+    let response = next.run(req).await;
+
+    let duration = start.elapsed();
+    info!("{} {} - {:?}", method, uri, duration);
+
+    response
+}
+
+// "Usuários cadastrados" (fake)
+fn verificar_credenciais(username: &str, password: &str) -> bool {
+    username == "admin" && password == "1234"
+}
+
+// Middleware de autenticação JWT
+async fn autenticar(req: Request<Body>, next: Next) -> Response<Body> {
+    let headers = req.headers();
+
+    if let Some(auth_header) = headers.get("Authorization") {
+        if let Ok(auth_str) = auth_header.to_str() {
+            if let Some(token) = auth_str.strip_prefix("Bearer ") {
+                let validation = Validation::default();
+                let resultado =
+                    decode::<Claims>(token, &DecodingKey::from_secret(SECRET), &validation);
+
+                if resultado.is_ok() {
+                    return next.run(req).await;
+                }
+            }
+        }
+    }
+
+    (StatusCode::UNAUTHORIZED, "Token inválido ou ausente").into_response()
+}
+
+#[derive(Debug, Deserialize)]
+struct LoginPayload {
+    username: String,
+    password: String,
 }
 
 #[tokio::main]
@@ -82,19 +170,109 @@ async fn main() {
         .allow_credentials(true)
         .allow_headers([AUTHORIZATION, ACCEPT, CONTENT_TYPE]);
 
+    let rotas_privadas = Router::new()
+        .route("/privado", get(rota_privada))
+        .route("/logout", get(logout))
+        .nest("/permissao", router_permissao())
+        .layer(middleware::from_fn(autenticar));
+
     let app = Router::new()
         .route("/hello", get(hello_world))
-        .nest("/permissao", router_permissao())
+        .route("/login", get(login))
         .nest_service("/static", server_dir)
         .layer(session_layer) // Sessões devem vir antes do CORS
         .layer(cors)
         .layer(TraceLayer::new_for_http())
+        .merge(rotas_privadas)
         .with_state(state.clone());
+
 
     info!("Starting server on http://0.0.0.0:2000");
     debug!("Server running");
     //println!("Server running on http://0.0.0.0:2000");
     axum::serve(listener, app).await.unwrap();
+}
+
+async fn rota_privada() -> &'static str {
+    "Acesso privado: você está autenticado!"
+}
+
+async fn login() -> Response<Body> {
+    let access_token = gerar_token("usuario_demo");
+
+    // Converte os módulos para JSON
+    //let json_data = json!(modules.iter().map(|m| m.as_dict()).collect::<Vec<_>>()).to_string();
+    
+    // Configura os cookies
+    let access_token_expire_minutes = env::var("ACCESS_TOKEN_EXPIRE_MINUTES")
+        .unwrap_or_else(|_| "3600".to_string())
+        .parse::<i64>()
+        .unwrap_or(3600);
+    
+    let max_age = Duration::minutes(access_token_expire_minutes);
+    let expires = OffsetDateTime::now_utc() + Duration::hours(1);
+
+    // Formata a data de expiração no formato RFC2822
+    let expires_formatted = expires.format(&Rfc2822).unwrap();
+    
+    // Cria a resposta
+    let mut response = Response::new(Body::empty());
+
+    // Adiciona os cookies
+    /* let modules_cookie = format!(
+        "modules={}; Max-Age={}; Path=/",
+        percent_encoding::percent_encode(json_data.as_bytes(), percent_encoding::NON_ALPHANUMERIC),
+        max_age.whole_seconds()
+    ); */
+
+    // Adiciona os cookies ao cabeçalho da resposta
+    /* response.headers_mut().append(
+        SET_COOKIE,
+        HeaderValue::from_str(&modules_cookie).unwrap()
+    ); */
+
+    // Cria o cookie de access_token
+    let access_token_cookie = format!(
+        "access_token={}; HttpOnly; SameSite=Strict; Max-Age={}; Path=/; Expires={}",
+        percent_encode(access_token.as_bytes(), NON_ALPHANUMERIC),
+        max_age.whole_seconds(),
+        expires_formatted
+    );
+
+    response.headers_mut().append(
+        SET_COOKIE,
+        HeaderValue::from_str(&access_token_cookie).unwrap()
+    );
+
+    response
+}
+
+async fn logout() -> impl IntoResponse {
+    // Cria uma resposta de sucesso
+    let mut response = Response::builder()
+        .status(StatusCode::OK)
+        .body(Body::empty())
+        .unwrap();
+
+    // Invalida o cookie de access_token definindo uma data no passado
+    let expired_cookie = format!(
+        "access_token=; HttpOnly; SameSite=Strict; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0"
+    );
+
+    response.headers_mut().append(
+        SET_COOKIE,
+        HeaderValue::from_str(&expired_cookie).unwrap()
+    );
+
+    // Se você tiver outros cookies para limpar, adicione aqui
+    // Exemplo para limpar o cookie 'usuario':
+    let expired_usuario_cookie = "usuario=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0";
+    response.headers_mut().append(
+        SET_COOKIE,
+        HeaderValue::from_str(expired_usuario_cookie).unwrap()
+    );
+
+    response
 }
 
 #[cfg(test)]

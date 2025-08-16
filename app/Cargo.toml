@@ -14,6 +14,7 @@ tower-sessions = { version = "0.13"}
 
 tokio = { version = "1.47", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
 sqlx = { version = "0.8", features = ["runtime-tokio", "postgres", "macros", "chrono", "ipnetwork", "uuid"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["fmt", "env-filter"] }
@@ -23,7 +24,13 @@ minijinja = { version = "2.11", features = ["loader"] }
 dotenv = "0.15"
 chrono = {version = "0.4", features = ["serde"] }
 
+time = { version = "0.3", features = ["formatting"] }
+percent-encoding = "2.3"
+jsonwebtoken = "9.2"
+
+
 [dev-dependencies]
 anyhow = "1.0"
 httpc-test = "0.1"
 sqlx-cli = { version = "0.8", default-features = false, features = ["rustls", "postgres"] }
+
