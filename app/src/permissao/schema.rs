@@ -70,7 +70,7 @@ pub struct UserCreateSchema {
     pub is_superuser: bool,
 }
 
-#[derive(Debug, Serialize, Deserialize, Validate)]
+#[derive(Debug, Clone, Serialize, Deserialize, Validate)]
 pub struct UserUpdateSchema {
     pub username: Option<String>,
     #[validate(regex(path=*EMAIL_RX, message = "Invalid email"))]
@@ -80,7 +80,7 @@ pub struct UserUpdateSchema {
     pub is_active: Option<bool>,
     pub is_staff: Option<bool>,
     pub is_superuser: Option<bool>,
-    pub ip_last_login: Option<IpNetwork>,
+    pub ip_last_login: Option<String>,
 }
 
 #[derive(Debug, Validate, Default, Clone, Serialize, Deserialize)]

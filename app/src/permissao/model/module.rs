@@ -58,7 +58,7 @@ pub struct User {
     pub is_active: bool,
     pub is_staff: bool,
     pub is_superuser: bool,
-    pub ip_last_login: Option<IpNetwork>,
+    pub ip_last_login: Option<String>,
     pub last_login: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,

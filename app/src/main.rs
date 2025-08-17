@@ -1,4 +1,7 @@
 mod filters;
+mod middlewares;
+mod permissao;
+
 
 use std::{
     collections::HashMap, env, sync::Arc, time::{Instant, SystemTime, UNIX_EPOCH}
@@ -23,7 +26,7 @@ use tower_http::{
     services::ServeDir,
     trace::TraceLayer,
 };
-use tower_sessions::{cookie::CookieJar, MemoryStore, SessionManagerLayer};
+use tower_sessions::{MemoryStore, SessionManagerLayer};
 use tracing::{debug, info};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
@@ -40,112 +43,9 @@ async fn hello_world() -> &'static str {
     "Welcome!"
 }
 
-static SECRET: &[u8] = b"chave_secreta_super_segura";
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-struct Claims {
-    sub: String,
-    exp: usize,
-}
 
-fn gerar_token(usuario: &str) -> String {
-    let expiracao = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_secs()
-        + 3600;
 
-    let claims = Claims {
-        sub: usuario.to_string(),
-        exp: expiracao as usize,
-    };
-
-    encode(
-        &Header::default(),
-        &claims,
-        &EncodingKey::from_secret(SECRET),
-    )
-    .unwrap()
-}
-
-// Middleware de log
-async fn log_middleware(req: Request<Body>, next: Next) -> Response<Body> {
-    let start = Instant::now();
-    let method = req.method().clone();
-    let uri = req.uri().clone();
-
-    let response = next.run(req).await;
-
-    let duration = start.elapsed();
-    info!("{} {} - {:?}", method, uri, duration);
-
-    response
-}
-
-// "Usuários cadastrados" (fake)
-fn verificar_credenciais(username: &str, password: &str) -> bool {
-    username == "admin" && password == "1234"
-}
-
-// Middleware de autenticação JWT
-async fn autenticar(req: Request<Body>, next: Next) -> Response<Body> {
-    // Primeiro tenta pegar o token do header Authorization
-    let auth_header = req
-        .headers()
-        .get(AUTHORIZATION)
-        .and_then(|h| h.to_str().ok())
-        .and_then(|h| h.strip_prefix("Bearer "))
-        .map(|s| s.to_string());
-
-    // Se não encontrou no header, tenta pegar do cookie
-    let cookie_token = req
-        .headers()
-        .get(COOKIE)
-        .and_then(|h| h.to_str().ok())
-        .and_then(|cookie_str| {
-            // Parse manual dos cookies
-            cookie_str
-                .split(';')
-                .find_map(|cookie| {
-                    let cookie = cookie.trim();
-                    if cookie.starts_with("access_token=") {
-                        Some(cookie.trim_start_matches("access_token=").to_string())
-                    } else {
-                        None
-                    }
-                })
-        });
-
-    // Usa o token do header ou do cookie
-    let token = auth_header.or(cookie_token);
-
-    match token {
-        Some(token) => {
-            // Decodifica o token percent-encoded se necessário
-            let decoded_token = percent_encoding::percent_decode_str(&token)
-                .decode_utf8()
-                .unwrap_or_default()
-                .to_string();
-
-            match decode::<Claims>(&decoded_token, &DecodingKey::from_secret(SECRET), &Validation::default()) {
-                Ok(data) => {
-                    // Adiciona as claims do usuário às extensões da requisição
-                    let mut req = req;
-                    req.extensions_mut().insert(data.claims);
-                    next.run(req).await
-                }
-                Err(e) => {
-                    debug!("Erro ao decodificar token: {}", e);
-                    (StatusCode::UNAUTHORIZED, "Token inválido").into_response()
-                }
-            }
-        }
-        None => {
-            debug!("Token não encontrado no header Authorization nem no cookie");
-            (StatusCode::UNAUTHORIZED, "Token ausente").into_response()
-        }
-    }
-}
 
 #[derive(Debug, Deserialize)]
 struct LoginPayload {
@@ -207,7 +107,7 @@ async fn main() {
         .route("/privado", get(rota_privada))
         .route("/logout", get(logout))
         .nest("/permissao", router_permissao())
-        .layer(middleware::from_fn(autenticar));
+        .layer(middleware::from_fn(middlewares::autenticar));
 
     let app = Router::new()
         .route("/hello", get(hello_world))
@@ -267,7 +167,7 @@ async fn get_login(
 }
 
 async fn login() -> Response<Body> {
-    let access_token = gerar_token("usuario_demo");
+    let access_token = middlewares::gerar_token("usuario_demo");
 
     // Converte os módulos para JSON
     //let json_data = json!(modules.iter().map(|m| m.as_dict()).collect::<Vec<_>>()).to_string();

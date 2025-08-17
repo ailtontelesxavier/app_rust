@@ -14,21 +14,20 @@ use std::collections::{BTreeMap, HashMap};
 use tracing::debug;
 
 use crate::{
-    model::module::Perfil,
-    repository::{ModuleRepository, PaginatedResponse, PermissionRepository, Repository},
-    schema::{PerfilCreateSchema, PerfilUpdateSchema, UserCreateSchema, UserPasswordUpdateSchema},
-    service::{PerfilService, UserService},
+    permissao::model::module::Perfil, permissao::service::PermissionService,
+    permissao::repository::{ModuleRepository, PaginatedResponse, PermissionRepository, Repository},
+    permissao::schema::{PerfilCreateSchema, PerfilUpdateSchema, UserCreateSchema, UserPasswordUpdateSchema},
+    permissao::service::{PerfilService, UserService}
 };
 use crate::{
-    model::{
+    permissao::model::{
         module::Module,
         permission::{Permission, PermissionWithModule},
     },
-    service::PermissionService,
 };
 use crate::{
-    schema::{CreateModuleSchema, PermissionCreateSchema, PermissionUpdateSchema},
-    service::ModuleService,
+    permissao::schema::{CreateModuleSchema, PermissionCreateSchema, PermissionUpdateSchema},
+    permissao::service::ModuleService,
 };
 
 #[derive(Deserialize)]

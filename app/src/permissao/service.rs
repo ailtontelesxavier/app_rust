@@ -1,7 +1,7 @@
 use crate::{
-    model::module::{Perfil, Permission, PermissionWithModule, User},
-    repository::{self, Repository},
-    schema::{
+    permissao::model::module::{Perfil, Permission, PermissionWithModule, User},
+    permissao::repository::{self, Repository},
+    permissao::schema::{
         PerfilCreateSchema, PerfilUpdateSchema, PermissionCreateSchema, PermissionUpdateSchema, UserCreateSchema, UserPasswordUpdateSchema, UserUpdateSchema
     },
 };
@@ -23,8 +23,8 @@ use axum::{extract::State, response::Html};
 use shared::{SharedState};
 
 use crate::{
-    model::module::Module,
-    schema::{CreateModuleSchema, UpdateModuleSchema},
+    permissao::model::module::Module,
+    permissao::schema::{CreateModuleSchema, UpdateModuleSchema},
 };
 
 pub struct ModuleService {

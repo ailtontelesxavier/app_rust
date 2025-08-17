@@ -7,8 +7,8 @@ use std::fmt::Display;
 use tracing::{debug, info};
 
 use crate::{
-    model::module::{Module, Perfil, Permission, User},
-    schema::{
+    permissao::model::module::{Module, Perfil, Permission, User},
+    permissao::schema::{
         CreateModuleSchema, PerfilCreateSchema, PerfilUpdateSchema, PermissionCreateSchema,
         PermissionUpdateSchema, UpdateModuleSchema, UserCreateSchema, UserUpdateSchema,
     },

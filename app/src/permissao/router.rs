@@ -3,7 +3,7 @@ use axum::{
     routing::{delete, get, post},
 };
 
-use crate::view;
+use crate::permissao::view;
 use shared::SharedState;
 
 pub fn router() -> Router<SharedState> {
