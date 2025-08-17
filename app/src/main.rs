@@ -1,21 +1,14 @@
 mod filters;
 
 use std::{
-    env,
-    sync::Arc,
-    time::{Instant, SystemTime, UNIX_EPOCH},
+    collections::HashMap, env, sync::Arc, time::{Instant, SystemTime, UNIX_EPOCH}
 };
 
 use axum::{
-    body::Body,
-    http::{
-        header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE, SET_COOKIE, COOKIE},
+    body::Body, extract::{Query, State}, http::{
+        header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE, COOKIE, SET_COOKIE},
         HeaderValue, Method, Request, Response, StatusCode,
-    },
-    middleware::{self, Next},
-    response::IntoResponse,
-    routing::{get, post},
-    Router,
+    }, middleware::{self, Next}, response::{Html, IntoResponse}, routing::{get, post}, Router
 };
 use axum::extract::FromRequestParts;
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
@@ -38,7 +31,7 @@ use dotenv::dotenv;
 use sqlx::postgres::PgPoolOptions;
 
 use permissao::router as router_permissao;
-use shared::{AppState, MessageResponse};
+use shared::{AppState, MessageResponse, SharedState};
 
 use crate::filters::register_filters;
 
@@ -218,7 +211,7 @@ async fn main() {
 
     let app = Router::new()
         .route("/hello", get(hello_world))
-        .route("/login", get(login))
+        .route("/login", get(get_login).post(login))
         .nest_service("/static", server_dir)
         .layer(session_layer) // Sessões devem vir antes do CORS
         .layer(cors)
@@ -235,6 +228,42 @@ async fn main() {
 
 async fn rota_privada() -> &'static str {
     "Acesso privado: você está autenticado!"
+}
+
+async fn get_login(
+    State(state): State<SharedState>,
+    Query(params): Query<HashMap<String, String>>,
+) -> Result<Html<String>, impl IntoResponse>{
+    // Extrair mensagens flash dos parâmetros da query
+    let flash_message = params
+        .get("msg")
+        .map(|msg| urlencoding::decode(msg).unwrap_or_default().to_string());
+    let flash_status = params.get("status").and_then(|s| match s.as_str() {
+        "success" => Some("success"),
+        "error" => Some("error"),
+        _ => None,
+    });
+
+    let context = minijinja::context! {
+        flash_message => flash_message,
+        flash_status => flash_status,
+    };
+
+    match state.templates.get_template("login.html") {
+        Ok(template) => match template.render(context) {
+            Ok(html) => Ok(Html(html)),
+            Err(err) => Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Erro ao renderizar template: {}", err),
+            )
+                .into_response()),
+        },
+        Err(err) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Erro ao carregar template: {}", err),
+        )
+            .into_response()),
+    }
 }
 
 async fn login() -> Response<Body> {
