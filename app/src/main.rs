@@ -2,7 +2,6 @@ mod filters;
 mod middlewares;
 mod permissao;
 
-
 use std::{
     collections::HashMap, env, fmt::Display, sync::Arc, time::{Instant, SystemTime, UNIX_EPOCH}
 };
@@ -11,7 +10,7 @@ use axum::{
     body::Body, extract::{Query, State}, http::{
         header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE, COOKIE, SET_COOKIE},
         HeaderValue, Method, Request, Response, StatusCode,
-    }, middleware::{self, Next}, response::{Html, IntoResponse}, routing::{get, post}, Form, Router
+    }, middleware::{self, Next}, response::{Html, IntoResponse, Redirect}, routing::{get, post}, Form, Router
 };
 use axum::extract::FromRequestParts;
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
@@ -34,9 +33,9 @@ use dotenv::dotenv;
 use sqlx::postgres::PgPoolOptions;
 
 use permissao::router as router_permissao;
-use shared::{AppState, MessageResponse, SharedState};
+use shared::{helpers, AppState, FlashStatus, MessageResponse, SharedState};
 
-use crate::filters::register_filters;
+use crate::{filters::register_filters, permissao::UserService};
 
 
 async fn hello_world() -> &'static str {
@@ -167,58 +166,98 @@ async fn get_login(
 }
 
 async fn login(
+    State(state): State<SharedState>,
     Form(playload): Form<LoginPayload>
 ) -> Response<Body> {
 
     println!("{:?}", playload);
-    
-    let access_token = middlewares::gerar_token("usuario_demo");
 
-    // Converte os módulos para JSON
-    //let json_data = json!(modules.iter().map(|m| m.as_dict()).collect::<Vec<_>>()).to_string();
-    
-    // Configura os cookies
-    let access_token_expire_minutes = env::var("ACCESS_TOKEN_EXPIRE_MINUTES")
-        .unwrap_or_else(|_| "3600".to_string())
-        .parse::<i64>()
-        .unwrap_or(3600);
-    
-    let max_age = Duration::minutes(access_token_expire_minutes);
-    let expires = OffsetDateTime::now_utc() + Duration::hours(1);
+    match UserService::get_by_username(&state.db, &playload.username).await {
+        Ok(user) => {
 
-    // Formata a data de expiração no formato RFC2822
-    let expires_formatted = expires.format(&Rfc2822).unwrap();
-    
-    // Cria a resposta
-    let mut response = Response::new(Body::empty());
+            if !user.is_active {
 
-    // Adiciona os cookies
-    /* let modules_cookie = format!(
-        "modules={}; Max-Age={}; Path=/",
-        percent_encoding::percent_encode(json_data.as_bytes(), percent_encoding::NON_ALPHANUMERIC),
-        max_age.whole_seconds()
-    ); */
+                let flash_url = helpers::create_flash_url(
+                    "/permissao/user-form",
+                    "Incorrect username or password",
+                    FlashStatus::Error,
+                );
+                return Redirect::to(&flash_url).into_response();
 
-    // Adiciona os cookies ao cabeçalho da resposta
-    /* response.headers_mut().append(
-        SET_COOKIE,
-        HeaderValue::from_str(&modules_cookie).unwrap()
-    ); */
+            }
 
-    // Cria o cookie de access_token
-    let access_token_cookie = format!(
-        "access_token={}; HttpOnly; SameSite=Strict; Max-Age={}; Path=/; Expires={}",
-        percent_encode(access_token.as_bytes(), NON_ALPHANUMERIC),
-        max_age.whole_seconds(),
-        expires_formatted
-    );
+            if let Ok(false)| Err(_) = UserService::verify_password(&playload.password, &user.password){
 
-    response.headers_mut().append(
-        SET_COOKIE,
-        HeaderValue::from_str(&access_token_cookie).unwrap()
-    );
+                let flash_url = helpers::create_flash_url(
+                    "/permissao/user-form",
+                    "Incorrect username or password",
+                    FlashStatus::Error,
+                );
+                return Redirect::to(&flash_url).into_response();
+            }
 
-    response
+            let access_token = middlewares::gerar_token(&user.username);
+
+            // Converte os módulos para JSON
+            //let json_data = json!(modules.iter().map(|m| m.as_dict()).collect::<Vec<_>>()).to_string();
+            
+            // Configura os cookies
+            let access_token_expire_minutes = env::var("ACCESS_TOKEN_EXPIRE_MINUTES")
+                .unwrap_or_else(|_| "3600".to_string())
+                .parse::<i64>()
+                .unwrap_or(3600);
+            
+            let max_age = Duration::minutes(access_token_expire_minutes);
+            let expires = OffsetDateTime::now_utc() + Duration::hours(1);
+
+            // Formata a data de expiração no formato RFC2822
+            let expires_formatted = expires.format(&Rfc2822).unwrap();
+            
+            // Cria a resposta
+            //let mut response = Response::new(Body::empty());
+            let mut response = Redirect::to("/permissao/home").into_response();
+
+            // Adiciona os cookies
+            /* let modules_cookie = format!(
+                "modules={}; Max-Age={}; Path=/",
+                percent_encoding::percent_encode(json_data.as_bytes(), percent_encoding::NON_ALPHANUMERIC),
+                max_age.whole_seconds()
+            ); */
+
+            // Adiciona os cookies ao cabeçalho da resposta
+            /* response.headers_mut().append(
+                SET_COOKIE,
+                HeaderValue::from_str(&modules_cookie).unwrap()
+            ); */
+
+            // Cria o cookie de access_token
+            let access_token_cookie = format!(
+                "access_token={}; HttpOnly; SameSite=Strict; Max-Age={}; Path=/; Expires={}",
+                percent_encode(access_token.as_bytes(), NON_ALPHANUMERIC),
+                max_age.whole_seconds(),
+                expires_formatted
+            );
+
+            response.headers_mut().append(
+                SET_COOKIE,
+                HeaderValue::from_str(&access_token_cookie).unwrap()
+            );
+
+            response
+
+        }
+        Err(err) => {
+
+            let flash_url = helpers::create_flash_url(
+                "/permissao/user-form",
+                &format!("Senha não atualizada: {}", err),
+                FlashStatus::Error,
+            );
+            Redirect::to(&flash_url).into_response()
+        }
+    }
+
+
 }
 
 async fn logout() -> impl IntoResponse {

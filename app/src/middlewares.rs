@@ -7,7 +7,7 @@ use axum::{
     body::Body, http::{
         header::{AUTHORIZATION, COOKIE},
         Request, Response, StatusCode,
-    }, middleware::{Next}, response::{IntoResponse},
+    }, middleware::Next, response::{IntoResponse, Redirect},
 };
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 use crate::{
@@ -77,13 +77,15 @@ pub async fn autenticar(req: Request<Body>, next: Next) -> Response<Body> {
                 }
                 Err(e) => {
                     debug!("Erro ao decodificar token: {}", e);
-                    (StatusCode::UNAUTHORIZED, "Token inválido").into_response()
+                    //(StatusCode::UNAUTHORIZED, "Token inválido").into_response()
+                    Redirect::to("/login").into_response()
                 }
             }
         }
         None => {
             debug!("Token não encontrado no header Authorization nem no cookie");
-            (StatusCode::UNAUTHORIZED, "Token ausente").into_response()
+            //(StatusCode::UNAUTHORIZED, "Token ausente").into_response()
+            Redirect::to("/login").into_response()
         }
     }
 }

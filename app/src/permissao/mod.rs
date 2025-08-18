@@ -7,3 +7,4 @@ mod view;
 
 pub use router::router;
 pub use model::module::User;
+pub use service::UserService;

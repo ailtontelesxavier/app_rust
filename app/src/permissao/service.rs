@@ -292,7 +292,7 @@ impl UserService {
         .await?)
     }
 
-    pub async fn get_by_username(&self, pool: &PgPool, username: &str) -> Result<User> {
+    pub async fn get_by_username(pool: &PgPool, username: &str) -> Result<User> {
         let query = format!(
             "SELECT * FROM users WHERE username = $1 LIMIT 1"
         );
