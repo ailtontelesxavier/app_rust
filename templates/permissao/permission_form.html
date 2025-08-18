@@ -1,11 +1,11 @@
-{% extends "base.html" %}
+{% extends "principalm.html" %}
 {% include "components/combobox.html"%}
 
 {% block title %}
     {% if row %}Editar Permissão{% else %}Nova Permissão{% endif %}
 {% endblock %}
 
-{% block body %}
+{% block main %}
 <div class="container mx-auto px-4 py-8">
     <!-- Flash Messages -->
     {% if flash_message %}

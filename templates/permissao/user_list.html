@@ -1,8 +1,8 @@
-{% extends 'base.html' %}
+{% extends 'principal.html' %}
 
 {% block title %}Lista de Perfil{% endblock %}
 
-{% block body %}
+{% block main %}
 <div class="container mx-auto p-4">
     <div class="flex justify-between items-center mb-6">
         <h1 class="text-3xl font-bold">Lista de Perfil</h1>
@@ -69,7 +69,7 @@
                         {% for row in rows %}
                         <tr class="hover">
                             <td class="font-mono text-sm">{{ row.id }}</td>
-                            <td class="font-medium">{{ row.name }}</td>
+                            <td class="font-medium">{{ row.full_name }}</td>
                             <td class="text-center">
                                 <div class="flex justify-center gap-2">
                                     <button 

@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "principal.html" %}
 {% include "components/combobox.html"%}
 {% include "components/icons_svg.html"%}
 
@@ -6,7 +6,7 @@
 {% if row %}Editar Usuario{% else %}Novo Usuario{% endif %}
 {% endblock %}
 
-{% block body %}
+{% block main %}
 <div class="container mx-auto px-4 py-8">
     {% include 'parts/flash_message.html' %}
 
