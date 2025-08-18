@@ -216,6 +216,17 @@ impl Repository<Module, i32> for ModuleRepository {
             .await?;
         Ok(())
     }
+
+    async fn get_paginated(
+        &self,
+        pool: &PgPool,
+        find: Option<&str>,
+        page: i32,
+        page_size: i32,
+    ) -> Result<PaginatedResponse<Module>> {
+        Repository::get_paginated(self, pool, find, page, page_size).await
+    }
+
 }
 
 pub struct PermissionRepository;

@@ -35,7 +35,7 @@ use sqlx::postgres::PgPoolOptions;
 use permissao::router as router_permissao;
 use shared::{helpers, AppState, FlashStatus, MessageResponse, SharedState};
 
-use crate::{filters::register_filters, permissao::UserService};
+use crate::{filters::register_filters, permissao::{ModuleRepository, UserService}};
 
 
 async fn hello_world() -> &'static str {
@@ -216,6 +216,7 @@ async fn login(
             }
 
             let access_token = middlewares::gerar_token(&user.username);
+
 
             // Converte os módulos para JSON
             //let json_data = json!(modules.iter().map(|m| m.as_dict()).collect::<Vec<_>>()).to_string();
