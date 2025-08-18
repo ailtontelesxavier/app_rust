@@ -140,7 +140,6 @@ dependencies = [
  "dotenv",
  "httpc-test",
  "image",
- "ipnetwork 0.21.1",
  "jsonwebtoken",
  "minijinja",
  "otpauth",
@@ -1731,24 +1730,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "469fb0b9cefa57e3ef31275ee7cacb78f2fdca44e4765491884a2b119d4eb130"
 
 [[package]]
-name = "ipnetwork"
-version = "0.20.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bf466541e9d546596ee94f9f69590f89473455f88372423e0008fc1a7daf100e"
-dependencies = [
- "serde",
-]
-
-[[package]]
-name = "ipnetwork"
-version = "0.21.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cf370abdafd54d13e54a620e8c3e1145f28e46cc9d704bc6d94414559df41763"
-dependencies = [
- "serde",
-]
-
-[[package]]
 name = "is_terminal_polyfill"
 version = "1.70.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3331,7 +3312,6 @@ dependencies = [
  "hashlink",
  "hex",
  "indexmap",
- "ipnetwork 0.20.0",
  "log",
  "memchr",
  "once_cell",
@@ -3458,7 +3438,6 @@ dependencies = [
  "hkdf",
  "hmac",
  "home",
- "ipnetwork 0.20.0",
  "itoa",
  "log",
  "md-5",

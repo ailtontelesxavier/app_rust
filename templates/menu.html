@@ -1,0 +1,226 @@
+<div id="menu-container" class="flex-1 px-3 cursor-pointer  space-y-1  divide-y divide-gray-200">
+  <ul id="menu-list" class="pb-2 space-y-2 cursor-pointer"></ul>
+</div>
+
+<script>
+    // Função para buscar um cookie específico
+    function getCookie(name) {
+        let value = `; ${document.cookie}`;
+        let parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(';').shift();
+    }
+</script>
+
+<script>
+document.addEventListener("DOMContentLoaded", async function () {
+  let modulos = getCookie("modules");
+  var filteredLinks = [];
+  var pathAtivo = window.location.pathname.toString();
+  
+  // Ícones (substitua pelos reais se necessário)
+  const Icons = {
+    UsersRound: '<svg class="w-6 h-6 text-gray-500 transition duration-75 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M2 10a8 8 0 018-8v8h8a8 8 0 11-16 0z"></path><path d="M12 2.252A8.014 8.014 0 0117.748 8H12V2.252z"></path></svg>',
+    File: '<svg class="w-6 h-6 text-gray-500 transition duration-75 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm2 10a1 1 0 10-2 0v3a1 1 0 102 0v-3zm2-3a1 1 0 011 1v5a1 1 0 11-2 0v-5a1 1 0 011-1zm4-1a1 1 0 10-2 0v7a1 1 0 102 0V8z" clip-rule="evenodd"></path></svg>',
+    Lock: '<svg class="w-6 h-6 text-gray-500 transition duration-75 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"></path></svg>',
+    Settings: '<svg class="w-6 h-6 text-gray-500 transition duration-75 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10 2a8 8 0 11-8 8 8 8 0 018-8zm1 4a1 1 0 10-2 0v4H7a1 1 0 100 2h4a1 1 0 100-2h-2V6z" clip-rule="evenodd"></path></svg>',
+    House: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-house"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8" /><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /></svg>',
+    Phone:'<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-phone-call"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/><path d="M14.05 2a9 9 0 0 1 8 7.94"/><path d="M14.05 6A5 5 0 0 1 18 10"/></svg>',
+    Computer: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-computer-icon lucide-computer"><rect width="14" height="8" x="5" y="2" rx="2"/><rect width="20" height="8" x="2" y="14" rx="2"/><path d="M6 18h2"/><path d="M12 18h6"/></svg>'
+  };
+
+  const links = [
+    { title: "Inicio", href: "/", icon: "House" },
+    { title: "Users", href: "/coletiva/usuario", icon: "UsersRound" },
+    { 
+      title: "Externo", href: "#", icon: "UsersRound",
+      submenu: [
+        { title: "...", href: "...", icon: "File" },
+        
+      ]
+    },
+    { 
+      title: "Coletiva", href: "#", icon: "UsersRound",
+      submenu: [
+        { title: "Escritorio", href: "/coletiva/escritorio", icon: "File" },
+        { title: "Sindicato", href: "/coletiva/sindicato", icon: "File" },
+        { title: "Envio Planilha", href: "#", icon: "File" },
+      ]
+    },
+    { 
+      title: "Permissao", href: "#", icon: "Lock",
+      submenu: [
+        { title: "Gestao Perfil", href: "/core/perfil-gestao", icon: "File" },
+        { title: "Perfil por Usuario", href: "/core/user-gestao-perfil", icon: "File" },
+        { title: "Perfil", href: "/core/perfil", icon: "File" },
+        { title: "Permissoes", href: "/core/permissao", icon: "File" },
+        { title: "Modulo", href: "/core/modulo", icon: "File" }
+      ]
+    },
+    { 
+      title: "Settings", href: "#", icon: "Settings",
+      submenu: [{ title: "Alterar Senha", href: "/core/senha-form", icon: "Lock" }],
+    }
+  ];
+
+  // Função para buscar os módulos via API
+  async function obterMenu() {
+      renderMenu();
+  }
+
+  // Função para renderizar o menu no DOM
+  function renderMenu() {
+    const menuList = document.getElementById("menu-list");
+    menuList.innerHTML = "";
+
+    if (Array.isArray(modulos)) {
+      filteredLinks = links.filter(link =>
+        modulos.some(module => module.title?.toUpperCase() === link.title?.toUpperCase())
+      );
+      const inicio = links.find(link => link.title === "Inicio");
+      if (inicio && !filteredLinks.some(link => link.title === "Inicio")) {
+        filteredLinks.unshift(inicio);
+      }
+    } else {
+      console.error("Erro: `modulos` não é um array:", modulos);
+    }
+
+    filteredLinks.forEach(link => {
+      const listItem = document.createElement("li");
+
+      if (link.submenu) {
+        listItem.innerHTML = `
+          <button type="button" class="flex items-center w-full p-2 cursor-pointer rounded-lg group hover:bg-blue-400 group dark:hover:bg-blue-400 dark:hover:text-white" 
+            aria-controls="dropdown-${link.title}" 
+            data-collapse-toggle="dropdown-${link.title}">
+            ${Icons[link.icon]}
+            <span class="flex-1 ml-3 text-left whitespace-nowrap">${link.title}</span>
+            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+              <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+            </svg>
+          </button>
+          <ul id="dropdown-${link.title}" class="hidden py-2 space-y-2">
+            ${link.submenu.map(sub => `
+              <li>
+                <a href="${sub.href}" class="flex items-center p-2 text-base 
+                 rounded-lg pl-11 group hover:bg-blue-400 group dark:hover:bg-blue-400 dark:hover:text-white">
+                  ${Icons[sub.icon]}
+                  ${sub.title}
+                </a>
+              </li>
+            `).join("")}
+          </ul>
+        `;
+      } else {
+        listItem.innerHTML = `
+          <a href="${link.href}" class="flex items-center p-2 text-base  rounded-lg hover:bg-blue-400 group dark:hover:text-white dark:hover:bg-blue-400">
+            ${Icons[link.icon]}
+            <span class="ml-3">${link.title}</span>
+          </a>
+        `;
+      }
+
+      menuList.appendChild(listItem);
+    });
+
+    // Restaurar estado do menu
+    restoreMenuState();
+  }
+
+  // Chamar a API para obter os módulos
+  await obterMenu();
+
+  function restoreMenuState() {
+    const openMenus = JSON.parse(localStorage.getItem("openMenus")) || [];
+    openMenus.forEach(menuId => {
+      const menu = document.getElementById(`${menuId}`);
+      const button = document.querySelector(`[aria-controls="${menuId}"]`);
+      if (button) button.setAttribute("aria-expanded", "true");
+      //button aria-expanded="true"
+      //ul id=dropdown-Emprestimo
+      if (menu) {
+        menu.classList.remove("hidden");
+      }
+    });
+  }
+
+  function saveMenuState() {
+    const openMenus = [];
+    document.querySelectorAll('[data-collapse-toggle]').forEach(button => {
+      const menuId = button.getAttribute("aria-controls");
+      const menu = document.getElementById(menuId);
+      if (menu && !menu.classList.contains("hidden")) {
+        openMenus.push(menuId);
+      }
+    });
+    localStorage.setItem("openMenus", JSON.stringify(openMenus));
+  }
+
+  document.querySelectorAll('[data-collapse-toggle]').forEach(button => {
+    button.addEventListener("click", function () {
+      const menuId = this.getAttribute("aria-controls");
+      const menu = document.getElementById(menuId);
+      if (menu) {
+        menu.classList.toggle("hidden");
+        saveMenuState();
+      }
+    });
+  });
+
+
+  //marca o menu como pathAtivo
+  // Seleciona todos os links do menu
+  let menuLinks = document.querySelectorAll("#menu-container a");
+  menuLinks.forEach(link => {
+      // Verifica se o href do link corresponde ao pathAtivo
+      if (link.getAttribute("href") === pathAtivo) {
+          // Adiciona a classe ativa no li pai ou no próprio link
+          link.classList.add("bg-gray-200", "dark:bg-gray-700");
+      }
+  });
+
+  //funcao para fazer logout
+  document.getElementById("logout").addEventListener("click", function() {
+    showLoader();
+    axios({
+      method: 'get',
+      url: '/logout',
+    }).then(function(response) {
+      showMessage("Você saiu do sistema com sucesso!");
+      setTimeout(() => window.location.href='/login', 200);
+      //hideLoader();
+    })
+    .catch(function(error) {
+      hideLoader();
+
+      let detail = error.response?.data?.detail;
+
+      if (Array.isArray(detail)) {
+        // Junta todas as mensagens em uma string
+        detail = detail.map(item => {
+          const loc = item.loc ? item.loc.join('.') : '';
+          const msg = item.msg || JSON.stringify(item);
+          return loc ? `${loc}: ${msg}` : msg;
+        }).join('\n');
+      }
+
+      const message = "Erro ao processar requisição: " + (detail || 'Por favor tente novamente, daqui alguns minutos');
+
+      if (axios.isAxiosError(error)) {
+        showMessage(message);
+      } else {
+        console.error("Erro inesperado:", error);
+        showMessage("Erro inesperado.");
+      }
+    });
+    
+  });
+  //versao mobile mostrar ou ocultar menu lateral esquerdo
+  document.getElementById("toggleSidebar").addEventListener("click", function() {
+      const sidebar = document.getElementById("sidebar");
+      sidebar.classList.toggle("hidden");
+      //exibir icone de menu
+      const toggleSidebar = document.getElementById("toggleSidebar");
+    
+  });
+});
+</script>

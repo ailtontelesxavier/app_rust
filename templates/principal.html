@@ -1,0 +1,66 @@
+{% extends 'base.html'%}
+
+{% block title %}Principal{%endblock%}
+
+{% block body %}
+<!-- navabar header -->
+{% include 'nav_bar.html' %}
+
+<!-- menu esquerdo -->
+<div class="flex pt-16 overflow-hidden ">
+    <aside
+      id="sidebar"
+      class="fixed top-0 left-0 z-20 flex flex-col flex-shrink-0 hidden w-64 h-full pt-16 font-normal duration-75 dark:bg-base-100 lg:flex transition-width"
+      aria-label="Sidebar"
+    >
+      <div
+        class="relative flex flex-col flex-1 min-h-0 pt-0 shadow-xg border-r border-gray-200"
+      >
+        <div class="flex flex-col flex-1 pt-5 pb-4 overflow-y-auto">
+          <!-- Menu lateral esquerdo -->
+          {% include 'menu.html' %}
+          <!-- menu sair-->
+          <div class="pt-2 space-y-2">
+            <span id="logout"
+              class="flex items-center cursor-pointer p-2 text-base transition duration-75 rounded-lg hover:bg-blue-400 group dark:hover:text-white dark:hover:bg-blue-400"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="lucide lucide-log-out"
+              >
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" x2="9" y1="12" y2="12" />
+              </svg>
+              <span class="ml-3" sidebar-toggle-item="">Sair</span>
+          </span>
+          </div>
+        </div>
+      </div>
+    </aside>
+  
+    <div class="relative w-full lg:ml-64">
+      <main>
+        <!--Load-->
+        <div id="loader" class="hidden fixed inset-0 flex items-center justify-center bg-transparent z-50">
+          <div class="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+        <div class="container mx-auto mt-10 min-h-screen gap-4">
+          {% block main %} {% endblock %}
+        </div>
+      </main>
+    </div>
+  </div>
+
+{% endblock %}
+
+{% block extra_js %}
+{% endblock %}

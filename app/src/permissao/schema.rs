@@ -1,4 +1,3 @@
-use ipnetwork::IpNetwork;
 use serde::{Deserialize, Serialize};
 
 use regex::Regex;

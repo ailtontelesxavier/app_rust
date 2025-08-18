@@ -103,6 +103,7 @@ async fn main() {
         .allow_headers([AUTHORIZATION, ACCEPT, CONTENT_TYPE]);
 
     let rotas_privadas = Router::new()
+        .route("/", get(index))
         .route("/privado", get(rota_privada))
         .route("/logout", get(logout))
         .nest("/permissao", router_permissao())
@@ -127,6 +128,24 @@ async fn main() {
 
 async fn rota_privada() -> &'static str {
     "Acesso privado: você está autenticado!"
+}
+
+async fn index(State(state): State<SharedState>,) -> Result<Html<String>, impl IntoResponse> {
+    match state.templates.get_template("principal.html") {
+        Ok(template) => match template.render({}) {
+            Ok(html) => Ok(Html(html)),
+            Err(err) => Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Erro ao renderizar template: {}", err),
+            )
+                .into_response()),
+        },
+        Err(err) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Erro ao carregar template: {}", err),
+        )
+            .into_response()),
+    }
 }
 
 async fn get_login(
@@ -178,7 +197,7 @@ async fn login(
             if !user.is_active {
 
                 let flash_url = helpers::create_flash_url(
-                    "/permissao/user-form",
+                    "/login",
                     "Incorrect username or password",
                     FlashStatus::Error,
                 );
@@ -189,7 +208,7 @@ async fn login(
             if let Ok(false)| Err(_) = UserService::verify_password(&playload.password, &user.password){
 
                 let flash_url = helpers::create_flash_url(
-                    "/permissao/user-form",
+                    "/login",
                     "Incorrect username or password",
                     FlashStatus::Error,
                 );
@@ -215,7 +234,7 @@ async fn login(
             
             // Cria a resposta
             //let mut response = Response::new(Body::empty());
-            let mut response = Redirect::to("/permissao/home").into_response();
+            let mut response = Redirect::to("/").into_response();
 
             // Adiciona os cookies
             /* let modules_cookie = format!(
@@ -249,7 +268,7 @@ async fn login(
         Err(err) => {
 
             let flash_url = helpers::create_flash_url(
-                "/permissao/user-form",
+                "/login",
                 &format!("Senha não atualizada: {}", err),
                 FlashStatus::Error,
             );

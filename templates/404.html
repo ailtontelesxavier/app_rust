@@ -1,0 +1,33 @@
+<!-- templates/404.html -->
+{% extends "base.html" %}
+{% from "core/components/macros.html" import Button %}
+{% block title %}
+404 - Página não encontrada
+{%endblock%}
+{% block body %}
+<div class="container mx-auto mt-5 max-w-screen-md py-4">
+    <h1>404 - Página não encontrada</h1>
+    <p>A página que você está procurando não existe.</p>
+
+    {% call Button(id="btn_back", class='btn_back', title='Voltar')%}
+    Voltar à página anterior
+    {% endcall %}
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+  function voltarPaginaAnterior() {
+    if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      window.location.href = "/"; // Redireciona para a página inicial
+    }
+  }
+
+  document.getElementById("btn_back").addEventListener("click", function() {
+
+    voltarPaginaAnterior();
+  });
+
+</script>
+{% endblock %}

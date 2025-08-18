@@ -14,7 +14,7 @@ tower-sessions = { version = "0.13"}
 tokio = { version = "1.47", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-sqlx = { version = "0.8", features = ["runtime-tokio", "postgres", "macros", "chrono", "ipnetwork", "uuid"] }
+sqlx = { version = "0.8", features = ["runtime-tokio", "postgres", "macros", "chrono", "uuid"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["fmt", "env-filter"] }
 tower-http = { version = "0.6", features = ["trace", "metrics", "fs", "cors"] }
@@ -23,7 +23,6 @@ minijinja = { version = "2.11", features = ["loader"] }
 dotenv = "0.15"
 chrono = {version = "0.4", features = ["serde"] }
 
-ipnetwork = { version = "0.21", features = ["serde"] }
 uuid = { version = "1.17", features = ["serde", "v4"] }
 
 otpauth = "0.5"

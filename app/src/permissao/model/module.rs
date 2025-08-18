@@ -1,5 +1,4 @@
 use chrono::{DateTime, Utc};
-use ipnetwork::IpNetwork;
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 //use uuid::Uuid;
