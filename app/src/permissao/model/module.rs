@@ -47,7 +47,7 @@ pub struct Perfil {
     pub name: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct User {
     pub id: i64,
     pub username: String,

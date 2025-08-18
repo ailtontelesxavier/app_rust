@@ -4,14 +4,14 @@ mod permissao;
 
 
 use std::{
-    collections::HashMap, env, sync::Arc, time::{Instant, SystemTime, UNIX_EPOCH}
+    collections::HashMap, env, fmt::Display, sync::Arc, time::{Instant, SystemTime, UNIX_EPOCH}
 };
 
 use axum::{
     body::Body, extract::{Query, State}, http::{
         header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE, COOKIE, SET_COOKIE},
         HeaderValue, Method, Request, Response, StatusCode,
-    }, middleware::{self, Next}, response::{Html, IntoResponse}, routing::{get, post}, Router
+    }, middleware::{self, Next}, response::{Html, IntoResponse}, routing::{get, post}, Form, Router
 };
 use axum::extract::FromRequestParts;
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
@@ -166,7 +166,12 @@ async fn get_login(
     }
 }
 
-async fn login() -> Response<Body> {
+async fn login(
+    Form(playload): Form<LoginPayload>
+) -> Response<Body> {
+
+    println!("{:?}", playload);
+    
     let access_token = middlewares::gerar_token("usuario_demo");
 
     // Converte os módulos para JSON

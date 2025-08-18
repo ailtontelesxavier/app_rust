@@ -17,7 +17,7 @@
         </svg>
       </h2>
       <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Acessar</h2>
-      <form id="descriptionForm">
+      <form id="descriptionForm" method="POST" action="/login">
         <div class="">
           <label for="username" class="label">
             <span class="label-text">Usuario</span>
@@ -71,140 +71,10 @@
         </div>
         -->
         <div class="flex justify-end gap-4 mt-4">
-          <button id="btnSubmit" type="button" class="btn btn-success">Entrar</button>
+          <button id="btnSubmit" type="submit" class="btn btn-success">Entrar</button>
         </div>
       </form>
     </div>
   </div>
 </div>
-{% endblock %}
-{% block extra_js %}
-<script>
-  document.addEventListener("DOMContentLoaded", function () {
-
-    async function handleSubmit(evt) {
-      evt.preventDefault(); // Impede o comportamento padrão do formulário (recarregar a página)
-
-      // Obtendo os dados do formulário
-      const form = evt.target;
-      const formData = new FormData(form);
-
-      // Convertendo FormData para um objeto simples
-      const data = Object.fromEntries(formData.entries());
-      console.log("data:", data);
-
-      if (!data.username) {
-        showMessage("O campo Nome é obrigatório!", "error");
-        return;
-      }
-      if (!data.password) {
-        showMessage("O campo Permissão é obrigatório!", "error");
-        return;
-      }
-      /*
-      if (!data.client_secret) {
-        showMessage("O campo token é obrigatório!", "error");
-        return;
-      }
-      */
-      showLoader();
-
-      let url = "/login";
-      let method = "post";
-      let Content_Type = "application/x-www-form-urlencoded";
-
-      // Envia os dados do formulário usando Axios
-        await axios({
-          method: method,
-          url: url,
-          data: data,
-          withCredentials: true,
-          headers: {
-            "Content-Type": Content_Type,
-          },
-        }).then(function (response) {
-          console.log(response.data);
-          setTimeout(() => {
-            hideLoader();
-            window.location.href = '/home'; // Redirecionamento com tempo de espera
-          }, 300);
-        }).catch(function (error) {
-          hideLoader();
-
-          let detail = error.response?.data?.detail;
-
-          if (Array.isArray(detail)) {
-            // Junta todas as mensagens em uma string
-            detail = detail.map(item => {
-              const loc = item.loc ? item.loc.join('.') : '';
-              const msg = item.msg || JSON.stringify(item);
-              return loc ? `${loc}: ${msg}` : msg;
-            }).join('\n');
-          }
-
-          const message = "Erro ao processar requisição: " + (detail || 'Por favor tente novamente, daqui alguns minutos');
-
-          if (axios.isAxiosError(error)) {
-            showMessage(message);
-          } else {
-            console.error("Erro inesperado:", error);
-            showMessage("Erro inesperado.");
-          }
-        });
-      }
-    
-
-      document.getElementById("btnSubmit").addEventListener("click", function () {
-        const form = document.getElementById("descriptionForm");
-        const submitEvent = new Event("submit", {
-          cancelable: true,
-          bubbles: true,
-        });
-        form.dispatchEvent(submitEvent);
-
-        if (!submitEvent.defaultPrevented) {
-          form.submit();
-        }
-      });
-
-      document.getElementById("descriptionForm").addEventListener("submit", handleSubmit);
-
-      document.getElementById("password").addEventListener("keypress", function (evt) {
-        if (evt.key === "Enter") {
-          //evt.preventDefault(); // Evita que o formulário seja enviado automaticamente
-          document.getElementById("btnSubmit").click();
-        }
-      });
-
-      // simular o clique no botão "Acessar" quando a tecla "Enter" for pressionada no campo "token"
-      /*
-      document.getElementById("token").addEventListener("keypress", function (evt) {
-        if (evt.key === "Enter") {
-          //evt.preventDefault(); // Evita que o formulário seja enviado automaticamente
-          document.getElementById("btnSubmit").click();
-        }
-      });
-      */
-    });
-</script>
-
-<script>
-  //exibir a senha:
-  document.addEventListener("DOMContentLoaded", function () {
-    document.getElementById("togglePassword").addEventListener("click", function () {
-      const passwordInput = document.getElementById("password");
-      const eyeIcon = document.getElementById("eyeIcon");
-
-      if (passwordInput.type === "password") {
-        passwordInput.type = "text";
-        eyeIcon.innerHTML = '<path d="M17.94 17.94A10 10 0 0 1 6.06 6.06"></path><path d="M1 1l22 22"></path>';
-      } else {
-        passwordInput.type = "password";
-        eyeIcon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>';
-      }
-    });
-
-  });
-
-</script>
 {% endblock %}

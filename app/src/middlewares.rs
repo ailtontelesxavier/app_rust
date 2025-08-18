@@ -1,4 +1,3 @@
-mod permissao;
 use serde::{Deserialize, Serialize};
 use std::{
     time::{Instant, SystemTime, UNIX_EPOCH}

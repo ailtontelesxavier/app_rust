@@ -292,6 +292,14 @@ impl UserService {
         .await?)
     }
 
+    pub async fn get_by_username(&self, pool: &PgPool, username: &str) -> Result<User> {
+        let query = format!(
+            "SELECT * FROM users WHERE username = $1 LIMIT 1"
+        );
+
+        Ok(sqlx::query_as(&query).bind(username).fetch_one(pool).await?)
+    }
+
 }
 
 pub async fn home(State(state): State<SharedState>) -> Html<String> {
