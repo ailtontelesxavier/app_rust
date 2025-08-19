@@ -10,14 +10,14 @@ use axum::{
     body::Body, extract::{Query, State}, http::{
         header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE, COOKIE, SET_COOKIE},
         HeaderValue, Method, Request, Response, StatusCode,
-    }, middleware::{self, Next}, response::{Html, IntoResponse, Redirect}, routing::{get, post}, Form, Router
+    }, middleware::{self, Next}, response::{Html, IntoResponse, Redirect}, routing::{get, post}, Form, Json, Router
 };
 use axum::extract::FromRequestParts;
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 use minijinja::{path_loader, Environment};
 use percent_encoding::{percent_encode, NON_ALPHANUMERIC};
 use serde::{Deserialize, Serialize};
-use serde_json::json;
+use serde_json::{json, Value};
 use time::{format_description::well_known::Rfc2822, Duration, OffsetDateTime};
 use tokio;
 use tower_http::{
@@ -35,7 +35,7 @@ use sqlx::postgres::PgPoolOptions;
 use permissao::router as router_permissao;
 use shared::{helpers, AppState, FlashStatus, MessageResponse, SharedState};
 
-use crate::{filters::register_filters, permissao::{ModuleRepository, UserService}};
+use crate::{filters::register_filters, permissao::{Module, ModuleRepository, ModuleService, UserService}};
 
 
 async fn hello_world() -> &'static str {
@@ -104,10 +104,12 @@ async fn main() {
 
     let rotas_privadas = Router::new()
         .route("/", get(index))
-        .route("/privado", get(rota_privada))
+        .route("/privado", get(rota_privada)
+            .layer(middleware::from_fn(middlewares::require_roles(vec!["admin"])))
+        )
         .route("/logout", get(logout))
         .nest("/permissao", router_permissao())
-        .layer(middleware::from_fn(middlewares::autenticar));
+        .layer(middleware::from_fn_with_state(state.clone(), middlewares::autenticar));
 
     let app = Router::new()
         .route("/hello", get(hello_world))
@@ -217,6 +219,47 @@ async fn login(
 
             let access_token = middlewares::gerar_token(&user.username);
 
+            // Busca os módulos usando o service
+            let json_data: String = match sqlx::query_as!(
+                    Module,
+                    r#"SELECT * FROM module"#
+                )
+                .fetch_all(&*state.db)
+                .await 
+            {
+                Ok(paginated_result) => {
+                    // Converte os módulos para JSON
+                    let modules: Vec<Value> = paginated_result.iter().map(|m| {
+                        json!({
+                            "id": m.id,
+                            "title": m.title,
+                        })
+                    }).collect();
+
+                    json!(modules).to_string()
+                }
+                Err(err) => {
+                    debug!("Erro ao buscar módulos: {}", err);
+                    json!([]).to_string() // Array vazio em caso de erro
+                }
+            };
+
+            /* let json_data = match module_service.get_paginated(&state.db, None, 1, 50).await {
+                Ok(paginated_result) => {
+                    // Converte os módulos para JSON
+                    json!(paginated_result.data.iter().map(|m| {
+                        json!({
+                            "id": m.id,
+                            "title": m.title,
+                        })
+                    }).collect::<Vec<_>>()).to_string()
+                }
+                Err(err) => {
+                    debug!("Erro ao buscar módulos: {}", err);
+                    json!([]).to_string() // Array vazio em caso de erro
+                }
+            }; */
+
 
             // Converte os módulos para JSON
             //let json_data = json!(modules.iter().map(|m| m.as_dict()).collect::<Vec<_>>()).to_string();
@@ -238,17 +281,17 @@ async fn login(
             let mut response = Redirect::to("/").into_response();
 
             // Adiciona os cookies
-            /* let modules_cookie = format!(
+             let modules_cookie = format!(
                 "modules={}; Max-Age={}; Path=/",
                 percent_encoding::percent_encode(json_data.as_bytes(), percent_encoding::NON_ALPHANUMERIC),
                 max_age.whole_seconds()
-            ); */
+            );
 
             // Adiciona os cookies ao cabeçalho da resposta
-            /* response.headers_mut().append(
+            response.headers_mut().append(
                 SET_COOKIE,
                 HeaderValue::from_str(&modules_cookie).unwrap()
-            ); */
+            );
 
             // Cria o cookie de access_token
             let access_token_cookie = format!(

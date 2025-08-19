@@ -13,7 +13,9 @@
 
 <script>
 document.addEventListener("DOMContentLoaded", async function () {
-  let modulos = getCookie("modules");
+
+  const cookieValue = decodeURIComponent(getCookie("modules")); 
+  let modulos = JSON.parse(cookieValue);
   var filteredLinks = [];
   var pathAtivo = window.location.pathname.toString();
   

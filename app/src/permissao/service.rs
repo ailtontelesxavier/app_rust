@@ -1,10 +1,6 @@
-use crate::{
-    permissao::model::module::{Perfil, Permission, PermissionWithModule, User},
-    permissao::repository::{self, Repository},
-    permissao::schema::{
+use crate::permissao::{model::module::{Perfil, Permission, PermissionWithModule, User}, repository::{self, PaginatedResponse, Repository}, schema::{
         PerfilCreateSchema, PerfilUpdateSchema, PermissionCreateSchema, PermissionUpdateSchema, UserCreateSchema, UserPasswordUpdateSchema, UserUpdateSchema
-    },
-};
+    }};
 use anyhow::Result;
 use argon2::{
     Algorithm, Argon2, Params, Version,
@@ -39,11 +35,11 @@ impl ModuleService {
     }
 
     pub async fn get_by_id(&self, pool: &PgPool, id: i32) -> Result<Module> {
-        Ok(self.repo.get_by_id(pool, id).await?)
+        self.repo.get_by_id(pool, id).await
     }
 
     pub async fn create(&self, pool: &PgPool, input: CreateModuleSchema) -> Result<Module> {
-        Ok(self.repo.create(pool, input).await?)
+        self.repo.create(pool, input).await
     }
 
     pub async fn update(
@@ -52,11 +48,11 @@ impl ModuleService {
         id: i32,
         input: UpdateModuleSchema,
     ) -> Result<Module> {
-        Ok(self.repo.update(pool, id, input).await?)
+        self.repo.update(pool, id, input).await
     }
 
     pub async fn delete(&self, pool: &PgPool, id: i32) -> Result<()> {
-        Ok(self.repo.delete(pool, id).await?)
+        self.repo.delete(pool, id).await
     }
 
     pub async fn get_paginated(
@@ -65,8 +61,8 @@ impl ModuleService {
         find: Option<&str>,
         page: i32,
         page_size: i32,
-    ) -> Result<repository::PaginatedResponse<Module>> {
-        Ok(self.repo.get_paginated(pool, find, page, page_size).await?)
+    ) -> Result<PaginatedResponse<Module>> {
+        self.repo.get_paginated(pool, find, page, page_size).await
     }
 }
 

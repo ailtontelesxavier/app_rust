@@ -14,6 +14,8 @@ pub enum AppError {
     SessionError(String),
     InvalidSecret,
     VerificationFailed,
+    PermissionDenied,
+    UserNotAuthenticated,
 }
 
 impl fmt::Display for AppError {
@@ -25,6 +27,8 @@ impl fmt::Display for AppError {
             AppError::SessionError(msg) => write!(f, "Erro de sessão: {}", msg),
             AppError::InvalidSecret => write!(f, "Invalid base32 secret"),
             AppError::VerificationFailed => write!(f, "OTP verification failed"),
+            AppError::PermissionDenied => write!(f,"You are not allowed to perform this action"),
+            AppError::UserNotAuthenticated => write!(f,"Authentication required. Please log in."),
         }
     }
 }
@@ -51,6 +55,8 @@ impl IntoResponse for AppError {
             ),
             AppError::InvalidSecret => (StatusCode::NOT_FOUND, "".to_string()),
             AppError::VerificationFailed => (StatusCode::INTERNAL_SERVER_ERROR, "".to_string()),
+            AppError::PermissionDenied => (StatusCode::FORBIDDEN, "You are not allowed to perform this action".to_string()),
+            AppError::UserNotAuthenticated => (StatusCode::UNAUTHORIZED, "uthentication required. Please log in.".to_string()),
         };
 
         let body = Json(ErrorResponse { error: error_msg });
