@@ -3,20 +3,18 @@ mod middlewares;
 mod permissao;
 
 use std::{
-    collections::HashMap, env, fmt::Display, sync::Arc, time::{Instant, SystemTime, UNIX_EPOCH}
+    collections::HashMap, env, sync::Arc,
 };
 
 use axum::{
     body::Body, extract::{Query, State}, http::{
-        header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE, COOKIE, SET_COOKIE},
-        HeaderValue, Method, Request, Response, StatusCode,
-    }, middleware::{self, Next}, response::{Html, IntoResponse, Redirect}, routing::{get, post}, Form, Json, Router
+        header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE, SET_COOKIE},
+        HeaderValue, Method, Response, StatusCode,
+    }, middleware::{self,}, response::{Html, IntoResponse, Redirect}, routing::{get}, Form, Router
 };
-use axum::extract::FromRequestParts;
-use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 use minijinja::{path_loader, Environment};
 use percent_encoding::{percent_encode, NON_ALPHANUMERIC};
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize};
 use serde_json::{json, Value};
 use time::{format_description::well_known::Rfc2822, Duration, OffsetDateTime};
 use tokio;
@@ -35,15 +33,11 @@ use sqlx::postgres::PgPoolOptions;
 use permissao::router as router_permissao;
 use shared::{helpers, AppState, FlashStatus, MessageResponse, SharedState};
 
-use crate::{filters::register_filters, permissao::{Module, ModuleRepository, ModuleService, UserService}};
-
+use crate::{filters::register_filters, permissao::{Module, UserService}};
 
 async fn hello_world() -> &'static str {
     "Welcome!"
 }
-
-
-
 
 
 #[derive(Debug, Deserialize)]
@@ -191,8 +185,6 @@ async fn login(
     Form(playload): Form<LoginPayload>
 ) -> Response<Body> {
 
-    println!("{:?}", playload);
-
     match UserService::get_by_username(&state.db, &playload.username).await {
         Ok(user) => {
 
@@ -243,26 +235,6 @@ async fn login(
                     json!([]).to_string() // Array vazio em caso de erro
                 }
             };
-
-            /* let json_data = match module_service.get_paginated(&state.db, None, 1, 50).await {
-                Ok(paginated_result) => {
-                    // Converte os módulos para JSON
-                    json!(paginated_result.data.iter().map(|m| {
-                        json!({
-                            "id": m.id,
-                            "title": m.title,
-                        })
-                    }).collect::<Vec<_>>()).to_string()
-                }
-                Err(err) => {
-                    debug!("Erro ao buscar módulos: {}", err);
-                    json!([]).to_string() // Array vazio em caso de erro
-                }
-            }; */
-
-
-            // Converte os módulos para JSON
-            //let json_data = json!(modules.iter().map(|m| m.as_dict()).collect::<Vec<_>>()).to_string();
             
             // Configura os cookies
             let access_token_expire_minutes = env::var("ACCESS_TOKEN_EXPIRE_MINUTES")
