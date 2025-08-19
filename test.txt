@@ -13,3 +13,122 @@ CREATE TABLE IF NOT EXISTS public.users_hist
 
 
 https://editorjs.io/
+
+
+
+
+// ...existing code...
+use crate::{filters::register_filters, permissao::{Module, ModuleRepository, ModuleService, UserService}, middlewares};
+
+// ...existing code...
+
+#[tokio::main]
+async fn main() {
+    // ...existing code...
+
+    let rotas_privadas = Router::new()
+        .route("/", get(index))
+        .route("/privado", get(rota_privada)
+            .layer(middleware::from_fn(middlewares::require_roles(vec!["admin"]))))
+        .route("/logout", get(logout))
+        .nest("/permissao", router_permissao())
+        .layer(middleware::from_fn_with_state(state.clone(), middlewares::autenticar));
+
+    // ...existing code...
+}
+
+// Alternativamente, você pode criar rotas específicas para diferentes roles:
+async fn create_routes_with_roles() -> Router<SharedState> {
+    // Rotas que só admins podem acessar
+    let admin_routes = Router::new()
+        .route("/admin", get(admin_only_page))
+        .route("/privado", get(rota_privada))
+        .layer(middleware::from_fn(middlewares::require_roles(vec!["admin"])));
+
+    // Rotas que usuários e admins podem acessar
+    let user_routes = Router::new()
+        .route("/dashboard", get(dashboard))
+        .layer(middleware::from_fn(middlewares::require_roles(vec!["user", "admin"])));
+
+    // Rotas básicas autenticadas (qualquer usuário logado)
+    let authenticated_routes = Router::new()
+        .route("/", get(index))
+        .route("/logout", get(logout));
+
+    Router::new()
+        .merge(admin_routes)
+        .merge(user_routes)
+        .merge(authenticated_routes)
+        .nest("/permissao", router_permissao())
+        .layer(middleware::from_fn_with_state(state.clone(), middlewares::autenticar))
+}
+
+async fn rota_privada(
+    Extension(current_user): Extension<middlewares::CurrentUser>
+) -> String {
+    format!("Acesso privado: Olá {}, você é um administrador!", current_user.current_user.full_name)
+}
+
+// Exemplo de função para página exclusiva de admin
+async fn admin_only_page(
+    Extension(current_user): Extension<middlewares::CurrentUser>
+) -> String {
+    format!("Área administrativa - Bem-vindo, {}", current_user.current_user.full_name)
+}
+
+// Exemplo de dashboard para usuários e admins
+async fn dashboard(
+    Extension(current_user): Extension<middlewares::CurrentUser>
+) -> String {
+    format!("Dashboard - Bem-vindo, {}", current_user.current_user.full_name)
+}
+// ...existing code...
+
+Para usar o require_roles na rota_privada, você precisa aplicar o middleware de roles na rota específica. Aqui está como fazer:
+
+Ou se você quiser uma estrutura mais organizada, pode fazer assim:
+// ...existing code...
+#[tokio::main]
+async fn main() {
+    // ...existing code...
+
+    // Rotas públicas (sem autenticação)
+    let public_routes = Router::new()
+        .route("/hello", get(hello_world))
+        .route("/login", get(get_login).post(login));
+
+    // Rotas autenticadas básicas
+    let authenticated_routes = Router::new()
+        .route("/", get(index))
+        .route("/logout", get(logout));
+
+    // Rotas que requerem role de admin
+    let admin_routes = Router::new()
+        .route("/privado", get(rota_privada))
+        .layer(middleware::from_fn(middlewares::require_roles(vec!["admin"])));
+
+    // Rotas que requerem role de user ou admin
+    let user_routes = Router::new()
+        .route("/dashboard", get(dashboard))
+        .layer(middleware::from_fn(middlewares::require_roles(vec!["user", "admin"])));
+
+    // Combina todas as rotas autenticadas
+    let rotas_privadas = Router::new()
+        .merge(authenticated_routes)
+        .merge(admin_routes)
+        .merge(user_routes)
+        .nest("/permissao", router_permissao())
+        .layer(middleware::from_fn_with_state(state.clone(), middlewares::autenticar));
+
+    let app = Router::new()
+        .merge(public_routes)
+        .nest_service("/static", server_dir)
+        .layer(session_layer)
+        .layer(cors)
+        .layer(TraceLayer::new_for_http())
+        .merge(rotas_privadas)
+        .with_state(state.clone());
+
+    // ...existing code...
+}
+// ...existing code...
