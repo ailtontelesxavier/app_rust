@@ -52,7 +52,7 @@
                     {% set title_module = modulo.title if modulo else '' %}
                     {{ combobox(
                         field_name="module_id", 
-                        field_label="Selecione o modulo",
+                        placeholder="Selecione o modulo",
                         endpoint="/permissao/modulo-api",
                         attrs="required",
                         search=title_module,

@@ -1,12 +1,13 @@
-{% macro combobox(field_name, field_label, endpoint, attrs="", search='', value='') %}
+{% macro combobox(field_name, endpoint, field_label='name', placeholder='', attrs="", search='', value='') %}
 {% set field_name = field_name %}
 {% set field_label = field_label %}
+{% set placeholder = placeholder %}
 {% set attrs = attrs %}
 {% set endpoint = endpoint %}
 {% set search = search %}
 {% set value = value %}
 <div class="relative w-full mb-4 mx-auto">
-    <input id="search_{{ field_name }}" type="text" placeholder="{{ field_label }}..." value="{{ search }}"
+    <input id="search_{{ field_name }}" type="text" placeholder="{{ placeholder }}..." value="{{ search }}"
            class="w-full rounded-md border shadow border-gray-300 bg-gray-50 px-4 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500"
            {{ attrs }}>
     <div id="dropdown_{{ field_name }}" class="absolute z-10 mt-1 max-h-60 min-w-xs w-full overflow-auto rounded-md border border-gray-300 bg-white shadow-lg dark:bg-gray-700 dark:border-gray-600 hidden">
@@ -76,9 +77,9 @@
                     data.data.forEach(item => {
                         const li = document.createElement('li');
                         li.className = 'cursor-pointer px-4 py-2 text-gray-900 hover:bg-cyan-200 hover:text-green-800 dark:text-white dark:hover:bg-primary-500 dark:hover:text-white';
-                        li.textContent = item.title || item.name;
+                        li.textContent = item.title || item.name || item.{{ field_label }} ;
                         li.addEventListener('mousedown', () => {
-                            document.getElementById('search_' + fieldName).value = item.title || item.name;
+                            document.getElementById('search_' + fieldName).value = item.title || item.name || item.{{ field_label }};
                             document.getElementById('hidden_' + fieldName + '_id').value = item.id;
                             dropdown.classList.add('hidden');
                         });

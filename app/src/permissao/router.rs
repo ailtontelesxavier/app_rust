@@ -14,6 +14,7 @@ pub fn router() -> Router<SharedState> {
         .merge(permission_router())
         .merge(perfil_router())
         .merge(user_router())
+        .merge(user_gestao_perfil_router())
 }
 
 fn modulo_router() -> Router<SharedState> {
@@ -62,7 +63,13 @@ fn perfil_router() -> Router<SharedState> {
             get(view::get_perfil).post(view::update_perfil),
         )
         .route("/perfil/{id}", delete(view::delete_perfil))
+        .merge(api_perfil_router())
 }
+
+fn api_perfil_router() -> Router<SharedState> {
+    Router::new().route("/perfil-api", get(view::perfil_list_api))
+}
+
 
 fn user_router() -> Router<SharedState> {
     Router::new().route("/user", get(view::list_user)).route(
@@ -74,6 +81,26 @@ fn user_router() -> Router<SharedState> {
         get(view::get_user),//.post(view::update_user),
     )
     .route("/user-form-senha/{id}", post(view::update_senha_user))
+    .merge(api_user_router())
     /*.route("/user/{id}", delete(view::delete_user))
     */
 }
+
+fn api_user_router() -> Router<SharedState> {
+    Router::new().route("/user-api", get(view::users_list_api))
+}
+
+fn user_gestao_perfil_router() -> Router<SharedState> {
+    Router::new()
+        .route("/user-gestao-perfil", get(view::get_user_gestao_perfil))
+        /* .route(
+            "/user-gestao-perfil-form",
+            get(view::show_user_gestao_perfil_form).post(view::create_user_gestao_perfil),
+        )
+        .route(
+            "/user-gestao-perfil-form/{id}",
+            get(view::get_user_gestao_perfil).post(view::update_user_gestao_perfil),
+        )
+        .route("/user-gestao-perfil/{id}", delete(view::delete_user_gestao_perfil)) */
+}
+

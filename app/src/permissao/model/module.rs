@@ -50,9 +50,11 @@ pub struct Perfil {
 pub struct User {
     pub id: i64,
     pub username: String,
+    #[serde(skip_serializing)]  // nunca aparece no JSON utilizado na api
     pub password: String,
     pub email: String,
     pub full_name: String,
+    #[serde(skip_serializing)]  // nunca aparece no JSON utilizado na api
     pub otp_base32: Option<String>,
     pub is_active: bool,
     pub is_staff: bool,
@@ -62,7 +64,6 @@ pub struct User {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
-
 /*
 #[derive(Deserialize, Validate)]
 pub struct AuthFormModel {
