@@ -25,6 +25,7 @@ pub struct CurrentUser {
 // Middleware de autenticação JWT
 pub async fn autenticar(
     State(state): State<SharedState>,
+    //Extension(state): Extension<Arc<SharedState>>,
     req: Request<Body>,
     next: Next
 ) -> Response<Body> {
@@ -130,7 +131,9 @@ pub fn gerar_token(usuario: &str) -> String {
 }
 
 // Middleware de log
-async fn log_middleware(req: Request<Body>, next: Next) -> Response<Body> {
+async fn log_middleware(
+    req: Request<Body>, next: Next
+) -> Response<Body> {
     let start = Instant::now();
     let method = req.method().clone();
     let uri = req.uri().clone();

@@ -297,10 +297,11 @@ async fn login(
 
 async fn logout() -> impl IntoResponse {
     // Cria uma resposta de sucesso
-    let mut response = Response::builder()
+    /* let mut response = Response::builder()
         .status(StatusCode::OK)
         .body(Body::empty())
-        .unwrap();
+        .unwrap(); */
+    let mut response = Redirect::to("/login").into_response();
 
     // Invalida o cookie de access_token definindo uma data no passado
     let expired_cookie = format!(

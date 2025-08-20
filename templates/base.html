@@ -22,8 +22,16 @@
     </script>
     -->
 
+    <!--
+    <link rel="shortcut icon" href="/static/img/favicon.png" type="image/png" />
+    -->
+
     {# modal flowbite #}
     <script src="https://cdn.jsdelivr.net/npm/flowbite@3.0.0/dist/flowbite.min.js"></script>
+
+    <!-- <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script> -->
+     <script src="/static/js/jquery-3.7.1.min.js"></script>
+    <script defer src="/static/js/jquery.blockUI.js"></script>
 
 
     <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
@@ -53,13 +61,25 @@
   </div>
 
   <script>
+    //$.blockUI.defaults.baseZ = 9999;
+    //$.blockUI.apply();
     function showLoader() {
+        //document.getElementById("loader").classList.remove("d-none");
+        //$.blockUI();
+        $.blockUI({ message: "<img style='max-width:350px; width: 100%;' src='/static/img/loading.gif' />",
+       style: "border: none;"});
+    }
+    function hideLoader() {
+        //document.getElementById("loader").classList.add("d-none");
+        $.unblockUI();
+    }
+    /* function showLoader() {
         document.getElementById("loader").classList.remove("hidden");
     }
     
     function hideLoader() {
         document.getElementById("loader").classList.add("hidden");
-    }
+    } */
     function showMessage(text, type = 'success') {
       const messageBox = document.getElementById("messageBox");
       const messageText = document.getElementById("messageText");
