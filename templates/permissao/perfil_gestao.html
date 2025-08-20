@@ -1,5 +1,6 @@
 {% extends 'principal.html' %}
 {% include "components/combobox.html"%}
+{% include "components/icons_svg.html"%}
 
 {% block title %}Gestão de Perfil por Usuario{% endblock %}
 
@@ -21,11 +22,11 @@
         <div class="card-body">
             <form method="GET" class="flex gap-4 items-end">
                 <div class="form-control flex-1">
-                    <label class="label" for="find">
-                        <span class="label-text">Buscar Usuario</span>
-                    </label>
                     <div class="relative flex flex-row gap-4">
                         <div>
+                            <label class="label" for="find">
+                                <span class="label-text">Usuario</span>
+                            </label>
                             {% set value_user = user.id if user else '' %}
                             {% set nome_user = user.full_name if user else '' %}
                             {{ combobox(
@@ -39,6 +40,9 @@
                             ) }}
                         </div>
                         <div>
+                             <label class="label" for="find">
+                                <span class="label-text">Perfil</span>
+                            </label>
                             {% set value_perfil = perfil.id if perfil else '' %}
                             {% set nome_perfil = perfil.full_name if perfil else '' %}
                             {{ combobox(
@@ -145,23 +149,8 @@
             {% else %}
             <!-- Estado vazio -->
             <div class="flex flex-col items-center justify-center py-12">
-                <svg class="w-16 h-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2 2v-5m16 0h-2M4 13h2m0 0V9a2 2 0 012-2h2m0 0V6a1 1 0 011-1h2a1 1 0 011 1v1m0 0v1a2 2 0 002 2h2m0 0v1"></path>
-                </svg>
-                <h3 class="text-lg font-medium text-gray-900 mb-2">Nenhum módulo encontrado</h3>
-                <p class="text-gray-500 text-center mb-4">
-                    {% if find %}
-                        Não encontramos módulos que correspondam à sua busca por "{{ find }}".
-                    {% else %}
-                        Comece criando seu primeiro módulo.
-                    {% endif %}
-                </p>
-                <button id="btnNovoEmpty" class="btn btn-primary">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                    </svg>
-                    Criar Primeiro Módulo
-                </button>
+                {{ heroicons() }}
+                <h3 class="text-lg font-medium text-gray-900 mb-2">Nenhum perfil encontrado</h3>
             </div>
             {% endif %}
         </div>
