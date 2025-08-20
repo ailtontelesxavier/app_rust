@@ -56,11 +56,12 @@
         <div class="card-body p-0">
             {% if rows and rows|length > 0 %}
             <!-- Tabela para telas grandes -->
-            <div class="overflow-x-auto">
+            <div class="hidden lg:block overflow-x-auto">
                 <table class="table table-zebra w-full">
                     <thead>
                         <tr>
                             <th>ID</th>
+                            <th>Login</th>
                             <th>Nome</th>
                             <th class="text-center">Ações</th>
                         </tr>
@@ -69,6 +70,7 @@
                         {% for row in rows %}
                         <tr class="hover">
                             <td class="font-mono text-sm">{{ row.id }}</td>
+                            <td class="font-medium">{{ row.username }}</td>
                             <td class="font-medium">{{ row.full_name }}</td>
                             <td class="text-center">
                                 <div class="flex justify-center gap-2">
@@ -106,8 +108,9 @@
                     <div class="card-body p-4">
                         <div class="flex justify-between items-start">
                             <div class="flex-1">
-                                <h3 class="card-title text-lg">{{ row.name }}</h3>
+                                <h3 class="card-title text-lg">{{ row.full_name }}</h3>
                                 <p class="text-sm text-gray-600">ID: {{ row.id }}</p>
+                                <p class="text-sm text-gray-600">Login: {{ row.username }}</p>
                             </div>
                             <div class="flex gap-2">
                                 <button 
@@ -121,7 +124,7 @@
                                 <button 
                                     class="btn btn-sm btn-error deleteRowButton" 
                                     data-id="{{ row.id }}"
-                                    onclick="openDeleteModal({{ row.id }}, '{{ row.name }}')"
+                                    onclick="openDeleteModal({{ row.id }}, '{{ row.full_name }}')"
                                 >
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
@@ -158,60 +161,8 @@
             {% endif %}
         </div>
     </div>
-
     <!-- Paginação -->
-    {% if total_pages and total_pages > 1 %}
-    <div class="flex justify-center mt-6">
-        <div class="join">
-            <!-- Botão anterior -->
-            {% if current_page > 1 %}
-                <a href="?page={{ current_page - 1 }}{% if find %}&find={{ find }}{% endif %}" class="join-item btn">«</a>
-            {% else %}
-                <button class="join-item btn btn-disabled">«</button>
-            {% endif %}
-
-            <!-- Números das páginas -->
-            {% set start_page = [1, current_page - 2]|max %}
-            {% set end_page = [total_pages, current_page + 2]|min %}
-
-            {% if start_page > 1 %}
-                <a href="?page=1{% if find %}&find={{ find }}{% endif %}" class="join-item btn">1</a>
-                {% if start_page > 2 %}
-                    <button class="join-item btn btn-disabled">...</button>
-                {% endif %}
-            {% endif %}
-
-            {% for page_num in range(start_page, end_page + 1) %}
-                {% if page_num == current_page %}
-                    <button class="join-item btn btn-active">{{ page_num }}</button>
-                {% else %}
-                    <a href="?page={{ page_num }}{% if find %}&find={{ find }}{% endif %}" class="join-item btn">{{ page_num }}</a>
-                {% endif %}
-            {% endfor %}
-
-            {% if end_page < total_pages %}
-                {% if end_page < total_pages - 1 %}
-                    <button class="join-item btn btn-disabled">...</button>
-                {% endif %}
-                <a href="?page={{ total_pages }}{% if find %}&find={{ find }}{% endif %}" class="join-item btn">{{ total_pages }}</a>
-            {% endif %}
-
-            <!-- Botão próximo -->
-            {% if current_page < total_pages %}
-                <a href="?page={{ current_page + 1 }}{% if find %}&find={{ find }}{% endif %}" class="join-item btn">»</a>
-            {% else %}
-                <button class="join-item btn btn-disabled">»</button>
-            {% endif %}
-        </div>
-    </div>
-
-    <!-- Informações da paginação -->
-    <div class="text-center mt-4 text-sm text-gray-600">
-        {% if total_records %}
-            Página {{ current_page }} de {{ total_pages }} - Total: {{ total_records }} registro(s)
-        {% endif %}
-    </div>
-    {% endif %}
+    {% include 'parts/paginacao.html' %}
 </div>
 
 <!-- Modal de confirmação de exclusão -->

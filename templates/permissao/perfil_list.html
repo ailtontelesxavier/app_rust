@@ -56,7 +56,7 @@
         <div class="card-body p-0">
             {% if rows and rows|length > 0 %}
             <!-- Tabela para telas grandes -->
-            <div class="overflow-x-auto">
+            <div class="hidden lg:block overflow-x-auto">
                 <table class="table table-zebra w-full">
                     <thead>
                         <tr>
@@ -160,58 +160,7 @@
     </div>
 
     <!-- Paginação -->
-    {% if total_pages and total_pages > 1 %}
-    <div class="flex justify-center mt-6">
-        <div class="join">
-            <!-- Botão anterior -->
-            {% if current_page > 1 %}
-                <a href="?page={{ current_page - 1 }}{% if find %}&find={{ find }}{% endif %}" class="join-item btn">«</a>
-            {% else %}
-                <button class="join-item btn btn-disabled">«</button>
-            {% endif %}
-
-            <!-- Números das páginas -->
-            {% set start_page = [1, current_page - 2]|max %}
-            {% set end_page = [total_pages, current_page + 2]|min %}
-
-            {% if start_page > 1 %}
-                <a href="?page=1{% if find %}&find={{ find }}{% endif %}" class="join-item btn">1</a>
-                {% if start_page > 2 %}
-                    <button class="join-item btn btn-disabled">...</button>
-                {% endif %}
-            {% endif %}
-
-            {% for page_num in range(start_page, end_page + 1) %}
-                {% if page_num == current_page %}
-                    <button class="join-item btn btn-active">{{ page_num }}</button>
-                {% else %}
-                    <a href="?page={{ page_num }}{% if find %}&find={{ find }}{% endif %}" class="join-item btn">{{ page_num }}</a>
-                {% endif %}
-            {% endfor %}
-
-            {% if end_page < total_pages %}
-                {% if end_page < total_pages - 1 %}
-                    <button class="join-item btn btn-disabled">...</button>
-                {% endif %}
-                <a href="?page={{ total_pages }}{% if find %}&find={{ find }}{% endif %}" class="join-item btn">{{ total_pages }}</a>
-            {% endif %}
-
-            <!-- Botão próximo -->
-            {% if current_page < total_pages %}
-                <a href="?page={{ current_page + 1 }}{% if find %}&find={{ find }}{% endif %}" class="join-item btn">»</a>
-            {% else %}
-                <button class="join-item btn btn-disabled">»</button>
-            {% endif %}
-        </div>
-    </div>
-
-    <!-- Informações da paginação -->
-    <div class="text-center mt-4 text-sm text-gray-600">
-        {% if total_records %}
-            Página {{ current_page }} de {{ total_pages }} - Total: {{ total_records }} registro(s)
-        {% endif %}
-    </div>
-    {% endif %}
+    {% include 'parts/paginacao.html' %}
 </div>
 
 <!-- Modal de confirmação de exclusão -->

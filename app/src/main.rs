@@ -10,7 +10,8 @@ use axum::{
     body::Body, extract::{Query, State}, http::{
         header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE, SET_COOKIE},
         HeaderValue, Method, Response, StatusCode,
-    }, middleware::{self,}, response::{Html, IntoResponse, Redirect}, routing::{get}, Form, Router
+    }, middleware::{self,}, response::{Html, IntoResponse, Redirect}, routing::get, Form, Router,
+
 };
 use minijinja::{path_loader, Environment};
 use percent_encoding::{percent_encode, NON_ALPHANUMERIC};
@@ -33,7 +34,7 @@ use sqlx::postgres::PgPoolOptions;
 use permissao::router as router_permissao;
 use shared::{helpers, AppState, FlashStatus, MessageResponse, SharedState};
 
-use crate::{filters::register_filters, permissao::{Module, UserService}};
+use crate::{filters::register_filters, middlewares::handle_forbidden, permissao::{Module, UserService}};
 
 async fn hello_world() -> &'static str {
     "Welcome!"
@@ -112,7 +113,9 @@ async fn main() {
         .layer(session_layer) // Sessões devem vir antes do CORS
         .layer(cors)
         .layer(TraceLayer::new_for_http())
+        .layer(middleware::from_fn(handle_forbidden)) // Middleware para 403
         .merge(rotas_privadas)
+        .fallback(page_not_found_handler)
         .with_state(state.clone());
 
 
@@ -323,6 +326,29 @@ async fn logout() -> impl IntoResponse {
 
     response
 }
+
+
+pub async fn page_not_found_handler(
+    State(state): State<SharedState>,
+) -> Result<Html<String>, impl IntoResponse> {
+
+    match state.templates.get_template("404.html") {
+        Ok(template) => match template.render({}) {
+            Ok(html) => Ok(Html(html)),
+            Err(err) => Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Erro ao renderizar template: {}", err),
+            )
+                .into_response()),
+        },
+        Err(err) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Erro ao carregar template: {}", err),
+        )
+            .into_response()),
+    }
+}
+
 
 #[cfg(test)]
 mod tests {

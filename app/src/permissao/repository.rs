@@ -2,7 +2,7 @@ use anyhow::Ok;
 use anyhow::Result;
 use async_trait::async_trait;
 use serde::{Serialize, de::DeserializeOwned};
-use sqlx::{Encode, FromRow, PgPool, Postgres, QueryBuilder, Type, postgres::PgRow};
+use sqlx::{Encode, FromRow, PgPool, Postgres, Type, postgres::PgRow};
 use std::fmt::Display;
 use tracing::{debug, info};
 
@@ -67,56 +67,64 @@ where
         let page_size = page_size.min(100);
         let offset = (page - 1) * page_size;
 
-        // WHERE builder
-        let mut where_parts = Vec::new();
-
-        if let Some(term) = find {
-            let like_term = format!("%{}%", term);
+        // Construir WHERE clause com parâmetros seguros
+        let (where_clause, params) = if let Some(term) = find {
             let search_fields = self.searchable_fields();
-
             if !search_fields.is_empty() {
                 let mut field_parts = Vec::new();
                 for field in search_fields {
-                    field_parts.push(format!("{} ILIKE '{}'", field, like_term));
+                    field_parts.push(format!("{} ILIKE $1", field));
                 }
-                where_parts.push(format!("({})", field_parts.join(" OR ")));
+                let where_str = format!("WHERE ({})", field_parts.join(" OR "));
+                (where_str, vec![format!("%{}%", term)])
+            } else {
+                (String::new(), vec![])
             }
-        }
-
-        if let Some(extra) = self.extra_where() {
-            where_parts.push(extra.to_string());
-        }
-
-        let where_clause = if where_parts.is_empty() {
-            String::new()
         } else {
-            format!("WHERE {}", where_parts.join(" AND "))
+            (String::new(), vec![])
         };
 
         // === COUNT ===
-        let mut count_builder = QueryBuilder::new(format!(
+        let count_query = format!(
             "SELECT COUNT(*) FROM {} {}",
             self.from_clause(),
             where_clause
-        ));
+        );
 
-        let total: (i64,) = count_builder.build_query_as().fetch_one(pool).await?;
+        let total: (i64,) = if params.is_empty() {
+            sqlx::query_as(&count_query).fetch_one(pool).await?
+        } else {
+            sqlx::query_as(&count_query)
+                .bind(&params[0])
+                .fetch_one(pool)
+                .await?
+        };
 
         // === DATA ===
-        let mut data_builder = QueryBuilder::new(format!(
-            "SELECT {} FROM {} {} ORDER BY 1 DESC",
+        let data_query = format!(
+            "SELECT {} FROM {} {} ORDER BY {} DESC LIMIT ${} OFFSET ${}",
             self.select_clause(),
             self.from_clause(),
-            where_clause
-        ));
+            where_clause,
+            self.id_column(),
+            if params.is_empty() { 1 } else { 2 },
+            if params.is_empty() { 2 } else { 3 }
+        );
 
-        data_builder
-            .push(" OFFSET ")
-            .push_bind(offset as i64)
-            .push(" LIMIT ")
-            .push_bind(page_size as i64);
-
-        let data = data_builder.build_query_as::<T>().fetch_all(pool).await?;
+        let data = if params.is_empty() {
+            sqlx::query_as::<_, T>(&data_query)
+                .bind(page_size as i64)
+                .bind(offset as i64)
+                .fetch_all(pool)
+                .await?
+        } else {
+            sqlx::query_as::<_, T>(&data_query)
+                .bind(&params[0])
+                .bind(page_size as i64)
+                .bind(offset as i64)
+                .fetch_all(pool)
+                .await?
+        };
 
         let total_pages: i32 = if total.0 == 0 {
             1
@@ -216,17 +224,6 @@ impl Repository<Module, i32> for ModuleRepository {
             .await?;
         Ok(())
     }
-
-    async fn get_paginated(
-        &self,
-        pool: &PgPool,
-        find: Option<&str>,
-        page: i32,
-        page_size: i32,
-    ) -> Result<PaginatedResponse<Module>> {
-        Repository::get_paginated(self, pool, find, page, page_size).await
-    }
-
 }
 
 pub struct PermissionRepository;

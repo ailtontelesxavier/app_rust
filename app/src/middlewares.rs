@@ -9,8 +9,10 @@ use axum::{
     body::Body, extract::State, http::{
         header::{AUTHORIZATION, COOKIE},
         Request, Response, StatusCode,
-    }, middleware::Next, response::{IntoResponse, Redirect}, Extension
+    }, middleware::Next, response::{IntoResponse, Redirect},
+    response::{Html},
 };
+use axum::response::Response as ResponseExt;
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 use crate::permissao::{User, UserService};
 
@@ -208,4 +210,31 @@ pub fn require_roles(roles: Vec<&str>) -> impl Fn(Request<Body>, Next) -> std::p
             role_check(req, next, roles).await
         })
     }
+}
+
+
+// Middleware simplificado para capturar 403
+pub async fn handle_forbidden(req: Request<Body>, next: Next) -> ResponseExt {
+    let res = next.run(req).await;
+
+    if res.status() == StatusCode::FORBIDDEN {
+        return (
+            StatusCode::FORBIDDEN,
+            Html(r#"
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>403 - Acesso Negado</title>
+                </head>
+                <body>
+                    <h1>403 - Acesso Negado</h1>
+                    <p>Você não tem permissão para acessar esta página.</p>
+                    <a href="/">Voltar para a página inicial</a>
+                </body>
+                </html>
+            "#),
+        ).into_response();
+    }
+
+    res
 }
