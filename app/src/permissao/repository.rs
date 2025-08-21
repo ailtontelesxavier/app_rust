@@ -6,6 +6,7 @@ use sqlx::{Encode, FromRow, PgPool, Postgres, Type, postgres::PgRow};
 use std::fmt::Display;
 use tracing::{debug, info};
 
+use crate::permissao::model::module::PermissionWithModule;
 use crate::{
     permissao::model::module::{Module, Perfil, Permission, User},
     permissao::schema::{
@@ -471,3 +472,4 @@ impl Repository<User, i64> for UserRepository {
     }
 
 }
+

@@ -196,11 +196,12 @@
       const observer = new MutationObserver((mutations) => {
         mutations.forEach((mutation) => {
           if (mutation.type === "attributes" && mutation.attributeName === "value") {
+            showLoader();
             const valorAtual = hiddenPerfilInput.value;
-            const urlAtual = window.location.href;
+            const urlAtual = window.location.pathname;
             const novaUrl = urlAtual + (urlAtual.includes('?') ? '&' : '?') + `user_id=${valorAtual}`;
             window.location.href = novaUrl;
-            
+            hideLoader(); 
           }
         });
       });

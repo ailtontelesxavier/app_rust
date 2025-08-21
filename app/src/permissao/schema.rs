@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 
+use chrono::{DateTime, Utc};
 use regex::Regex;
+use sqlx::FromRow;
 use std::{sync::LazyLock};
 use validator::Validate;
 
@@ -26,6 +28,18 @@ pub struct CreateModuleSchema {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct UpdateModuleSchema {
     pub title: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, FromRow)]
+pub struct PermissionModuloSchema{
+    pub id: i32, 
+    pub name: String, 
+    pub module_id: i32, 
+    pub module_title: String,
+    #[serde(rename = "createdAt")]
+    pub created_at: Option<DateTime<Utc>>,
+    #[serde(rename = "updatedAt")]
+    pub updated_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

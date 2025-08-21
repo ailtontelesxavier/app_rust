@@ -63,6 +63,7 @@
                         <tr>
                             <th>ID</th>
                             <th>Nome</th>
+                            <th>Modulo</th>
                             <th>Criado em</th>
                             <th>Atualizado em</th>
                             <th class="text-center">Ações</th>
@@ -73,6 +74,7 @@
                         <tr class="hover">
                             <td class="font-mono text-sm">{{ row.id }}</td>
                             <td class="font-medium">{{ row.name }}</td>
+                            <td class="font-medium">{{ row.module_title  }}</td>
                             <td class="text-sm text-gray-600">
                                 {% if row.createdAt %}
                                     {{ row.createdAt|format_datetime }}

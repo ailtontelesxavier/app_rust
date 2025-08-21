@@ -16,8 +16,7 @@ use tracing::debug;
 use crate::permissao::{model::module::Perfil, repository::{ModuleRepository, PaginatedResponse, PerfilRepository, PermissionRepository, Repository, UserRepository}, schema::{PerfilCreateSchema, PerfilUpdateSchema, UserCreateSchema, UserParams, UserPasswordUpdateSchema}, service::{PerfilService, PermissionService, UserService}, User};
 use crate::{
     permissao::model::{
-        module::Module,
-        permission::{Permission, PermissionWithModule},
+        module::Module
     },
 };
 use crate::{
@@ -475,11 +474,11 @@ pub async fn list_permissions(
 
     // Usar o PermissionService para buscar dados paginados
     let permissions_result = service
-        .get_paginated(
+        .get_paginated_with_module(
             &state.db,
             params.find.as_deref(),
-            params.page.unwrap_or(1),
-            params.page_size.unwrap_or(10),
+            params.page.unwrap_or(1) as i64,
+            params.page_size.unwrap_or(10) as i64,
         )
         .await;
 

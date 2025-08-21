@@ -36,10 +36,13 @@ pub struct Permission {
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct PermissionWithModule {
     #[serde(flatten)]
+    #[sqlx(flatten)]
     pub permission: Permission,
+    #[sqlx(flatten)]
     pub module: Module,
 }
 
+//role
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct Perfil {
     pub id: i32,
@@ -73,3 +76,22 @@ pub struct AuthFormModel {
     pub password: String,
 }
 */
+
+
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+pub struct UserRoles {
+    pub id: i32,
+    #[serde(rename = "user_id")]
+    pub user_id: i32,
+    #[serde(rename = "role_id")]
+    pub role_id: i32,
+}
+
+#[derive(Debug, Serialize, Deserialize, FromRow)]
+pub struct RolePermission {
+    pub id: i64,
+    pub role_id: i32,
+    pub permission_id: i32,
+}
+
+
