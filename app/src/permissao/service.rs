@@ -1,6 +1,12 @@
-use crate::permissao::{model::module::{Perfil, Permission, User, UserRoles}, repository::{self, PaginatedResponse, Repository}, schema::{
-        PerfilCreateSchema, PerfilUpdateSchema, PermissionCreateSchema, PermissionModuloSchema, PermissionUpdateSchema, UserCreateSchema, UserPasswordUpdateSchema, UserRolesCreateSchema, UserRolesUpdateSchema, UserRolesViewSchema, UserUpdateSchema
-    }};
+use crate::permissao::{
+    model::module::{Perfil, Permission, User, UserRoles},
+    repository::{self, PaginatedResponse, Repository},
+    schema::{
+        PerfilCreateSchema, PerfilUpdateSchema, PermissionCreateSchema, PermissionModuloSchema,
+        PermissionUpdateSchema, UserCreateSchema, UserPasswordUpdateSchema, UserRolesCreateSchema,
+        UserRolesUpdateSchema, UserRolesViewSchema, UserUpdateSchema,
+    },
+};
 use anyhow::Result;
 use argon2::{
     Algorithm, Argon2, Params, Version,
@@ -16,7 +22,7 @@ use sqlx::PgPool;
 use validator::Validate;
 
 use axum::{extract::State, response::Html};
-use shared::{SharedState};
+use shared::SharedState;
 
 use crate::{
     permissao::model::module::Module,
@@ -125,12 +131,12 @@ impl PermissionService {
         };
 
         // Busca total de registros para paginação
-        let total:(i64,) = sqlx::query_as::<_, (i64,)>(
+        let total: (i64,) = sqlx::query_as::<_, (i64,)>(
             r#"
             SELECT COUNT(*) FROM permission p
             INNER JOIN module m ON p.module_id = m.id
             WHERE p.name ILIKE $1 OR m.title ILIKE $1
-            "#
+            "#,
         )
         .bind(&like_term)
         .fetch_one(pool)
@@ -167,7 +173,6 @@ impl PermissionService {
         .fetch_all(pool)
         .await?;
 
-        
         Ok(repository::PaginatedResponse {
             data: items,
             total_records,
@@ -175,7 +180,6 @@ impl PermissionService {
             page_size,
             total_pages,
         })
-
     }
 }
 
@@ -241,9 +245,8 @@ impl UserService {
         let mut input = input;
 
         input.password = Some(
-            Self::get_password_hash(&Self::random_base32().to_string()).unwrap_or(
-                "NovaSenhaTeste!!####".to_string()
-            )
+            Self::get_password_hash(&Self::random_base32().to_string())
+                .unwrap_or("NovaSenhaTeste!!####".to_string()),
         );
         input.otp_base32 = Some(Self::random_base32());
 
@@ -329,13 +332,11 @@ impl UserService {
         totp.to_uri("YourApp", username)
     }
 
-
     pub async fn update_password(
         pool: &PgPool,
         id: i64,
         input: UserPasswordUpdateSchema,
     ) -> Result<User> {
-
         let password = Self::get_password_hash(&input.password).unwrap();
 
         Ok(sqlx::query_as!(
@@ -359,15 +360,14 @@ impl UserService {
     }
 
     pub async fn get_by_username(pool: &PgPool, username: &str) -> Result<User> {
-        let query = format!(
-            "SELECT * FROM users WHERE username = $1 LIMIT 1"
-        );
+        let query = format!("SELECT * FROM users WHERE username = $1 LIMIT 1");
 
-        Ok(sqlx::query_as(&query).bind(username).fetch_one(pool).await?)
+        Ok(sqlx::query_as(&query)
+            .bind(username)
+            .fetch_one(pool)
+            .await?)
     }
-
 }
-
 
 pub struct UserRolesService {
     repo: repository::UserRolesRepository,
@@ -428,12 +428,12 @@ impl UserRolesService {
         };
 
         // Busca total de registros para paginação
-        let total:(i64,) = sqlx::query_as::<_, (i64,)>(
+        let total: (i64,) = sqlx::query_as::<_, (i64,)>(
             r#"
             SELECT COUNT(p) FROM user_roles p
             INNER JOIN roles r ON r.id = p.role_id
             WHERE r.name ILIKE $1
-            "#
+            "#,
         )
         .bind(&like_term)
         .fetch_one(pool)
@@ -468,7 +468,6 @@ impl UserRolesService {
         .fetch_all(pool)
         .await?;
 
-        
         Ok(repository::PaginatedResponse {
             data: items,
             total_records,
@@ -476,7 +475,6 @@ impl UserRolesService {
             page_size,
             total_pages,
         })
-
     }
 }
 

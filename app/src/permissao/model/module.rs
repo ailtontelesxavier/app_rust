@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 //use uuid::Uuid;
 use regex::Regex;
-use std::{sync::LazyLock};
+use std::sync::LazyLock;
 //use validator::Validate;
 
 static EMAIL_RX: LazyLock<Regex> =
@@ -53,11 +53,11 @@ pub struct Perfil {
 pub struct User {
     pub id: i64,
     pub username: String,
-    #[serde(skip_serializing)]  // nunca aparece no JSON utilizado na api
+    #[serde(skip_serializing)] // nunca aparece no JSON utilizado na api
     pub password: String,
     pub email: String,
     pub full_name: String,
-    #[serde(skip_serializing)]  // nunca aparece no JSON utilizado na api
+    #[serde(skip_serializing)] // nunca aparece no JSON utilizado na api
     pub otp_base32: Option<String>,
     pub is_active: bool,
     pub is_staff: bool,
@@ -77,7 +77,6 @@ pub struct AuthFormModel {
 }
 */
 
-
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct UserRoles {
     pub id: i32,
@@ -93,5 +92,3 @@ pub struct RolePermission {
     pub role_id: i32,
     pub permission_id: i32,
 }
-
-

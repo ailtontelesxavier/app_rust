@@ -5,7 +5,7 @@ mod schema;
 mod service;
 mod view;
 
+pub use model::module::{Module, User};
+pub use repository::ModuleRepository;
 pub use router::router;
-pub use model::module::{User, Module};
-pub use service::{UserService, ModuleService};
-pub use repository::{ModuleRepository};
+pub use service::{ModuleService, UserService};

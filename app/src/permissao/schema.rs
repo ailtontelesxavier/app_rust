@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
 use regex::Regex;
 use sqlx::FromRow;
-use std::{sync::LazyLock};
+use std::sync::LazyLock;
 use validator::Validate;
 
 static EMAIL_RX: LazyLock<Regex> =
@@ -31,10 +31,10 @@ pub struct UpdateModuleSchema {
 }
 
 #[derive(Serialize, Deserialize, Debug, FromRow)]
-pub struct PermissionModuloSchema{
-    pub id: i32, 
-    pub name: String, 
-    pub module_id: i32, 
+pub struct PermissionModuloSchema {
+    pub id: i32,
+    pub name: String,
+    pub module_id: i32,
     pub module_title: String,
     #[serde(rename = "createdAt")]
     pub created_at: Option<DateTime<Utc>>,
@@ -98,28 +98,25 @@ pub struct UserUpdateSchema {
 
 #[derive(Debug, Validate, Default, Clone, Serialize, Deserialize)]
 pub struct UserPasswordUpdateDtoSchema {
-    #[validate(
-        length(min = 6, message = "new password must be at least 6 characters")
-    )]
+    #[validate(length(min = 6, message = "new password must be at least 6 characters"))]
     pub new_password: String,
 
     #[validate(
-        length(min = 6, message = "new password confirm must be at least 6 characters"),
-        must_match(other = "new_password", message="new passwords do not match")
+        length(
+            min = 6,
+            message = "new password confirm must be at least 6 characters"
+        ),
+        must_match(other = "new_password", message = "new passwords do not match")
     )]
     pub new_password_confirm: String,
 
-    #[validate(
-        length(min = 6, message = "Old password must be at least 6 characters")
-    )]
+    #[validate(length(min = 6, message = "Old password must be at least 6 characters"))]
     pub old_password: String,
 }
 
 #[derive(Debug, Validate, Default, Clone, Serialize, Deserialize)]
 pub struct UserPasswordUpdateSchema {
-    #[validate(
-        length(min = 6, message = "new password must be at least 6 characters")
-    )]
+    #[validate(length(min = 6, message = "new password must be at least 6 characters"))]
     pub password: String,
 }
 
@@ -131,7 +128,6 @@ pub struct UserParams {
     pub user_id: Option<i64>,
 }
 
-
 #[derive(Serialize, Deserialize, Debug)]
 pub struct UserRolesCreateSchema {
     pub user_id: i32,
@@ -142,7 +138,7 @@ pub struct UserRolesCreateSchema {
 pub struct UserRolesUpdateSchema {
     pub id: i32,
     pub user_id: Option<i32>,
-    pub role_id: Option<i32>
+    pub role_id: Option<i32>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -153,8 +149,7 @@ pub struct UserRolesViewSchema {
     pub name: String, //name no perfil(role)
 }
 
-
-/* 
+/*
 
 fn checkbox_bool<'de, D>(deserializer: D) -> Result<bool, D::Error>
 where

@@ -1,5 +1,8 @@
 use axum::{
-    body::Body, http::StatusCode, response::{Html, IntoResponse, Response}, Json
+    Json,
+    body::Body,
+    http::StatusCode,
+    response::{Html, IntoResponse, Response},
 };
 use serde::Serialize;
 use std::fmt;
@@ -25,8 +28,8 @@ impl fmt::Display for AppError {
             AppError::SessionError(msg) => write!(f, "Erro de sessão: {}", msg),
             AppError::InvalidSecret => write!(f, "Invalid base32 secret"),
             AppError::VerificationFailed => write!(f, "OTP verification failed"),
-            AppError::PermissionDenied => write!(f,"You are not allowed to perform this action"),
-            AppError::UserNotAuthenticated => write!(f,"Authentication required. Please log in."),
+            AppError::PermissionDenied => write!(f, "You are not allowed to perform this action"),
+            AppError::UserNotAuthenticated => write!(f, "Authentication required. Please log in."),
         }
     }
 }
@@ -44,33 +47,39 @@ impl IntoResponse for AppError {
             AppError::InvalidInput(msg) => {
                 let body = Json(ErrorResponse { error: msg });
                 (StatusCode::BAD_REQUEST, body).into_response()
-            },
+            }
             AppError::NotFound => {
-                let body = Json(ErrorResponse { error: "Not found".to_string() });
+                let body = Json(ErrorResponse {
+                    error: "Not found".to_string(),
+                });
                 (StatusCode::NOT_FOUND, body).into_response()
-            },
-            AppError::InternalServerError => {
-                server_error("Internal server error".to_string()).1
-            },
-            AppError::SessionError(msg) => {
-                server_error(format!("Session error: {}", msg)).1
-            },
+            }
+            AppError::InternalServerError => server_error("Internal server error".to_string()).1,
+            AppError::SessionError(msg) => server_error(format!("Session error: {}", msg)).1,
             AppError::InvalidSecret => {
-                let body = Json(ErrorResponse { error: "".to_string() });
+                let body = Json(ErrorResponse {
+                    error: "".to_string(),
+                });
                 (StatusCode::NOT_FOUND, body).into_response()
-            },
+            }
             AppError::VerificationFailed => {
-                let body = Json(ErrorResponse { error: "".to_string() });
+                let body = Json(ErrorResponse {
+                    error: "".to_string(),
+                });
                 (StatusCode::INTERNAL_SERVER_ERROR, body).into_response()
-            },
+            }
             AppError::PermissionDenied => {
-                let body = Json(ErrorResponse { error: "You are not allowed to perform this action".to_string() });
+                let body = Json(ErrorResponse {
+                    error: "You are not allowed to perform this action".to_string(),
+                });
                 (StatusCode::FORBIDDEN, body).into_response()
-            },
+            }
             AppError::UserNotAuthenticated => {
-                let body = Json(ErrorResponse { error: "Authentication required. Please log in.".to_string() });
+                let body = Json(ErrorResponse {
+                    error: "Authentication required. Please log in.".to_string(),
+                });
                 (StatusCode::UNAUTHORIZED, body).into_response()
-            },
+            }
         }
     }
 }

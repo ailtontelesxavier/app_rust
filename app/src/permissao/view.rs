@@ -8,16 +8,27 @@ use axum::{
 use minijinja::Value;
 use minijinja::context;
 use serde::Deserialize;
-use shared::{helpers::{self, get_qr_code_base64}, AppError, FlashStatus, SharedState};
-use validator::Validate;
+use shared::{
+    AppError, FlashStatus, SharedState,
+    helpers::{self, get_qr_code_base64},
+};
 use std::collections::{BTreeMap, HashMap};
 use tracing::debug;
+use validator::Validate;
 
-use crate::permissao::{model::module::Perfil, repository::{ModuleRepository, PaginatedResponse, PerfilRepository, PermissionRepository, Repository, UserRepository}, schema::{PerfilCreateSchema, PerfilUpdateSchema, UserCreateSchema, UserParams, UserPasswordUpdateSchema, UserRolesCreateSchema, UserRolesViewSchema}, service::{PerfilService, PermissionService, UserRolesService, UserService}, User};
-use crate::{
-    permissao::model::{
-        module::Module
+use crate::permissao::model::module::Module;
+use crate::permissao::{
+    User,
+    model::module::Perfil,
+    repository::{
+        ModuleRepository, PaginatedResponse, PerfilRepository, PermissionRepository, Repository,
+        UserRepository,
     },
+    schema::{
+        PerfilCreateSchema, PerfilUpdateSchema, UserCreateSchema, UserParams,
+        UserPasswordUpdateSchema, UserRolesCreateSchema, UserRolesViewSchema,
+    },
+    service::{PerfilService, PermissionService, UserRolesService, UserService},
 };
 use crate::{
     permissao::schema::{CreateModuleSchema, PermissionCreateSchema, PermissionUpdateSchema},
@@ -1252,7 +1263,6 @@ pub async fn get_user(
     }
 }
 
-
 pub async fn update_senha_user(
     State(state): State<SharedState>,
     Path(id): Path<i64>,
@@ -1287,7 +1297,6 @@ pub async fn update_senha_user(
     }
 }
 
-
 pub async fn users_list_api(
     Query(q): Query<PaginationQuery>,
     State(state): State<SharedState>,
@@ -1309,8 +1318,6 @@ pub async fn users_list_api(
     Ok(Json(res))
 }
 
-
-
 //===========================
 // User Gestão Perfil
 //===========================
@@ -1320,7 +1327,6 @@ pub async fn get_user_gestao_perfil(
     Query(form): Query<UserParams>,
     State(state): State<SharedState>,
 ) -> impl IntoResponse {
-
     debug!("parametro: {:?}", form.user_id);
     let service_user = UserService::new();
     let service_user_roles = UserRolesService::new();
@@ -1339,7 +1345,6 @@ pub async fn get_user_gestao_perfil(
         "error" => Some("error"),
         _ => None,
     });
-
 
     match form.user_id {
         Some(user_id) => {
@@ -1366,16 +1371,11 @@ pub async fn get_user_gestao_perfil(
                         flash_message => flash_message,
                         flash_status => flash_status,
                     };
-
                 }
-                Err(_err) => {
-
-                }
-
+                Err(_err) => {}
             }
-                    
         }
-        None => ()
+        None => (),
     }
 
     match state.templates.get_template("permissao/perfil_gestao.html") {
@@ -1393,7 +1393,6 @@ pub async fn get_user_gestao_perfil(
         )
             .into_response()),
     }
-
 }
 
 pub async fn create_user_gestao_perfil(
@@ -1407,7 +1406,10 @@ pub async fn create_user_gestao_perfil(
     match service.create(&state.db, body).await {
         Ok(_) => {
             let flash_url = helpers::create_flash_url(
-                &format!("/permissao/user-gestao-perfil?user_id={}", user_id.to_string()),
+                &format!(
+                    "/permissao/user-gestao-perfil?user_id={}",
+                    user_id.to_string()
+                ),
                 "Perfil adicionado com sucesso!",
                 FlashStatus::Success,
             );
@@ -1426,7 +1428,7 @@ pub async fn create_user_gestao_perfil(
 
 pub async fn delete_user_gestao_perfil(
     State(state): State<SharedState>,
-    Path(id): Path<i32>
+    Path(id): Path<i32>,
 ) -> Response {
     let service = UserRolesService::new();
 

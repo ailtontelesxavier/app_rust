@@ -70,20 +70,21 @@ fn api_perfil_router() -> Router<SharedState> {
     Router::new().route("/perfil-api", get(view::perfil_list_api))
 }
 
-
 fn user_router() -> Router<SharedState> {
-    Router::new().route("/user", get(view::list_user)).route(
-        "/user-form",
-        get(view::show_user_form).post(view::create_user),
-    )
-    .route(
-        "/user-form/{id}",
-        get(view::get_user),//.post(view::update_user),
-    )
-    .route("/user-form-senha/{id}", post(view::update_senha_user))
-    .merge(api_user_router())
+    Router::new()
+        .route("/user", get(view::list_user))
+        .route(
+            "/user-form",
+            get(view::show_user_form).post(view::create_user),
+        )
+        .route(
+            "/user-form/{id}",
+            get(view::get_user), //.post(view::update_user),
+        )
+        .route("/user-form-senha/{id}", post(view::update_senha_user))
+        .merge(api_user_router())
     /*.route("/user/{id}", delete(view::delete_user))
-    */
+     */
 }
 
 fn api_user_router() -> Router<SharedState> {
@@ -92,16 +93,12 @@ fn api_user_router() -> Router<SharedState> {
 
 fn user_gestao_perfil_router() -> Router<SharedState> {
     Router::new()
-        .route("/user-gestao-perfil", get(view::get_user_gestao_perfil).post(view::create_user_gestao_perfil))
-        .route("/user-gestao-perfil/{id}", delete(view::delete_user_gestao_perfil))
-        /* .route(
-            "/user-gestao-perfil-form",
-            get(view::show_user_gestao_perfil_form).post(view::create_user_gestao_perfil),
+        .route(
+            "/user-gestao-perfil",
+            get(view::get_user_gestao_perfil).post(view::create_user_gestao_perfil),
         )
         .route(
-            "/user-gestao-perfil-form/{id}",
-            get(view::get_user_gestao_perfil).post(view::update_user_gestao_perfil),
+            "/user-gestao-perfil/{id}",
+            delete(view::delete_user_gestao_perfil),
         )
-         */
 }
-

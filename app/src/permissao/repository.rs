@@ -46,7 +46,6 @@ where
     type CreateInput: DeserializeOwned + Send + Sync;
     type UpdateInput: DeserializeOwned + Send + Sync;
 
-
     fn table_name(&self) -> &str;
     fn searchable_fields(&self) -> &[&str];
     fn select_clause(&self) -> &str;
@@ -58,7 +57,7 @@ where
     fn select_clause_view(&self) -> &str {
         self.select_clause()
     }
-    fn from_clause_view(&self) -> &str{
+    fn from_clause_view(&self) -> &str {
         self.from_clause()
     }
 
@@ -166,12 +165,7 @@ where
 
     async fn create(&self, pool: &PgPool, input: Self::CreateInput) -> Result<T>;
 
-    async fn update(
-        &self,
-        pool: &PgPool,
-        id: ID,
-        input: Self::UpdateInput,
-    ) -> Result<T>;
+    async fn update(&self, pool: &PgPool, id: ID, input: Self::UpdateInput) -> Result<T>;
 
     async fn delete(&self, pool: &PgPool, id: ID) -> Result<()>;
 
@@ -303,12 +297,7 @@ impl Repository<Module, i32> for ModuleRepository {
         .await?)
     }
 
-    async fn update(
-        &self,
-        pool: &PgPool,
-        id: i32,
-        input: Self::UpdateInput,
-    ) -> Result<Module> {
+    async fn update(&self, pool: &PgPool, id: i32, input: Self::UpdateInput) -> Result<Module> {
         Ok(sqlx::query_as!(
             Module,
             r#"UPDATE module SET title = $1 WHERE id = $2 RETURNING id, title, created_at, updated_at"#,
@@ -350,11 +339,7 @@ impl Repository<Permission, i32> for PermissionRepository {
         "permission p"
     }
 
-    async fn create(
-        &self,
-        pool: &PgPool,
-        input: Self::CreateInput,
-    ) -> Result<Permission> {
+    async fn create(&self, pool: &PgPool, input: Self::CreateInput) -> Result<Permission> {
         Ok(sqlx::query_as!(
             Permission,
             r#"INSERT INTO permission (name, description, module_id) 
@@ -368,12 +353,7 @@ impl Repository<Permission, i32> for PermissionRepository {
         .await?)
     }
 
-    async fn update(
-        &self,
-        pool: &PgPool,
-        id: i32,
-        input: Self::UpdateInput,
-    ) -> Result<Permission> {
+    async fn update(&self, pool: &PgPool, id: i32, input: Self::UpdateInput) -> Result<Permission> {
         Ok(sqlx::query_as!(
             Permission,
             r#"UPDATE permission 
@@ -432,12 +412,7 @@ impl Repository<Perfil, i32> for PerfilRepository {
         .await?)
     }
 
-    async fn update(
-        &self,
-        pool: &PgPool,
-        id: i32,
-        input: Self::UpdateInput,
-    ) -> Result<Perfil> {
+    async fn update(&self, pool: &PgPool, id: i32, input: Self::UpdateInput) -> Result<Perfil> {
         Ok(sqlx::query_as!(
             Perfil,
             r#"UPDATE roles 
@@ -526,12 +501,7 @@ impl Repository<User, i64> for UserRepository {
         Ok(new_user)
     }
 
-    async fn update(
-        &self,
-        pool: &PgPool,
-        id: i64,
-        input: Self::UpdateInput,
-    ) -> Result<User> {
+    async fn update(&self, pool: &PgPool, id: i64, input: Self::UpdateInput) -> Result<User> {
         Ok(sqlx::query_as!(
             User,
             r#"
@@ -570,9 +540,7 @@ impl Repository<User, i64> for UserRepository {
             .await?;
         Ok(())
     }
-
 }
-
 
 pub struct UserRolesRepository;
 
@@ -610,20 +578,15 @@ impl Repository<UserRoles, i32> for UserRolesRepository {
         .await?)
     }
 
-    async fn update(
-        &self,
-        pool: &PgPool,
-        id: i32,
-        input: Self::UpdateInput,
-    ) -> Result<UserRoles> {
+    async fn update(&self, pool: &PgPool, id: i32, input: Self::UpdateInput) -> Result<UserRoles> {
         Ok(sqlx::query_as!(
             UserRoles,
             r#"UPDATE user_roles 
                SET role_id = $1
                WHERE id = $2
                RETURNING id, user_id, role_id"#,
-               input.role_id,
-               id
+            input.role_id,
+            id
         )
         .fetch_one(pool)
         .await?)
@@ -635,7 +598,4 @@ impl Repository<UserRoles, i32> for UserRolesRepository {
             .await?;
         Ok(())
     }
-
 }
-
-
