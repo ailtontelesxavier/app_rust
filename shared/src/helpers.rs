@@ -19,7 +19,12 @@ pub fn create_flash_url(base_url: &str, message: &str, status: FlashStatus) -> S
         FlashStatus::Info => "info",
     };
 
-    format!("{}?msg={}&status={}", base_url, encoded_message, status_str)
+    if base_url.contains("?") {
+        format!("{}&msg={}&status={}", base_url, encoded_message, status_str)
+    }else {
+        format!("{}?msg={}&status={}", base_url, encoded_message, status_str)
+    }
+
 }
 
 pub fn get_qr_code_base64(otp_url: &str) -> anyhow::Result<String> {

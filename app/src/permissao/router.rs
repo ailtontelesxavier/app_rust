@@ -92,7 +92,8 @@ fn api_user_router() -> Router<SharedState> {
 
 fn user_gestao_perfil_router() -> Router<SharedState> {
     Router::new()
-        .route("/user-gestao-perfil", get(view::get_user_gestao_perfil))
+        .route("/user-gestao-perfil", get(view::get_user_gestao_perfil).post(view::create_user_gestao_perfil))
+        .route("/user-gestao-perfil/{id}", delete(view::delete_user_gestao_perfil))
         /* .route(
             "/user-gestao-perfil-form",
             get(view::show_user_gestao_perfil_form).post(view::create_user_gestao_perfil),
@@ -101,6 +102,6 @@ fn user_gestao_perfil_router() -> Router<SharedState> {
             "/user-gestao-perfil-form/{id}",
             get(view::get_user_gestao_perfil).post(view::update_user_gestao_perfil),
         )
-        .route("/user-gestao-perfil/{id}", delete(view::delete_user_gestao_perfil)) */
+         */
 }
 

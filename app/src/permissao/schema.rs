@@ -131,6 +131,29 @@ pub struct UserParams {
     pub user_id: Option<i64>,
 }
 
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct UserRolesCreateSchema {
+    pub user_id: i32,
+    pub role_id: i32,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct UserRolesUpdateSchema {
+    pub id: i32,
+    pub user_id: Option<i32>,
+    pub role_id: Option<i32>
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct UserRolesViewSchema {
+    pub id: i32,
+    pub user_id: i32,
+    pub role_id: i32,
+    pub name: String, //name no perfil(role)
+}
+
+
 /* 
 
 fn checkbox_bool<'de, D>(deserializer: D) -> Result<bool, D::Error>

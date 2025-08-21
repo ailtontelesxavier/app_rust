@@ -13,7 +13,7 @@ use validator::Validate;
 use std::collections::{BTreeMap, HashMap};
 use tracing::debug;
 
-use crate::permissao::{model::module::Perfil, repository::{ModuleRepository, PaginatedResponse, PerfilRepository, PermissionRepository, Repository, UserRepository}, schema::{PerfilCreateSchema, PerfilUpdateSchema, UserCreateSchema, UserParams, UserPasswordUpdateSchema}, service::{PerfilService, PermissionService, UserService}, User};
+use crate::permissao::{model::module::Perfil, repository::{ModuleRepository, PaginatedResponse, PerfilRepository, PermissionRepository, Repository, UserRepository}, schema::{PerfilCreateSchema, PerfilUpdateSchema, UserCreateSchema, UserParams, UserPasswordUpdateSchema, UserRolesCreateSchema, UserRolesViewSchema}, service::{PerfilService, PermissionService, UserRolesService, UserService}, User};
 use crate::{
     permissao::model::{
         module::Module
@@ -1322,7 +1322,12 @@ pub async fn get_user_gestao_perfil(
 ) -> impl IntoResponse {
 
     debug!("parametro: {:?}", form.user_id);
-    let service = UserService::new();
+    let service_user = UserService::new();
+    let service_user_roles = UserRolesService::new();
+
+    let mut user: Option<User> = None;
+
+    let mut context = minijinja::context! {};
 
     // Extrair mensagens flash dos parâmetros da query
     let flash_message = params
@@ -1335,8 +1340,46 @@ pub async fn get_user_gestao_perfil(
         _ => None,
     });
 
+
+    match form.user_id {
+        Some(user_id) => {
+            user = Some(service_user.get_by_id(&*state.db, user_id).await.unwrap());
+            let result = service_user_roles
+                .get_paginated_with_roles(
+                    &state.db,
+                    params.find.as_deref(),
+                    params.page.unwrap_or(1) as i64,
+                    params.page_size.unwrap_or(10) as i64,
+                )
+                .await;
+
+            match result {
+                Ok(paginated_response) => {
+                    context = minijinja::context! {
+                        user => user,
+                        rows => paginated_response.data,
+                        current_page => paginated_response.page,
+                        total_pages => paginated_response.total_pages,
+                        page_size => paginated_response.page_size,
+                        total_records => paginated_response.total_records,
+                        find => params.find.unwrap_or_default(),
+                        flash_message => flash_message,
+                        flash_status => flash_status,
+                    };
+
+                }
+                Err(_err) => {
+
+                }
+
+            }
+                    
+        }
+        None => ()
+    }
+
     match state.templates.get_template("permissao/perfil_gestao.html") {
-        Ok(template) => match template.render({}) {
+        Ok(template) => match template.render(context) {
             Ok(html) => Ok(Html(html)),
             Err(err) => Err((
                 StatusCode::INTERNAL_SERVER_ERROR,
@@ -1351,51 +1394,58 @@ pub async fn get_user_gestao_perfil(
             .into_response()),
     }
 
-   /*  // Usar o UserService para buscar dados paginados
-    let result = service
-        .get_paginated(
-            &state.db,
-            params.find.as_deref(),
-            params.page.unwrap_or(1),
-            params.page_size.unwrap_or(10),
-        )
-        .await;
+}
 
-    match result {
-        Ok(paginated_response) => {
-            let context = minijinja::context! {
-                rows => paginated_response.data,
-                current_page => paginated_response.page,
-                total_pages => paginated_response.total_pages,
-                page_size => paginated_response.page_size,
-                total_records => paginated_response.total_records,
-                find => params.find.unwrap_or_default(),
-                flash_message => flash_message,
-                flash_status => flash_status,
-            };
+pub async fn create_user_gestao_perfil(
+    State(state): State<SharedState>,
+    Form(body): Form<UserRolesCreateSchema>,
+) -> Response {
+    let service = UserRolesService::new();
 
-            match state.templates.get_template("permissao/user_list.html") {
-                Ok(template) => match template.render(context) {
-                    Ok(html) => Html(html).into_response(),
-                    Err(err) => {
-                        debug!("Erro ao renderizar template: {}", err);
-                        StatusCode::INTERNAL_SERVER_ERROR.into_response()
-                    }
-                },
-                Err(err) => {
-                    debug!("Erro ao carregar template: {}", err);
-                    StatusCode::INTERNAL_SERVER_ERROR.into_response()
-                }
-            }
+    let user_id = body.user_id.clone();
+
+    match service.create(&state.db, body).await {
+        Ok(_) => {
+            let flash_url = helpers::create_flash_url(
+                &format!("/permissao/user-gestao-perfil?user_id={}", user_id.to_string()),
+                "Perfil adicionado com sucesso!",
+                FlashStatus::Success,
+            );
+            Redirect::to(&flash_url).into_response()
         }
         Err(err) => {
-            debug!("Erro ao buscar users: {}", err);
-            let redirect_url = helpers::create_flash_url(
-                "/user",
-                &format!("Erro ao carregar users: {}", err),
+            let flash_url = helpers::create_flash_url(
+                "/permissao/user-gestao-perfil",
+                &format!("Erro ao adicionar perfil: {}", err),
                 FlashStatus::Error,
             );
-            Redirect::to(&redirect_url).into_response()
+            Redirect::to(&flash_url).into_response()
         }
-    } */
+    }
+}
+
+pub async fn delete_user_gestao_perfil(
+    State(state): State<SharedState>,
+    Path(id): Path<i32>
+) -> Response {
+    let service = UserRolesService::new();
+
+    match service.delete(&state.db, id).await {
+        Ok(_) => {
+            let flash_url = helpers::create_flash_url(
+                "/permissao/user-gestao-perfil",
+                "Perfil removido com sucesso!",
+                FlashStatus::Success,
+            );
+            Redirect::to(&flash_url).into_response()
+        }
+        Err(err) => {
+            let flash_url = helpers::create_flash_url(
+                "/permissao/user-gestao-perfil",
+                &format!("Erro ao remover perfil: {}", err),
+                FlashStatus::Error,
+            );
+            Redirect::to(&flash_url).into_response()
+        }
+    }
 }

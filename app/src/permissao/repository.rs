@@ -7,6 +7,10 @@ use std::fmt::Display;
 use tracing::{debug, info};
 
 use crate::permissao::model::module::PermissionWithModule;
+use crate::permissao::model::module::UserRoles;
+use crate::permissao::schema::UserRolesCreateSchema;
+use crate::permissao::schema::UserRolesUpdateSchema;
+use crate::permissao::schema::UserRolesViewSchema;
 use crate::{
     permissao::model::module::{Module, Perfil, Permission, User},
     permissao::schema::{
@@ -42,12 +46,20 @@ where
     type CreateInput: DeserializeOwned + Send + Sync;
     type UpdateInput: DeserializeOwned + Send + Sync;
 
+
     fn table_name(&self) -> &str;
     fn searchable_fields(&self) -> &[&str];
     fn select_clause(&self) -> &str;
     fn from_clause(&self) -> &str;
     fn id_column(&self) -> &str {
         "id"
+    }
+
+    fn select_clause_view(&self) -> &str {
+        self.select_clause()
+    }
+    fn from_clause_view(&self) -> &str{
+        self.from_clause()
     }
 
     fn extra_where(&self) -> Option<&str> {
@@ -162,6 +174,94 @@ where
     ) -> Result<T>;
 
     async fn delete(&self, pool: &PgPool, id: ID) -> Result<()>;
+
+    async fn get_paginated_view(
+        &self,
+        pool: &PgPool,
+        find: Option<&str>,
+        page: i32,
+        page_size: i32,
+    ) -> Result<PaginatedResponse<T>>
+    where
+        T: for<'r> sqlx::FromRow<'r, sqlx::postgres::PgRow> + Send + Unpin,
+    {
+        let page = page.max(1);
+        let page_size = page_size.min(100);
+        let offset = (page - 1) * page_size;
+
+        // Construir WHERE clause com parâmetros seguros
+        let (where_clause, params) = if let Some(term) = find {
+            let search_fields = self.searchable_fields();
+            if !search_fields.is_empty() {
+                let mut field_parts = Vec::new();
+                for field in search_fields {
+                    field_parts.push(format!("{} ILIKE $1", field));
+                }
+                let where_str = format!("WHERE ({})", field_parts.join(" OR "));
+                (where_str, vec![format!("%{}%", term)])
+            } else {
+                (String::new(), vec![])
+            }
+        } else {
+            (String::new(), vec![])
+        };
+
+        // === COUNT ===
+        let count_query = format!(
+            "SELECT COUNT(*) FROM {} {}",
+            self.from_clause(),
+            where_clause
+        );
+
+        let total: (i64,) = if params.is_empty() {
+            sqlx::query_as(&count_query).fetch_one(pool).await?
+        } else {
+            sqlx::query_as(&count_query)
+                .bind(&params[0])
+                .fetch_one(pool)
+                .await?
+        };
+
+        // === DATA ===
+        let data_query = format!(
+            "SELECT {} FROM {} {} ORDER BY {} DESC LIMIT ${} OFFSET ${}",
+            self.select_clause_view(),
+            self.from_clause_view(),
+            where_clause,
+            self.id_column(),
+            if params.is_empty() { 1 } else { 2 },
+            if params.is_empty() { 2 } else { 3 }
+        );
+
+        let data = if params.is_empty() {
+            sqlx::query_as::<_, T>(&data_query)
+                .bind(page_size as i64)
+                .bind(offset as i64)
+                .fetch_all(pool)
+                .await?
+        } else {
+            sqlx::query_as::<_, T>(&data_query)
+                .bind(&params[0])
+                .bind(page_size as i64)
+                .bind(offset as i64)
+                .fetch_all(pool)
+                .await?
+        };
+
+        let total_pages: i32 = if total.0 == 0 {
+            1
+        } else {
+            ((total.0 as f32) / (page_size as f32)).ceil() as i32
+        };
+
+        Ok(PaginatedResponse {
+            data,
+            total_records: total.0,
+            page,
+            page_size,
+            total_pages,
+        })
+    }
 }
 
 //#[derive(Debug, Serialize, FromRow)]
@@ -472,4 +572,70 @@ impl Repository<User, i64> for UserRepository {
     }
 
 }
+
+
+pub struct UserRolesRepository;
+
+#[async_trait]
+impl Repository<UserRoles, i32> for UserRolesRepository {
+    type CreateInput = UserRolesCreateSchema;
+    type UpdateInput = UserRolesUpdateSchema;
+
+    fn table_name(&self) -> &str {
+        "user_roles"
+    }
+
+    fn searchable_fields(&self) -> &[&str] {
+        &["p.user_id", "p.role_id"]
+    }
+
+    fn select_clause(&self) -> &str {
+        "p.id, p.user_id, p.role_id"
+    }
+
+    fn from_clause(&self) -> &str {
+        "user_roles p"
+    }
+
+    async fn create(&self, pool: &PgPool, input: Self::CreateInput) -> Result<UserRoles> {
+        Ok(sqlx::query_as!(
+            UserRoles,
+            r#"INSERT INTO user_roles (user_id, role_id) 
+               VALUES ($1, $2) 
+               RETURNING id, user_id, role_id"#,
+            input.user_id,
+            input.role_id,
+        )
+        .fetch_one(pool)
+        .await?)
+    }
+
+    async fn update(
+        &self,
+        pool: &PgPool,
+        id: i32,
+        input: Self::UpdateInput,
+    ) -> Result<UserRoles> {
+        Ok(sqlx::query_as!(
+            UserRoles,
+            r#"UPDATE user_roles 
+               SET role_id = $1
+               WHERE id = $2
+               RETURNING id, user_id, role_id"#,
+               input.role_id,
+               id
+        )
+        .fetch_one(pool)
+        .await?)
+    }
+
+    async fn delete(&self, pool: &PgPool, id: i32) -> Result<()> {
+        sqlx::query!("DELETE FROM user_roles WHERE id = $1", id)
+            .execute(pool)
+            .await?;
+        Ok(())
+    }
+
+}
+
 

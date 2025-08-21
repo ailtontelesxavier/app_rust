@@ -1,5 +1,5 @@
-use crate::permissao::{model::{module::{Perfil, Permission, User}}, repository::{self, PaginatedResponse, Repository}, schema::{
-        PerfilCreateSchema, PerfilUpdateSchema, PermissionCreateSchema, PermissionModuloSchema, PermissionUpdateSchema, UserCreateSchema, UserPasswordUpdateSchema, UserUpdateSchema
+use crate::permissao::{model::module::{Perfil, Permission, User, UserRoles}, repository::{self, PaginatedResponse, Repository}, schema::{
+        PerfilCreateSchema, PerfilUpdateSchema, PermissionCreateSchema, PermissionModuloSchema, PermissionUpdateSchema, UserCreateSchema, UserPasswordUpdateSchema, UserRolesCreateSchema, UserRolesUpdateSchema, UserRolesViewSchema, UserUpdateSchema
     }};
 use anyhow::Result;
 use argon2::{
@@ -366,6 +366,118 @@ impl UserService {
         Ok(sqlx::query_as(&query).bind(username).fetch_one(pool).await?)
     }
 
+}
+
+
+pub struct UserRolesService {
+    repo: repository::UserRolesRepository,
+}
+
+impl UserRolesService {
+    pub fn new() -> Self {
+        Self {
+            repo: repository::UserRolesRepository,
+        }
+    }
+
+    pub async fn get_by_id(&self, pool: &PgPool, id: i32) -> Result<UserRoles> {
+        Ok(self.repo.get_by_id(pool, id).await?)
+    }
+
+    pub async fn create(&self, pool: &PgPool, input: UserRolesCreateSchema) -> Result<UserRoles> {
+        Ok(self.repo.create(pool, input).await?)
+    }
+
+    pub async fn update(
+        &self,
+        pool: &PgPool,
+        id: i32,
+        input: UserRolesUpdateSchema,
+    ) -> Result<UserRoles> {
+        Ok(self.repo.update(pool, id, input).await?)
+    }
+
+    pub async fn delete(&self, pool: &PgPool, id: i32) -> Result<()> {
+        Ok(self.repo.delete(pool, id).await?)
+    }
+
+    pub async fn get_paginated(
+        &self,
+        pool: &PgPool,
+        find: Option<&str>,
+        page: i32,
+        page_size: i32,
+    ) -> Result<repository::PaginatedResponse<UserRoles>> {
+        Ok(self.repo.get_paginated(pool, find, page, page_size).await?)
+    }
+
+    pub async fn get_paginated_with_roles(
+        &self,
+        pool: &PgPool,
+        find: Option<&str>,
+        page: i64,
+        page_size: i64,
+    ) -> Result<repository::PaginatedResponse<UserRolesViewSchema>> {
+        let page = page.max(1) as i32;
+        let page_size = page_size.min(100) as i32;
+        let offset = (page - 1) * page_size;
+
+        let like_term = match find {
+            Some(search_term) => format!("%{search_term}%"),
+            None => "%".to_string(),
+        };
+
+        // Busca total de registros para paginação
+        let total:(i64,) = sqlx::query_as::<_, (i64,)>(
+            r#"
+            SELECT COUNT(p) FROM user_roles p
+            INNER JOIN roles r ON r.id = p.role_id
+            WHERE r.name ILIKE $1
+            "#
+        )
+        .bind(&like_term)
+        .fetch_one(pool)
+        .await?;
+
+        let total_records = total.0;
+        let total_pages = if total_records == 0 {
+            1
+        } else {
+            ((total_records as f64) / (page_size as f64)).ceil() as i32
+        };
+
+        // Busca os registros paginados
+        let items: Vec<UserRolesViewSchema> = sqlx::query_as!(
+            UserRolesViewSchema,
+            r#"
+            SELECT 
+                p.id, 
+                p.user_id, 
+                p.role_id,
+                r.name
+            FROM user_roles p
+            INNER JOIN roles r ON r.id = p.role_id
+            WHERE r.name ILIKE $1
+            ORDER BY p.id DESC
+            LIMIT $2 OFFSET $3
+            "#,
+            like_term,
+            page_size as i64,
+            offset as i64
+        )
+        .fetch_all(pool)
+        .await?;
+
+        
+        Ok(repository::PaginatedResponse {
+            data: items,
+            total_records,
+            page,
+            page_size,
+            total_pages,
+        })
+
+    }
 }
 
 pub async fn home(State(state): State<SharedState>) -> Html<String> {

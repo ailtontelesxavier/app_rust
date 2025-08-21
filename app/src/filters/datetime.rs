@@ -18,7 +18,7 @@ pub fn format_datetime_filter(value: Value) -> Result<Value, Error> {
 
     // Se for string no formato ISO 8601
     if let Some(s) = value.as_str() {
-        debug!("valor recebido como string: {}", s);
+        //debug!("valor recebido como string: {}", s);
 
         return DateTime::parse_from_rfc3339(s)
             .map(|dt| dt.with_timezone(&Utc)) // converte para Utc
