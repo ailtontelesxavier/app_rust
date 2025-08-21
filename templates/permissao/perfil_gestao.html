@@ -29,8 +29,9 @@
                             </label>
                             {% set value_user = user.id if user else '' %}
                             {% set nome_user = user.full_name if user else '' %}
+                            {% set user_selected = 'user_id' %}
                             {{ combobox(
-                                field_name="user_id",
+                                field_name=user_selected,
                                 placeholder="Selecione o usuario",
                                 endpoint="/permissao/user-api",
                                 attrs="required",
@@ -181,6 +182,33 @@
 {% endblock %}
 
 {% block extra_js %}
+<script>
+    //{#  #}
+    //observer
+    document.addEventListener("DOMContentLoaded", function () {
+
+      const hiddenPerfilInput = document.getElementById("hidden_user_id_id");
+    
+      //if (!hiddenPerfilInput) return;
+
+      let valorAnterior = hiddenPerfilInput.value;
+    
+      const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+          if (mutation.type === "attributes" && mutation.attributeName === "value") {
+            const valorAtual = hiddenPerfilInput.value;
+            const urlAtual = window.location.href;
+            const novaUrl = urlAtual + (urlAtual.includes('?') ? '&' : '?') + `user_id=${valorAtual}`;
+            window.location.href = novaUrl;
+            
+          }
+        });
+      });
+    
+      // Configurar o observer para observar mudanças nos atributos
+      observer.observe(hiddenPerfilInput, { attributes: true });
+    });
+</script>
 <script>
     let moduleToDelete = null;
 

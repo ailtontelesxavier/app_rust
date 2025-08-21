@@ -109,6 +109,14 @@ pub struct UserPasswordUpdateSchema {
     pub password: String,
 }
 
+/*
+Utilizado para passar o id via parametro GET
+*/
+#[derive(Deserialize)]
+pub struct UserParams {
+    pub user_id: Option<i64>,
+}
+
 /* 
 
 fn checkbox_bool<'de, D>(deserializer: D) -> Result<bool, D::Error>

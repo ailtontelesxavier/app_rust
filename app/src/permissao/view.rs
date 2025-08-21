@@ -13,7 +13,7 @@ use validator::Validate;
 use std::collections::{BTreeMap, HashMap};
 use tracing::debug;
 
-use crate::permissao::{model::module::Perfil, repository::{ModuleRepository, PaginatedResponse, PerfilRepository, PermissionRepository, Repository, UserRepository}, schema::{PerfilCreateSchema, PerfilUpdateSchema, UserCreateSchema, UserPasswordUpdateSchema}, service::{PerfilService, PermissionService, UserService}, User};
+use crate::permissao::{model::module::Perfil, repository::{ModuleRepository, PaginatedResponse, PerfilRepository, PermissionRepository, Repository, UserRepository}, schema::{PerfilCreateSchema, PerfilUpdateSchema, UserCreateSchema, UserParams, UserPasswordUpdateSchema}, service::{PerfilService, PermissionService, UserService}, User};
 use crate::{
     permissao::model::{
         module::Module,
@@ -1318,8 +1318,11 @@ pub async fn users_list_api(
 
 pub async fn get_user_gestao_perfil(
     Query(params): Query<ListParams>,
+    Query(form): Query<UserParams>,
     State(state): State<SharedState>,
 ) -> impl IntoResponse {
+
+    debug!("parametro: {:?}", form.user_id);
     let service = UserService::new();
 
     // Extrair mensagens flash dos parâmetros da query
