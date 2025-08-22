@@ -13,7 +13,7 @@ use std::collections::{BTreeMap, HashMap};
 use tracing::debug;
 use validator::Validate;
 
-use crate::{middlewares, permissao::{model::module::Module, schema::UserUpdateSchema}};
+use crate::{middlewares, permissao::{model::module::Module, schema::{IdParams, UserLocalPasswordUpdateSchema, UserUpdateSchema}}};
 use crate::permissao::{
     User,
     model::module::Perfil,
@@ -1260,6 +1260,9 @@ pub async fn get_user(
     }
 }
 
+/* 
+somente usuarios super podem atualizar usuarios
+*/
 pub async fn update_user(
     State(state): State<SharedState>,
     Extension(current_user): Extension<middlewares::CurrentUser>,
@@ -1306,6 +1309,10 @@ pub async fn update_user(
     }
 }
 
+
+/*
+atualizar senhas de usuarios somente para super usuarios admin
+*/
 pub async fn update_senha_user(
     State(state): State<SharedState>,
     Path(id): Path<i64>,
@@ -1342,12 +1349,11 @@ pub async fn update_senha_user(
 
 
 /* troca de usuario pelo proprio usuario */
-pub async fn user_update_senha_local(
+pub async fn user_update_senha_local_form(
     State(state): State<SharedState>,
-    Extension(current_user): Extension<middlewares::CurrentUser>,
     Query(params): Query<HashMap<String, String>>,
 ) -> Result<Html<String>, Response> {
-    let service = UserService::new();
+
     // Extrair mensagens flash dos parâmetros da query
     let flash_message = params
         .get("msg")
@@ -1378,6 +1384,60 @@ pub async fn user_update_senha_local(
         )
             .into_response()),
     }
+}
+
+/* troca de usuario pelo proprio usuario */
+pub async fn user_update_senha_local(
+    State(state): State<SharedState>,
+    Extension(current_user): Extension<middlewares::CurrentUser>,
+    Form(form): Form<UserLocalPasswordUpdateSchema>,
+) -> Response {
+
+    //validar senha atual
+    if !UserService::verify_password(&form.password, &current_user.current_user.password).unwrap() {
+        let flash_url = helpers::create_flash_url(
+            "/permissao/senha-form",
+            "Senha atual incorreta",
+            FlashStatus::Error,
+        );
+        return Redirect::to(&flash_url).into_response();
+    }
+
+    // validar nova senha
+    if let Err(errors) = form.validate() {
+        //debug!("Erros de validação: {:?}", errors);
+
+        let flash_url = helpers::create_flash_url(
+            "/permissao/senha-form",
+            &format!("Nova senha inválida: {:?}", errors),
+            FlashStatus::Error,
+        );
+        return Redirect::to(&flash_url).into_response();
+    }
+
+    match UserService::update_password(
+        &state.db,
+        current_user.current_user.id,
+        UserPasswordUpdateSchema{password: form.password}
+    ).await {
+        Ok(user) => {
+            let flash_url = helpers::create_flash_url(
+                &format!("/permissao/senha-form"),
+                "Senha atualizada com sucesso!",
+                FlashStatus::Success,
+            );
+            Redirect::to(&flash_url).into_response()
+        }
+        Err(err) => {
+            let flash_url = helpers::create_flash_url(
+                "/permissao/senha-form",
+                &format!("Erro ao atualizar senha: {}", err),
+                FlashStatus::Error,
+            );
+            Redirect::to(&flash_url).into_response()
+        }
+    }
+
 }
 
 pub async fn users_list_api(
@@ -1461,7 +1521,7 @@ pub async fn get_user_gestao_perfil(
         None => (),
     }
 
-    match state.templates.get_template("permissao/perfil_gestao.html") {
+    match state.templates.get_template("permissao/perfil_usuario.html") {
         Ok(template) => match template.render(context) {
             Ok(html) => Ok(Html(html)),
             Err(err) => Err((
@@ -1527,6 +1587,140 @@ pub async fn delete_user_gestao_perfil(
         Err(err) => {
             let flash_url = helpers::create_flash_url(
                 "/permissao/user-gestao-perfil",
+                &format!("Erro ao remover perfil: {}", err),
+                FlashStatus::Error,
+            );
+            Redirect::to(&flash_url).into_response()
+        }
+    }
+}
+
+
+//===========================
+// Gestão Perfil
+//===========================
+
+pub async fn get_gestao_perfil(
+    Query(params): Query<ListParams>,
+    Query(form): Query<IdParams>,
+    State(state): State<SharedState>,
+) -> impl IntoResponse {
+    let service_perfil = PerfilService::new();
+    let service_user_roles = UserRolesService::new();
+
+    let mut perfil: Option<Perfil> = None;
+
+    let mut context = minijinja::context! {};
+
+    // Extrair mensagens flash dos parâmetros da query
+    let flash_message = params
+        .msg
+        .as_ref()
+        .map(|msg| urlencoding::decode(msg).unwrap_or_default().to_string());
+    let flash_status = params.status.as_ref().and_then(|s| match s.as_str() {
+        "success" => Some("success"),
+        "error" => Some("error"),
+        _ => None,
+    });
+
+    match form.id {
+        Some(id) => {
+            perfil = Some(service_perfil.get_by_id(&*state.db, id).await.unwrap());
+            let result = service_user_roles
+                .get_paginated_with_roles(
+                    &state.db,
+                    params.find.as_deref(),
+                    params.page.unwrap_or(1) as i64,
+                    params.page_size.unwrap_or(10) as i64,
+                )
+                .await;
+
+            match result {
+                Ok(paginated_response) => {
+                    context = minijinja::context! {
+                        user => user,
+                        rows => paginated_response.data,
+                        current_page => paginated_response.page,
+                        total_pages => paginated_response.total_pages,
+                        page_size => paginated_response.page_size,
+                        total_records => paginated_response.total_records,
+                        find => params.find.unwrap_or_default(),
+                        flash_message => flash_message,
+                        flash_status => flash_status,
+                    };
+                }
+                Err(_err) => {}
+            }
+        }
+        None => (),
+    }
+
+    match state.templates.get_template("permissao/perfil_gestao.html") {
+        Ok(template) => match template.render(context) {
+            Ok(html) => Ok(Html(html)),
+            Err(err) => Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Erro ao renderizar template: {}", err),
+            )
+                .into_response()),
+        },
+        Err(err) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Erro ao carregar template: {}", err),
+        )
+            .into_response()),
+    }
+}
+
+pub async fn create_gestao_perfil(
+    State(state): State<SharedState>,
+    Form(body): Form<UserRolesCreateSchema>,
+) -> Response {
+    let service = UserRolesService::new();
+
+    let user_id = body.user_id.clone();
+
+    match service.create(&state.db, body).await {
+        Ok(_) => {
+            let flash_url = helpers::create_flash_url(
+                &format!(
+                    "/permissao/gestao-perfil?user_id={}",
+                    user_id.to_string()
+                ),
+                "Perfil adicionado com sucesso!",
+                FlashStatus::Success,
+            );
+            Redirect::to(&flash_url).into_response()
+        }
+        Err(err) => {
+            let flash_url = helpers::create_flash_url(
+                "/permissao/gestao-perfil",
+                &format!("Erro ao adicionar perfil: {}", err),
+                FlashStatus::Error,
+            );
+            Redirect::to(&flash_url).into_response()
+        }
+    }
+}
+
+pub async fn delete_gestao_perfil(
+    State(state): State<SharedState>,
+    Path(id): Path<i32>,
+) -> Response {
+    let service = UserRolesService::new();
+
+    match service.delete(&state.db, id).await {
+        Ok(_) => {
+            let flash_url = helpers::create_flash_url(
+                "/permissao/gestao-perfil",
+                "Perfil removido com sucesso!",
+                FlashStatus::Success,
+            );
+            Redirect::to(&flash_url).into_response()
+        }
+        Err(err) => {
+            let flash_url = helpers::create_flash_url(
+                "/permissao/gestao-perfil",
                 &format!("Erro ao remover perfil: {}", err),
                 FlashStatus::Error,
             );

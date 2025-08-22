@@ -7,7 +7,10 @@ use std::fmt::Display;
 use tracing::{debug, info};
 
 use crate::permissao::model::module::PermissionWithModule;
+use crate::permissao::model::module::RolePermission;
 use crate::permissao::model::module::UserRoles;
+use crate::permissao::schema::RolePermissionCreateSchema;
+use crate::permissao::schema::RolePermissionUpdateSchema;
 use crate::permissao::schema::UserRolesCreateSchema;
 use crate::permissao::schema::UserRolesUpdateSchema;
 use crate::permissao::schema::UserRolesViewSchema;
@@ -598,4 +601,65 @@ impl Repository<UserRoles, i32> for UserRolesRepository {
             .await?;
         Ok(())
     }
+}
+
+
+pub struct RolePermissionRepository;
+
+#[async_trait]
+impl Repository<RolePermission, i64> for RolePermissionRepository {
+    type CreateInput = RolePermissionCreateSchema;
+    type UpdateInput = RolePermissionUpdateSchema;
+
+    fn table_name(&self) -> &str {
+        "role_permissions"
+    }
+
+    fn searchable_fields(&self) -> &[&str] {
+        &["p.role_id", "p.permission_id"]
+    }
+
+    fn select_clause(&self) -> &str {
+        "p.id, p.role_id, p.permission_id"
+    }
+
+    fn from_clause(&self) -> &str {
+        "role_permissions p"
+    }
+
+    async fn create(&self, pool: &PgPool, input: Self::CreateInput) -> Result<RolePermission> {
+        Ok(sqlx::query_as!(
+            RolePermission,
+            r#"INSERT INTO role_permissions (role_id, permission_id) 
+               VALUES ($1, $2) 
+               RETURNING id, role_id, permission_id"#,
+            input.role_id,
+            input.permission_id,
+        )
+        .fetch_one(pool)
+        .await?)
+    }
+
+    async fn update(&self, pool: &PgPool, id: i64, input: Self::UpdateInput) -> Result<RolePermission> {
+        Ok(sqlx::query_as!(
+            RolePermission,
+            r#"UPDATE role_permissions 
+               SET role_id = $1, permission_id = $2
+               WHERE id = $3
+               RETURNING id, role_id, permission_id"#,
+            input.role_id,
+            input.permission_id,
+            id
+        )
+        .fetch_one(pool)
+        .await?)
+    }
+
+    async fn delete(&self, pool: &PgPool, id: i64) -> Result<()> {
+        sqlx::query!("DELETE FROM role_permissions WHERE id = $1", id)
+            .execute(pool)
+            .await?;
+        Ok(())
+    }
+
 }

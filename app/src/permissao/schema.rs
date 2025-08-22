@@ -12,6 +12,19 @@ use crate::utils::serde_utils::{bool_from_str, option_bool_from_str};
 static EMAIL_RX: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$").unwrap());
 
+/* 
+mínimo 6 caracteres
+pelo menos 1 letra maiúscula
+pelo menos 1 caractere especial (não alfanumérico, tipo !@#$%&* etc)
+-------------------------
+^ e $ → início e fim da string (garante que a senha toda seja validada).
+(?=.*[A-Z]) → lookahead que exige pelo menos uma letra maiúscula.
+(?=.*[^a-zA-Z0-9]) → lookahead que exige pelo menos um caractere especial (qualquer coisa fora de letras/números).
+.{6,} → comprimento mínimo de 6 caracteres.
+*/
+static PASSWORD_RX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^(?=.*[A-Z])(?=.*[^a-zA-Z0-9]).{6,}$").unwrap());
+
 #[derive(Deserialize, Debug, Default)]
 pub struct FilterOptions {
     pub page: Option<usize>,
@@ -126,6 +139,13 @@ pub struct UserPasswordUpdateSchema {
     pub password: String,
 }
 
+#[derive(Debug, Validate, Default, Clone, Serialize, Deserialize)]
+pub struct UserLocalPasswordUpdateSchema {
+    pub password: String,
+    #[validate(regex(path = *PASSWORD_RX, message = "A senha deve ter no mínimo 6 caracteres, incluir 1 letra maiúscula e 1 caractere especial."))]
+    pub new_password: String,
+}
+
 /*
 Utilizado para passar o id via parametro GET
 */
@@ -155,15 +175,34 @@ pub struct UserRolesViewSchema {
     pub name: String, //name no perfil(role)
 }
 
-/*
-
-fn checkbox_bool<'de, D>(deserializer: D) -> Result<bool, D::Error>
-where
-    D: serde::Deserializer<'de>,
-{
-    let s: Option<String> = Option::deserialize(deserializer)?;
-    Ok(s.as_deref() == Some("on") || s.as_deref() == Some("true"))
+#[derive(Deserialize)]
+pub struct IdParams {
+    pub id: Option<i64>,
 }
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct RolePermissionCreateSchema {
+    pub role_id: i32,
+    pub permission_id: i32,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct RolePermissionUpdateSchema {
+    pub id: i64,
+    pub role_id: Option<i32>,
+    pub permission_id: Option<i32>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct RolePermissionViewSchema {
+    pub id: i64,
+    pub role_id: i32,
+    pub permission_id: i32,
+    pub name: String, //name  permissao
+}
+
+
+/*
 
 #[derive(Debug, Serialize, Deserialize, Validate)]
 pub struct UserCreateSchema {
