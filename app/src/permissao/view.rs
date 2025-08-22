@@ -1331,6 +1331,54 @@ pub async fn update_user(
 }
 
 
+/* 
+somente usuarios super podem atualizar OTP
+*/
+pub async fn update_user_otp(
+    State(state): State<SharedState>,
+    Extension(current_user): Extension<middlewares::CurrentUser>,
+    Path(id): Path<i64>
+) -> Response {
+
+    if !current_user.current_user.is_superuser {
+        let flash_url = helpers::create_flash_url(
+            &format!("/permissao/user-form/{}", id),
+            &"Você não tem permissão para atualizar este usuário".to_string(),
+            FlashStatus::Error,
+        );
+        return Redirect::to(&flash_url).into_response();
+    }
+
+    match UserService::update_otp(&state.db, id).await {
+        Ok(result) => {
+            if result.id > 0 {
+                let flash_url = helpers::create_flash_url(
+                    &format!("/permissao/user-form/{}", result.id),
+                    "OTP atualizado com sucesso!",
+                    FlashStatus::Success,
+                );
+                Redirect::to(&flash_url).into_response()
+            } else {
+                let flash_url = helpers::create_flash_url(
+                    "/permissao/user-form",
+                    "OTP não atualizado",
+                    FlashStatus::Error,
+                );
+                Redirect::to(&flash_url).into_response()
+            }
+        }
+        Err(err) => {
+            let flash_url = helpers::create_flash_url(
+                &format!("/permissao/user-form/{}", id),
+                &format!("Erro ao atualizar OTP: {}", err),
+                FlashStatus::Error,
+            );
+            Redirect::to(&flash_url).into_response()
+        }
+    }
+}
+
+
 /*
 atualizar senhas de usuarios somente para super usuarios admin
 */

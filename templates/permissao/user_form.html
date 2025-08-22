@@ -19,7 +19,7 @@
                 {% endif %}
             </h2>
 
-            <form method="post" class="space-y-6">
+            <form id="form_user" method="post" class="space-y-6">
                 <!-- Seletor de Ação -->
                 {% if row %}
                 <div class="flex justify-start">
@@ -48,7 +48,7 @@
                             <label class="label-text font-semibold">ID</label>
                             <input id="id" name="id" type="text" value="{{ row.id }}" class="input input-bordered"
                                 disabled />
-                            <input id="id" name="id" type="hidden" value="{{ row.id }}" />
+                            <input id="id_user" name="id" type="hidden" value="{{ row.id }}" />
                         </div>
                         {% endif %}
 
@@ -165,11 +165,6 @@
 {% block extra_js %}
 <script>
 
-  /* document.getElementById("btnCancelar").addEventListener('click', function () {
-    var updateUrl = '/core/user';
-    window.location.href = updateUrl;
-  }); */
-
   //observer par ações
 document.addEventListener("DOMContentLoaded", function () {
   const selectElement = document.getElementById("id_acoes");
@@ -177,41 +172,18 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // atualizar OTP
   document.getElementById("btnOTP").addEventListener('click', async function () {
+    event.preventDefault(); // previne envio automático caso seja botão do tipo submit
+    showLoader();
+    
     const id = document.getElementById("id_user").value;
-    url = `/core/update-otp/${id}`;
-    method = "put";
-    Content_Type =  'application/json';
+    const url = `/permissao/user-form/otp/${id}`;
+    const form = document.getElementById("form_user");
+    form.setAttribute("action", url);
+    form.setAttribute("method", "post");
+    form.submit();
 
-    // Envia os dados do formulário usando Axios
-    showLoader(); // Exibe o loader antes da requisição
-    try{
-      await axios({
-        method: method,
-        url: url
-      }).then(function(response) {
-
-        showMessage2(response.data.message);
-      })
-      .catch(function(error) {
-        showMessage2("Erro ao processar requisição: " +error.response?.data?.detail);
-        if (axios.isAxiosError(error)) {
-          showMessage2("Erro ao processar requisição: " +error.response?.data?.detail);
-        } else {
-            console.error("Erro inesperado:", error);
-            //throw error;
-        }
-      });
-      setTimeout(() => {
-        hideLoader(); // Esconde o loader após a requisição
-      }, 2000);
-    }finally {
-      setTimeout(() => {
-        hideLoader(); // Esconde o loader após a requisição
-      }, 10000);
-      setTimeout(() => {
-        location.reload();
-      }, 3000);
-    }
+    hideLoader();
+ 
   });
 
 

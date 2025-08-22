@@ -17,9 +17,3 @@ pub struct MessageResponse {
 }
 
 pub type SharedState = Arc<AppState>;
-
-#[derive(Clone, Debug)]
-pub struct CurrentUser {
-    pub is_authenticated: bool,
-    pub user_id: Option<i32>,
-}

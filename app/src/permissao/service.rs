@@ -327,7 +327,7 @@ impl UserService {
     }
 
     /// Gera um segredo aleatório em Base32 para OTP
-    fn random_base32() -> String {
+    pub fn random_base32() -> String {
         let mut rng = rand::rng();
         let bytes: Vec<u8> = (0..20).map(|_| rng.random()).collect();
         base32::encode(base32::Alphabet::Rfc4648 { padding: false }, &bytes)
@@ -399,6 +399,38 @@ impl UserService {
             .bind(username)
             .fetch_one(pool)
             .await?)
+    }
+
+    /* 
+        Utilizado somente por admins super user
+     */
+    pub async fn update_otp(
+        pool: &PgPool,
+        id: i64,
+    ) -> Result<User> {
+
+        let base = &Self::random_base32().to_string();
+
+        let hash = Self::gerar_otp(base);
+
+        Ok(sqlx::query_as!(
+            User,
+            r#"
+            UPDATE users
+            SET 
+                otp_base32 = $1,
+                updated_at = NOW()
+            WHERE id = $2
+            RETURNING 
+                id, username, password, email, full_name, otp_base32,
+                is_active, is_staff, is_superuser, ip_last_login,
+                last_login, created_at, updated_at
+            "#,
+            hash,
+            id
+        )
+        .fetch_one(pool)
+        .await?)
     }
 
     /// Preenche os `None` com os valores atuais do usuário do banco
