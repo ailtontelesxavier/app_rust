@@ -27,15 +27,31 @@
                                 <span class="label-text">Perfil</span>
                             </label>
                             {% set value_perfil = perfil.id if perfil else '' %}
-                            {% set nome_perfil = perfil.full_name if perfil else '' %}
+                            {% set nome_perfil = perfil.name if perfil else '' %}
+                            {% set perfil_selected = 'role_id' %}
                             <div class="flex ">
                                 {{ combobox(
-                                    field_name="role_id",
+                                    field_name=perfil_selected,
                                     placeholder="Selecione o perfil",
                                     endpoint="/permissao/perfil-api",
                                     attrs="required",
                                     search=nome_perfil,
                                     value=value_perfil,
+                                ) }}
+                            </div>
+                        </div>
+                        <div>
+                            <label class="label" for="find">
+                                <span class="label-text">Permissão</span>
+                            </label>
+                            <div class="flex ">
+                                {% set permission_selected = 'permission_id' %}
+                                {{ combobox(
+                                    field_name=permission_selected,
+                                    placeholder="Selecione o permissao",
+                                    endpoint="/permissao/permission-api",
+                                    attrs="required",
+                                    field_label='full_name',
                                 ) }}
                                 {% set button_class="inline-flex items-center justify-center bg-blue-500 text-primary-foreground hover:bg-blue-600 h-9 px-4 py-2 cursor-pointer text-white hover:text-black rounded" %}
                                 <div id="div_add" class="hidden">
@@ -45,23 +61,6 @@
                                     </span>
                                 </div>
                             </div>
-                        </div>
-                        <div>
-                            <label class="label" for="find">
-                                <span class="label-text">Usuario</span>
-                            </label>
-                            {% set value_user = user.id if user else '' %}
-                            {% set nome_user = user.full_name if user else '' %}
-                            {% set user_selected = 'user_id' %}
-                            {{ combobox(
-                                field_name=user_selected,
-                                placeholder="Selecione o usuario",
-                                endpoint="/permissao/user-api",
-                                attrs="required",
-                                search=nome_user,
-                                value=value_user,
-                                field_label='full_name',
-                            ) }}
                         </div>
                         
                         
@@ -157,7 +156,7 @@
 <dialog id="delete_modal" class="modal">
     <div class="modal-box">
         <h3 class="font-bold text-lg">Confirmar Exclusão</h3>
-        <p class="py-4">Tem certeza que deseja remover o perfil "<span id="perfil_name_to_delete"></span>"?</p>
+        <p class="py-4">Tem certeza que deseja remover a permissão "<span id="permissao_name_to_delete"></span>"?</p>
         <p class="text-sm text-gray-500 mb-4">Esta ação não pode ser desfeita.</p>
         <div class="modal-action">
             <form method="dialog">
@@ -179,7 +178,7 @@
     //observer
     document.addEventListener("DOMContentLoaded", function () {
 
-      const hiddenPerfilInput = document.getElementById("hidden_user_id_id");
+      const hiddenPerfilInput = document.getElementById("hidden_perfil_id_id");
     
       //if (!hiddenPerfilInput) return;
 
@@ -191,7 +190,7 @@
             showLoader();
             const valorAtual = hiddenPerfilInput.value;
             const urlAtual = window.location.pathname;
-            const novaUrl = urlAtual + (urlAtual.includes('?') ? '&' : '?') + `user_id=${valorAtual}`;
+            const novaUrl = urlAtual + (urlAtual.includes('?') ? '&' : '?') + `id=${valorAtual}`;
             window.location.href = novaUrl;
             hideLoader(); 
           }
@@ -207,7 +206,7 @@
     //observer
     document.addEventListener("DOMContentLoaded", function () {
 
-      const hiddenPerfilInput = document.getElementById("hidden_role_id_id");
+      const hiddenPerfilInput = document.getElementById("hidden_permission_id_id");
     
       //if (!hiddenPerfilInput) return;
 
@@ -239,7 +238,7 @@
     // Função para abrir modal de exclusão
     function openDeleteModal(id, name) {
         moduleToDelete = id;
-        document.getElementById('perfil_name_to_delete').textContent = name;
+        document.getElementById('permissao_name_to_delete').textContent = name;
         document.getElementById('delete_modal').showModal();
     }
 
@@ -248,7 +247,7 @@
         if (moduleToDelete) {
             // Implementar lógica de exclusão aqui
             // Por exemplo, fazer uma requisição DELETE ou POST para excluir
-            fetch(`/permissao/user-gestao-perfil/${moduleToDelete}`, {
+            fetch(`/permissao/gestao-perfil/${moduleToDelete}`, {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json',
@@ -256,35 +255,28 @@
             })
             .then(response => {
                 if (response.ok) {
-                    {% set param_user_id = user.id if user else '' %}
-                    let param_user_id = {{param_user_id}};
-                    window.location.href = `/permissao/user-gestao-perfil?user_id=${param_user_id}`
+                    {% set param_perfil_id = perfil.id if perfil else '' %}
+                    let param_perfil_id = {{param_perfil_id}};
+                    window.location.href = `/permissao/gestao-perfil?id=${param_perfil_id}`
                 } else {
-                    alert('Erro ao excluir módulo');
+                    alert('Erro ao excluir permissão');
                 }
             })
             .catch(error => {
                 console.error('Erro:', error);
-                alert('Erro ao excluir módulo');
+                alert('Erro ao excluir permissão');
             });
         }
         document.getElementById('delete_modal').close();
     });
 
-    // Botão de novo módulo no estado vazio
-    const btnNovoEmpty = document.getElementById('btnNovoEmpty');
-    if (btnNovoEmpty) {
-        btnNovoEmpty.addEventListener('click', function() {
-            window.location.href = '/permissao/perfil-form';
-        });
-    }
 
     // Função para limpar busca
     function clearSearch() {
         document.getElementById('find').value = '';
-        {% set param_user_id = user.id if user else '' %}
-        let param_user_id = {{param_user_id}};
-        window.location.href = `/permissao/user-gestao-perfil?user_id=${param_user_id}`
+        {% set param_perfil_id = perfil.id if perfil else '' %}
+        let param_perfil_id = {{param_perfil_id}};
+        window.location.href = `/permissao/gestao-perfil?id=${param_perfil_id}`
     }
 
     // Auto-submit do formulário de busca quando Enter é pressionado

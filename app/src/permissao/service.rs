@@ -1,10 +1,8 @@
 use crate::permissao::{
-    model::module::{Perfil, Permission, User, UserRoles},
+    model::module::{Perfil, Permission, RolePermission, User, UserRoles},
     repository::{self, PaginatedResponse, Repository},
     schema::{
-        PerfilCreateSchema, PerfilUpdateSchema, PermissionCreateSchema, PermissionModuloSchema,
-        PermissionUpdateSchema, UserCreateSchema, UserPasswordUpdateSchema, UserRolesCreateSchema,
-        UserRolesUpdateSchema, UserRolesViewSchema, UserUpdateSchema,
+        PerfilCreateSchema, PerfilUpdateSchema, PermissionCreateSchema, PermissionModuloSchema, PermissionUpdateSchema, RolePermissionCreateSchema, RolePermissionUpdateSchema, RolePermissionViewSchema, UserCreateSchema, UserPasswordUpdateSchema, UserRolesCreateSchema, UserRolesUpdateSchema, UserRolesViewSchema, UserUpdateSchema
     },
 };
 use anyhow::Result;
@@ -543,7 +541,7 @@ impl RolePermissionService {
         }
     }
 
-    pub async fn get_by_id(&self, pool: &PgPool, id: i32) -> Result<RolePermission> {
+    pub async fn get_by_id(&self, pool: &PgPool, id: i64) -> Result<RolePermission> {
         Ok(self.repo.get_by_id(pool, id).await?)
     }
 
@@ -554,13 +552,13 @@ impl RolePermissionService {
     pub async fn update(
         &self,
         pool: &PgPool,
-        id: i32,
+        id: i64,
         input: RolePermissionUpdateSchema,
     ) -> Result<RolePermission> {
         Ok(self.repo.update(pool, id, input).await?)
     }
 
-    pub async fn delete(&self, pool: &PgPool, id: i32) -> Result<()> {
+    pub async fn delete(&self, pool: &PgPool, id: i64) -> Result<()> {
         Ok(self.repo.delete(pool, id).await?)
     }
 
@@ -572,6 +570,72 @@ impl RolePermissionService {
         page_size: i32,
     ) -> Result<repository::PaginatedResponse<RolePermission>> {
         Ok(self.repo.get_paginated(pool, find, page, page_size).await?)
+    }
+
+    pub async fn get_paginated_with_permission(
+        &self,
+        pool: &PgPool,
+        find: Option<&str>,
+        page: i64,
+        page_size: i64,
+    ) -> Result<repository::PaginatedResponse<RolePermissionViewSchema>> {
+        let page = page.max(1) as i32;
+        let page_size = page_size.min(100) as i32;
+        let offset = (page - 1) * page_size;
+
+        let like_term = match find {
+            Some(search_term) => format!("%{search_term}%"),
+            None => "%".to_string(),
+        };
+
+        // Busca total de registros para paginação
+        let total: (i64,) = sqlx::query_as::<_, (i64,)>(
+            r#"
+            SELECT COUNT(p) FROM role_permissions p
+            INNER JOIN permission r ON r.id = p.permission_id
+            WHERE r.name ILIKE $1
+            "#,
+        )
+        .bind(&like_term)
+        .fetch_one(pool)
+        .await?;
+
+        let total_records = total.0;
+        let total_pages = if total_records == 0 {
+            1
+        } else {
+            ((total_records as f64) / (page_size as f64)).ceil() as i32
+        };
+
+        // Busca os registros paginados
+        let items: Vec<RolePermissionViewSchema> = sqlx::query_as!(
+            RolePermissionViewSchema,
+            r#"
+            SELECT 
+                p.id, 
+                p.role_id,
+                p.permission_id, 
+                r.name
+            FROM role_permissions p
+            INNER JOIN permission r ON r.id = p.permission_id
+            WHERE r.name ILIKE $1
+            ORDER BY p.id DESC
+            LIMIT $2 OFFSET $3
+            "#,
+            like_term,
+            page_size as i64,
+            offset as i64
+        )
+        .fetch_all(pool)
+        .await?;
+
+        Ok(repository::PaginatedResponse {
+            data: items,
+            total_records,
+            page,
+            page_size,
+            total_pages,
+        })
     }
 }
 

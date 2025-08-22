@@ -49,7 +49,13 @@ fn permission_router() -> Router<SharedState> {
             get(view::get_permission).post(view::update_permission),
         )
         .route("/permission/{id}", delete(view::delete_permission))
+        .merge(api_permission_router())
 }
+
+fn api_permission_router() -> Router<SharedState> {
+    Router::new().route("/permission-api", get(view::permission_list_api))
+}
+
 
 fn perfil_router() -> Router<SharedState> {
     Router::new()

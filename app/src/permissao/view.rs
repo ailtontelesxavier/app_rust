@@ -13,7 +13,7 @@ use std::collections::{BTreeMap, HashMap};
 use tracing::debug;
 use validator::Validate;
 
-use crate::{middlewares, permissao::{model::module::Module, schema::{IdParams, UserLocalPasswordUpdateSchema, UserUpdateSchema}}};
+use crate::{middlewares, permissao::{model::module::{Module, Permission}, schema::{IdParams, RolePermissionCreateSchema, UserLocalPasswordUpdateSchema, UserUpdateSchema}, service::RolePermissionService}};
 use crate::permissao::{
     User,
     model::module::Perfil,
@@ -756,6 +756,27 @@ pub async fn delete_permission(State(state): State<SharedState>, Path(id): Path<
             Redirect::to(&flash_url).into_response()
         }
     }
+}
+
+pub async fn permission_list_api(
+    Query(q): Query<PaginationQuery>,
+    State(state): State<SharedState>,
+) -> Result<Json<PaginatedResponse<Permission>>, StatusCode> {
+    let repo = PermissionRepository;
+    let res = repo
+        .get_paginated(
+            &state.db,
+            q.find.as_deref(),
+            q.page.unwrap_or(1) as i32,
+            q.page_size.unwrap_or(10) as i32,
+        )
+        .await
+        .map_err(|err| {
+            debug!("error:{}", err);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    Ok(Json(res))
 }
 
 //===========================
@@ -1606,7 +1627,7 @@ pub async fn get_gestao_perfil(
     State(state): State<SharedState>,
 ) -> impl IntoResponse {
     let service_perfil = PerfilService::new();
-    let service_user_roles = UserRolesService::new();
+    let service = RolePermissionService::new();
 
     let mut perfil: Option<Perfil> = None;
 
@@ -1625,9 +1646,9 @@ pub async fn get_gestao_perfil(
 
     match form.id {
         Some(id) => {
-            perfil = Some(service_perfil.get_by_id(&*state.db, id).await.unwrap());
-            let result = service_user_roles
-                .get_paginated_with_roles(
+            perfil = Some(service_perfil.get_by_id(&*state.db, id as i32).await.unwrap());
+            let result = service
+                .get_paginated_with_permission(
                     &state.db,
                     params.find.as_deref(),
                     params.page.unwrap_or(1) as i64,
@@ -1638,7 +1659,7 @@ pub async fn get_gestao_perfil(
             match result {
                 Ok(paginated_response) => {
                     context = minijinja::context! {
-                        user => user,
+                        perfil => perfil,
                         rows => paginated_response.data,
                         current_page => paginated_response.page,
                         total_pages => paginated_response.total_pages,
@@ -1674,20 +1695,20 @@ pub async fn get_gestao_perfil(
 
 pub async fn create_gestao_perfil(
     State(state): State<SharedState>,
-    Form(body): Form<UserRolesCreateSchema>,
+    Form(body): Form<RolePermissionCreateSchema>,
 ) -> Response {
-    let service = UserRolesService::new();
+    let service = RolePermissionService::new();
 
-    let user_id = body.user_id.clone();
+    let role_id = body.role_id.clone();
 
     match service.create(&state.db, body).await {
         Ok(_) => {
             let flash_url = helpers::create_flash_url(
                 &format!(
-                    "/permissao/gestao-perfil?user_id={}",
-                    user_id.to_string()
+                    "/permissao/gestao-perfil?id={}",
+                    role_id.to_string()
                 ),
-                "Perfil adicionado com sucesso!",
+                "Permissão adicionada com sucesso!",
                 FlashStatus::Success,
             );
             Redirect::to(&flash_url).into_response()
@@ -1695,7 +1716,7 @@ pub async fn create_gestao_perfil(
         Err(err) => {
             let flash_url = helpers::create_flash_url(
                 "/permissao/gestao-perfil",
-                &format!("Erro ao adicionar perfil: {}", err),
+                &format!("Erro ao adicionar permissão: {}", err),
                 FlashStatus::Error,
             );
             Redirect::to(&flash_url).into_response()
@@ -1705,9 +1726,9 @@ pub async fn create_gestao_perfil(
 
 pub async fn delete_gestao_perfil(
     State(state): State<SharedState>,
-    Path(id): Path<i32>,
+    Path(id): Path<i64>,
 ) -> Response {
-    let service = UserRolesService::new();
+    let service = RolePermissionService::new();
 
     match service.delete(&state.db, id).await {
         Ok(_) => {
@@ -1728,3 +1749,4 @@ pub async fn delete_gestao_perfil(
         }
     }
 }
+

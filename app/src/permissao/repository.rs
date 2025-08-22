@@ -649,14 +649,14 @@ impl Repository<RolePermission, i64> for RolePermissionRepository {
                RETURNING id, role_id, permission_id"#,
             input.role_id,
             input.permission_id,
-            id
+            id as i32
         )
         .fetch_one(pool)
         .await?)
     }
 
     async fn delete(&self, pool: &PgPool, id: i64) -> Result<()> {
-        sqlx::query!("DELETE FROM role_permissions WHERE id = $1", id)
+        sqlx::query!("DELETE FROM role_permissions WHERE id = $1", id as i32)
             .execute(pool)
             .await?;
         Ok(())
