@@ -1,6 +1,5 @@
 {% extends "principal.html" %}
 {% include "components/combobox.html"%}
-{% include "components/icons_svg.html"%}
 
 {% block title %}
 {% if row %}Editar Usuario{% else %}Novo Usuario{% endif %}
@@ -145,10 +144,10 @@
                     <div class="flex gap-4 pt-4">
                         <button type="submit" class="btn btn-primary">
                             <i class="fas fa-save"></i>
-                            {% if row %}Atualizar{% else %}Criar{% endif %} Permissão
+                            {% if row %}Atualizar{% else %}Criar{% endif %} Usuario
                         </button>
 
-                        <a href="/permissao/permission" class="btn btn-ghost">
+                        <a href="/permissao/user" class="btn btn-ghost">
                             <i class="fas fa-arrow-left"></i>
                             Voltar à Lista
                         </a>

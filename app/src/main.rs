@@ -1,6 +1,7 @@
 mod filters;
 mod middlewares;
 mod permissao;
+mod utils;
 
 use std::{collections::HashMap, env, sync::Arc};
 
@@ -124,7 +125,7 @@ async fn main() {
         .layer(middleware::from_fn(handle_forbidden)) // Middleware para 403
         .merge(rotas_privadas)
         .fallback(page_not_found_handler)
-        .method_not_allowed_fallback(page_metodo_proibido_handler)
+        //.method_not_allowed_fallback(page_metodo_proibido_handler)
         .with_state(state.clone());
 
     info!("Starting server on http://0.0.0.0:2000");

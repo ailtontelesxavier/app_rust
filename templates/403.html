@@ -1,6 +1,5 @@
 <!-- templates/404.html -->
 {% extends "base.html" %}
-{% from "core/components/macros.html" import Button %}
 {% block title %}
 404 - Página não encontrada
 {%endblock%}
@@ -9,9 +8,9 @@
     <h1>403 - Acesso Negado</h1>
     <p>A página que você está procurando não existe ou você não tem permissão para acessá-la.</p>
 
-    {% call Button(id="btn_back", class='btn_back', title='Voltar')%}
-    Voltar à página anterior
-    {% endcall %}
+    <button type="button" id="btn_back" class="inline-flex items-center justify-center bg-primary text-primary-foreground shadow hover:bg-emerald-300 h-9 px-4 py-2 cursor-pointer text-black hover:text-white rounded">
+      Voltar à página anterior
+    </button>
 </div>
 {% endblock %}
 {% block extra_js %}

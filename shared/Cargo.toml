@@ -11,6 +11,7 @@ tower-sessions = { version = "0.14"}
 minijinja = { version = "2.11", features = ["loader"] }
 urlencoding = "2.1"
 async-trait = "0.1"
+validator = { version = "0.20", features = ["derive"] }
 
 qrcode = "0.14"
 image = "0.25"

@@ -13,7 +13,7 @@ use std::collections::{BTreeMap, HashMap};
 use tracing::debug;
 use validator::Validate;
 
-use crate::{middlewares, permissao::model::module::Module};
+use crate::{middlewares, permissao::{model::module::Module, schema::UserUpdateSchema}};
 use crate::permissao::{
     User,
     model::module::Perfil,
@@ -1257,6 +1257,52 @@ pub async fn get_user(
             format!("Falha ao renderizar template: {}", err),
         )
             .into_response()),
+    }
+}
+
+pub async fn update_user(
+    State(state): State<SharedState>,
+    Extension(current_user): Extension<middlewares::CurrentUser>,
+    Path(id): Path<i64>,
+    Form(body): Form<UserUpdateSchema>,
+) -> Response {
+
+    if !current_user.current_user.is_superuser {
+        let flash_url = helpers::create_flash_url(
+            &format!("/permissao/user-form/{}", id),
+            &"Você não tem permissão para atualizar este usuário".to_string(),
+            FlashStatus::Error,
+        );
+        return Redirect::to(&flash_url).into_response();
+    }
+
+    let service  = UserService::new();
+    match service.update(&state.db, id, body).await {
+        Ok(result) => {
+            if result.id > 0 {
+                let flash_url = helpers::create_flash_url(
+                    &format!("/permissao/user-form/{}", result.id),
+                    "Usuário atualizado com sucesso!",
+                    FlashStatus::Success,
+                );
+                Redirect::to(&flash_url).into_response()
+            } else {
+                let flash_url = helpers::create_flash_url(
+                    "/permissao/user-form",
+                    "Usuário não atualizado",
+                    FlashStatus::Error,
+                );
+                Redirect::to(&flash_url).into_response()
+            }
+        }
+        Err(err) => {
+            let flash_url = helpers::create_flash_url(
+                &format!("/permissao/user-form/{}", id),
+                &format!("Erro ao atualizar usuário: {}", err),
+                FlashStatus::Error,
+            );
+            Redirect::to(&flash_url).into_response()
+        }
     }
 }
 

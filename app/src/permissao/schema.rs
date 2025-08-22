@@ -6,6 +6,9 @@ use sqlx::FromRow;
 use std::sync::LazyLock;
 use validator::Validate;
 
+use crate::utils::serde_utils::{bool_from_str, option_bool_from_str};
+
+
 static EMAIL_RX: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$").unwrap());
 
@@ -75,11 +78,11 @@ pub struct UserCreateSchema {
     pub email: String,
     pub full_name: String,
     pub otp_base32: Option<String>,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "bool_from_str")]
     pub is_active: bool,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "bool_from_str")]
     pub is_staff: bool,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "bool_from_str")]
     pub is_superuser: bool,
 }
 
@@ -90,9 +93,12 @@ pub struct UserUpdateSchema {
     pub email: Option<String>,
     pub full_name: Option<String>,
     pub otp_base32: Option<String>,
-    pub is_active: Option<bool>,
-    pub is_staff: Option<bool>,
-    pub is_superuser: Option<bool>,
+    #[serde(default, deserialize_with = "bool_from_str")]
+    pub is_active: bool,
+    #[serde(default, deserialize_with = "bool_from_str")]
+    pub is_staff: bool,
+    #[serde(default, deserialize_with = "bool_from_str")]
+    pub is_superuser: bool,
     pub ip_last_login: Option<String>,
 }
 

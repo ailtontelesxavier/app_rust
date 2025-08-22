@@ -254,7 +254,42 @@ impl UserService {
     }
 
     pub async fn update(&self, pool: &PgPool, id: i64, input: UserUpdateSchema) -> Result<User> {
-        Ok(self.repo.update(pool, id, input).await?)
+        // 1. Buscar usuário atual
+        let current = self.repo.get_by_id(pool, id).await?;
+
+        // 2. Mesclar dados novos com atuais
+        let updated_user = Self::apply_to(&current, input);
+
+        Ok(sqlx::query_as!(
+            User,
+            r#"
+            UPDATE users
+            SET 
+                username = $1,
+                email = $2,
+                full_name = $3,
+                otp_base32 = $4,
+                is_active = $5,
+                is_staff = $6,
+                is_superuser = $7,
+                updated_at = NOW()
+            WHERE id = $8
+            RETURNING 
+                id, username, password, email, full_name, otp_base32,
+                is_active, is_staff, is_superuser, ip_last_login,
+                last_login, created_at, updated_at
+            "#,
+            updated_user.username,
+            updated_user.email,
+            updated_user.full_name,
+            updated_user.otp_base32,
+            updated_user.is_active,
+            updated_user.is_staff,
+            updated_user.is_superuser,
+            id
+        )
+        .fetch_one(pool)
+        .await?)
     }
 
     pub async fn delete(&self, pool: &PgPool, id: i64) -> Result<()> {
@@ -366,6 +401,25 @@ impl UserService {
             .bind(username)
             .fetch_one(pool)
             .await?)
+    }
+
+    /// Preenche os `None` com os valores atuais do usuário do banco
+    fn apply_to(current: &User, input: UserUpdateSchema) -> User {
+        User {
+            id: current.id,
+            username: input.username.unwrap_or_else(|| current.username.clone()),
+            email: input.email.unwrap_or_else(|| current.email.clone()),
+            full_name: input.full_name.clone().unwrap_or_else(|| current.full_name.clone()),
+            otp_base32: input.otp_base32.clone().or_else(|| current.otp_base32.clone()),
+            is_active: input.is_active,
+            is_staff: input.is_staff,
+            is_superuser: input.is_superuser,
+            ip_last_login: input.ip_last_login.clone().or_else(|| current.ip_last_login.clone()),
+            created_at: current.created_at,   // mantém campos imutáveis
+            updated_at: chrono::Utc::now(),
+            last_login: current.last_login,
+            password: current.password.clone(),
+        }
     }
 }
 
