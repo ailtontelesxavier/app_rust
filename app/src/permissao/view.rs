@@ -1,8 +1,5 @@
 use axum::{
-    Json,
-    extract::{Form, Path, Query, State},
-    http::StatusCode,
-    response::{Html, IntoResponse, Redirect, Response},
+    extract::{Form, Path, Query, State}, http::StatusCode, response::{Html, IntoResponse, Redirect, Response}, Extension, Json
 };
 
 use minijinja::Value;
@@ -16,7 +13,7 @@ use std::collections::{BTreeMap, HashMap};
 use tracing::debug;
 use validator::Validate;
 
-use crate::permissao::model::module::Module;
+use crate::{middlewares, permissao::model::module::Module};
 use crate::permissao::{
     User,
     model::module::Perfil,
@@ -1294,6 +1291,46 @@ pub async fn update_senha_user(
             );
             Redirect::to(&flash_url).into_response()
         }
+    }
+}
+
+
+/* troca de usuario pelo proprio usuario */
+pub async fn user_update_senha_local(
+    State(state): State<SharedState>,
+    Extension(current_user): Extension<middlewares::CurrentUser>,
+    Query(params): Query<HashMap<String, String>>,
+) -> Result<Html<String>, Response> {
+    let service = UserService::new();
+    // Extrair mensagens flash dos parâmetros da query
+    let flash_message = params
+        .get("msg")
+        .map(|msg| urlencoding::decode(msg).unwrap_or_default().to_string());
+    let flash_status = params.get("status").and_then(|s| match s.as_str() {
+        "success" => Some("success"),
+        "error" => Some("error"),
+        _ => None,
+    });
+
+    let context = minijinja::context! {
+        flash_message => flash_message,
+        flash_status => flash_status,
+    };
+
+    match state.templates.get_template("settings/senha_form.html") {
+        Ok(template) => match template.render(context) {
+            Ok(html) => Ok(Html(html)),
+            Err(err) => Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Erro ao renderizar template: {}", err),
+            )
+                .into_response()),
+        },
+        Err(err) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Erro ao carregar template: {}", err),
+        )
+            .into_response()),
     }
 }
 

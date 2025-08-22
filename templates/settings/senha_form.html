@@ -1,0 +1,92 @@
+{% from "core/components/macros.html" import input, label %}
+{% extends 'principal.html'%}
+
+{% block title %}Alterar senha{% endblock %}
+{% block main %}
+<div class="card w-full max-w-7xl shadow-lg bg-base-100">
+    <div class="card-body">
+        <h2 class="card-title">Alterar Senha</h2>
+        <form id="senhaForm" autocomplete="off">
+            {{ input(id="id_user", name='id', value=user.id, type='hidden') }}
+            <div class="mb-4 flex flex-col">
+                {{ label(attrs="for=password", text="Senha Atual") }}
+                {{ input(id="password", name="password", type="password", attrs='autocomplete=off required' ) }}
+            </div>
+            {% include "core/parts/user_password.html" %}
+        </form>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+
+<script>
+    async function handleSubmitSenha(evt) {
+        evt.preventDefault(); // Impede o comportamento padrão do formulário
+
+        // Obtendo os dados do formulário
+        const form = evt.target; // Corrigido: era `event.target`
+        const formData = new FormData(form);
+
+        const id = document.getElementById("id_user").value;
+
+        // Convertendo FormData para um objeto simples
+        const data = Object.fromEntries(formData.entries());
+        data.id = id;
+
+
+        // Regex para validar senha
+        const passwordRegex = /^(?=.*[A-Z])(?=.*[a-z])(?=.*[!@#$%^&*])/;
+
+
+        if (data.new_password.length < 6) {
+            showMessage("A senha deve ter pelo menos 6 caracteres");
+            return;
+        }
+
+        if (!passwordRegex.test(data.new_password)) {
+            showMessage("A senha deve conter pelo menos uma letra maiúscula e um caractere especial");
+            return;
+        }
+
+        if (!form.checkValidity()) {
+            form.reportValidity(); // exibe as mensagens de erro do navegador
+            return;
+        }
+
+        const url = `/core/update-password/${id}`;
+        const method = "put";
+        const Content_Type = "application/json";
+
+        showLoader(); // Exibe o loader antes da requisição
+
+        await axios({
+            method: method,
+            url: url,
+            data: data,
+            headers: {
+                "Content-Type": Content_Type,
+            },
+        }).then((response) => {
+            showMessage(response.data.message);
+            setTimeout(() => {hideLoader()}, 2000);
+        }).catch((error) => {
+            setTimeout(() => {hideLoader()}, 2000);
+            const errorMessage = axios.isAxiosError(error) && error.response?.data?.detail
+                ? `Erro ao processar requisição: ${error.response.data.detail}`
+                : "Erro inesperado";
+
+            showMessage(errorMessage);
+            console.error(error);
+        });
+    }
+
+    document.getElementById("btnSubmitSenha").addEventListener("click", function () {
+        const form = document.getElementById("senhaForm");
+        const submitEvent = new Event("submit", { cancelable: true, bubbles: true });
+        form.dispatchEvent(submitEvent);
+    });
+
+    document.getElementById("senhaForm").addEventListener("submit", handleSubmitSenha);
+</script>
+
+{% endblock %}
