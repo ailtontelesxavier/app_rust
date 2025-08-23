@@ -1,0 +1,48 @@
+<!--Usuario-->
+<label class="label" for="find">
+    <span class="label-text">Usuario</span>
+</label>
+{% set value_user = user.id if user else '' %}
+{% set nome_user = user.full_name if user else '' %}
+{% set user_selected = 'user_id' %}
+{{ combobox(
+    field_name=user_selected,
+    placeholder="Selecione o usuario",
+    endpoint="/permissao/user-api",
+    attrs="required",
+    search=nome_user,
+    value=value_user,
+    field_label='full_name',
+) }}
+==============================================
+Perfil
+<label class="label" for="find">
+    <span class="label-text">Perfil</span>
+</label>
+{% set value_perfil = perfil.id if perfil else '' %}
+{% set nome_perfil = perfil.full_name if perfil else '' %}
+<div class="flex ">
+    {{ combobox(
+        field_name="role_id",
+        placeholder="Selecione o perfil",
+        endpoint="/permissao/perfil-api",
+        attrs="required",
+        search=nome_perfil,
+        value=value_perfil,
+    ) }}
+=========================================================
+modulo
+<label class="label">
+    <span class="label-text font-semibold">Módulo</span>
+</label>
+{% set value_module = modulo.id if modulo else '' %}
+{% set title_module = modulo.title if modulo else '' %}
+{{ combobox(
+    field_name="module_id", 
+    placeholder="Selecione o modulo",
+    endpoint="/permissao/modulo-api",
+    attrs="required",
+    search=title_module,
+    value=value_module,
+) }}
+===============================================================

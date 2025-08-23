@@ -1,0 +1,455 @@
+ChatGPT said:
+
+Boa pergunta 👌.
+No Rust com Axum + SQLx + PostgreSQL, você pode modelar o campo jsonb de forma flexível usando serde_json::Value ou até serde com structs opcionais. Isso permite salvar diferentes formatos (dependendo do módulo) e restaurar os dados corretamente.
+
+1. Tabela SQL
+CREATE TABLE module (
+    id SERIAL PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    campos JSONB NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uk_module_title UNIQUE (title)
+);
+
+2. Struct em Rust (genérica, usando serde_json::Value)
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
+use chrono::{DateTime, Utc};
+
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
+pub struct Module {
+    pub id: i32,
+    pub title: String,
+    pub campos: Value, // <- aceita qualquer JSON
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+3. Inserindo dados no banco
+
+Você pode salvar qualquer JSON serializável:
+
+use serde_json::json;
+use sqlx::PgPool;
+
+pub async fn insert_module(pool: &PgPool) -> anyhow::Result<()> {
+    let campos = json!({
+        "descricao": "Módulo de teste",
+        "ativo": true,
+        "extra": { "nivel": 5, "tags": ["axum", "sqlx"] }
+    });
+
+    sqlx::query!(
+        r#"
+        INSERT INTO module (title, campos)
+        VALUES ($1, $2)
+        "#,
+        "Modulo A",
+        campos
+    )
+    .execute(pool)
+    .await?;
+
+    Ok(())
+}
+
+4. Recuperando e usando serde_json::Value
+pub async fn get_modules(pool: &PgPool) -> anyhow::Result<Vec<Module>> {
+    let rows = sqlx::query_as::<_, Module>(
+        r#"
+        SELECT id, title, campos, created_at, updated_at
+        FROM module
+        "#
+    )
+    .fetch_all(pool)
+    .await?;
+
+    for module in &rows {
+        if let Some(descricao) = module.campos.get("descricao") {
+            println!("Módulo {}: {:?}", module.title, descricao);
+        }
+    }
+
+    Ok(rows)
+}
+
+5. Trabalhando com diferentes tipos de módulos
+
+Se cada módulo tem campos diferentes, você pode definir enums com serde:
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(tag = "type")]
+pub enum CamposModulo {
+    Financeiro { valor: f64, moeda: String },
+    Usuario { nome: String, idade: Option<u32> },
+    Generico { dados: serde_json::Value },
+}
+
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
+pub struct ModuleTyped {
+    pub id: i32,
+    pub title: String,
+    pub campos: CamposModulo,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+
+🔹 Aqui o campo campos no Postgres vai ter algo assim:
+
+{
+  "type": "Financeiro",
+  "valor": 123.45,
+  "moeda": "BRL"
+}
+
+
+Ou:
+
+{
+  "type": "Usuario",
+  "nome": "João",
+  "idade": 30
+}
+
+
+Assim você tem segurança de tipos no Rust, mas mantém a flexibilidade do JSON no banco.
+
+👉 Pergunto: você prefere deixar genérico (serde_json::Value) e tratar dinamicamente, ou prefere já mapear os módulos em um enum tipado (mais seguro mas exige padrão de schema)?
+
+You said:
+me de um exemplo com minijinja o formulario e o visualização do CamposModulo quando for Financeiro, Usuario ou Generico
+ChatGPT said:
+
+Beleza 👍 vou te montar um exemplo com Axum + MiniJinja, onde o formulário muda a visualização dependendo do tipo do CamposModulo (pode ser Financeiro, Usuario ou Generico).
+
+📌 Estrutura simples
+
+templates/formulario.html → contém o formulário.
+
+templates/visualizacao.html → mostra os campos dinamicamente conforme o módulo.
+
+Exemplo de Rota no Rust (Axum)
+use axum::{
+    extract::{Form, Path},
+    response::Html,
+    routing::{get, post},
+    Router,
+};
+use minijinja::Environment;
+use serde::Deserialize;
+use std::sync::Arc;
+
+#[derive(Deserialize, Debug)]
+struct CamposModulo {
+    modulo: String,
+    nome: String,
+    valor: String,
+}
+
+async fn formulario(env: Arc<Environment<'_>>) -> Html<String> {
+    let tmpl = env.get_template("formulario.html").unwrap();
+    let rendered = tmpl.render(()).unwrap();
+    Html(rendered)
+}
+
+async fn visualizar(
+    Path(modulo): Path<String>,
+    Form(campo): Form<CamposModulo>,
+    env: Arc<Environment<'_>>,
+) -> Html<String> {
+    let tmpl = env.get_template("visualizacao.html").unwrap();
+    let rendered = tmpl.render(context! {
+        modulo => modulo,
+        campo => campo,
+    }).unwrap();
+    Html(rendered)
+}
+
+pub fn app(env: Arc<Environment<'_>>) -> Router {
+    Router::new()
+        .route("/form", get({
+            let env = env.clone();
+            move || formulario(env)
+        }))
+        .route("/visualizar/:modulo", post({
+            let env = env.clone();
+            move |path, form| visualizar(path, form, env)
+        }))
+}
+
+📄 templates/formulario.html
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Formulário</title>
+</head>
+<body>
+    <h2>Cadastro de Campos</h2>
+    <form id="form_campo" method="post">
+        <label>Módulo:</label>
+        <select name="modulo" id="modulo">
+            <option value="Financeiro">Financeiro</option>
+            <option value="Usuario">Usuário</option>
+            <option value="Generico">Genérico</option>
+        </select>
+        <br><br>
+
+        <label>Nome:</label>
+        <input type="text" name="nome" required />
+        <br><br>
+
+        <label>Valor:</label>
+        <input type="text" name="valor" required />
+        <br><br>
+
+        <button type="submit">Enviar</button>
+    </form>
+
+    <script>
+        document.getElementById("form_campo").addEventListener("submit", function (event) {
+            event.preventDefault();
+            const modulo = document.getElementById("modulo").value;
+            this.action = "/visualizar/" + modulo;
+            this.submit();
+        });
+    </script>
+</body>
+</html>
+
+📄 templates/visualizacao.html
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Visualização</title>
+</head>
+<body>
+    <h2>Visualização - {{ modulo }}</h2>
+
+    {% if modulo == "Financeiro" %}
+        <p><b>Campo Financeiro:</b> {{ campo.nome }} = R$ {{ campo.valor }}</p>
+    {% elif modulo == "Usuario" %}
+        <p><b>Usuário:</b> {{ campo.nome }} (Atributo: {{ campo.valor }})</p>
+    {% else %}
+        <p><b>Genérico:</b> {{ campo.nome }} => {{ campo.valor }}</p>
+    {% endif %}
+
+    <a href="/form">Voltar</a>
+</body>
+</html>
+
+🔎 Funcionamento
+
+/form exibe o formulário.
+
+Ao escolher o módulo (Financeiro, Usuario, Generico) e enviar, o JavaScript muda o action para /visualizar/:modulo.
+
+O servidor recebe e renderiza a visualização com template condicional MiniJinja.
+
+Quer que eu adapte para renderizar os campos dinamicamente no formulário também (exemplo: se for Financeiro, já mostrar input de valor em moeda; se for Usuário, mostrar campos de email/senha)?
+
+You said:
+como fica a busca nos campos do ModuleTyped em sqlx 
+ChatGPT said:
+
+Beleza 👌 vou te mostrar como ficaria a busca nos campos de um ModuleTyped (Financeiro, Usuário, Genérico) usando SQLx no Axum.
+Vou assumir que você tem uma enum parecida com esta:
+
+#[derive(sqlx::Type, Debug, Clone, PartialEq)]
+#[sqlx(type_name = "module_type", rename_all = "lowercase")] 
+pub enum ModuleTyped {
+    Financeiro,
+    Usuario,
+    Generico,
+}
+
+
+E uma tabela campos_modulo com estrutura tipo:
+
+CREATE TABLE campos_modulo (
+    id SERIAL PRIMARY KEY,
+    name TEXT NOT NULL,
+    title TEXT NOT NULL,
+    module_type module_type NOT NULL
+);
+
+1. Modelo Rust para o CamposModulo
+#[derive(Debug, sqlx::FromRow)]
+pub struct CamposModulo {
+    pub id: i32,
+    pub name: String,
+    pub title: String,
+    pub module_type: ModuleTyped,
+}
+
+2. Busca com LIKE em name ou title
+
+Aqui usamos ILIKE (Postgres) para case-insensitive:
+
+pub async fn buscar_campos_modulo(
+    pool: &sqlx::PgPool,
+    filtro: Option<String>,
+    modulo: Option<ModuleTyped>,
+) -> Result<Vec<CamposModulo>, sqlx::Error> {
+    let filtro_like = filtro.map(|f| format!("%{}%", f));
+
+    let rows = if let (Some(filtro), Some(modulo)) = (filtro_like, modulo) {
+        sqlx::query_as::<_, CamposModulo>(
+            r#"
+            SELECT id, name, title, module_type
+            FROM campos_modulo
+            WHERE (name ILIKE $1 OR title ILIKE $1)
+              AND module_type = $2
+            ORDER BY id
+            "#,
+        )
+        .bind(filtro)
+        .bind(modulo)
+        .fetch_all(pool)
+        .await?
+    } else if let Some(filtro) = filtro_like {
+        sqlx::query_as::<_, CamposModulo>(
+            r#"
+            SELECT id, name, title, module_type
+            FROM campos_modulo
+            WHERE name ILIKE $1 OR title ILIKE $1
+            ORDER BY id
+            "#,
+        )
+        .bind(filtro)
+        .fetch_all(pool)
+        .await?
+    } else if let Some(modulo) = modulo {
+        sqlx::query_as::<_, CamposModulo>(
+            r#"
+            SELECT id, name, title, module_type
+            FROM campos_modulo
+            WHERE module_type = $1
+            ORDER BY id
+            "#,
+        )
+        .bind(modulo)
+        .fetch_all(pool)
+        .await?
+    } else {
+        sqlx::query_as::<_, CamposModulo>(
+            r#"
+            SELECT id, name, title, module_type
+            FROM campos_modulo
+            ORDER BY id
+            "#,
+        )
+        .fetch_all(pool)
+        .await?
+    };
+
+    Ok(rows)
+}
+
+3. Uso no handler Axum
+pub async fn listar_campos(
+    Query(params): Query<HashMap<String, String>>,
+    State(pool): State<PgPool>,
+) -> Result<Json<Vec<CamposModulo>>, StatusCode> {
+    let filtro = params.get("q").cloned();
+    let modulo = params.get("modulo")
+        .and_then(|m| match m.to_lowercase().as_str() {
+            "financeiro" => Some(ModuleTyped::Financeiro),
+            "usuario"    => Some(ModuleTyped::Usuario),
+            "generico"   => Some(ModuleTyped::Generico),
+            _ => None,
+        });
+
+    let result = buscar_campos_modulo(&pool, filtro, modulo).await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    Ok(Json(result))
+}
+
+
+👉 Assim você pode chamar por exemplo:
+
+/campos?q=nome
+
+/campos?modulo=financeiro
+
+/campos?q=joao&modulo=usuario
+
+E ele busca com ILIKE nos campos name e title respeitando o ModuleTyped.
+
+Quer que eu te mostre também como integrar isso no MiniJinja pra exibir a listagem filtrada em uma tabela HTML com formulário de busca?
+
+You said:
+exemplo de consulta em ilike no campos como fazer uma busca somente no obs_interno dentro do old:
+
+exemplo de uma linha da tabela modulo do campos:
+{
+  "obs_interno": {
+    "new": "",
+    "old": "<p>Cliente com score abaixo de 100</p>"
+  },
+  "obs_para_cliente": {
+    "new": "",
+    "old": "<p>Recebemos sua solicitação de crédito, mas devido não obter pontuação suficiente na análise de crédito, sua proposta foi cancelada.</p>"
+  }
+}
+ChatGPT said:
+
+Boa pergunta 👌
+
+No seu caso, a coluna modulo está armazenando JSONB no PostgreSQL.
+Se você quiser buscar somente no campo obs_interno.old, pode usar o operador -> ou ->> combinado com ILIKE.
+
+Exemplo de consulta SQL pura:
+SELECT *
+FROM modulo
+WHERE (modulo->'obs_interno'->>'old') ILIKE '%score%';
+
+
+🔎 Explicando:
+
+-> retorna JSON.
+
+->> retorna texto.
+
+ILIKE faz a busca case-insensitive.
+
+Isso retorna todas as linhas onde o old dentro de obs_interno contém "score".
+
+Em Rust com SQLx:
+
+Supondo que sua struct mapeie a tabela:
+
+#[derive(sqlx::FromRow, Debug)]
+struct Modulo {
+    id: i32,
+    modulo: serde_json::Value, // ou um tipo custom
+}
+
+
+Você pode fazer a query assim:
+
+let termo = "%score%"; // o que você está buscando
+let results = sqlx::query_as::<_, Modulo>(
+    r#"
+    SELECT *
+    FROM modulo
+    WHERE (modulo->'obs_interno'->>'old') ILIKE $1
+    "#
+)
+.bind(termo)
+.fetch_all(&pool)
+.await?;
+
+Caso você queira indexar e otimizar a busca no campo obs_interno.old:
+
+Você pode criar um índice em cima da expressão:
+
+CREATE INDEX idx_obs_interno_old ON modulo ((modulo->'obs_interno'->>'old'));
+
+
+Assim o ILIKE (ou mesmo =) fica mais rápido.
+
+👉 Quer que eu te mostre também como ficaria se você tipar modulo como uma struct Rust (ModuleTyped) com obs_interno: Change<String> (com new e old), em vez de serde_json::Value? Isso dá pra usar no query_as direto.
