@@ -1,7 +1,17 @@
 use crate::permissao::{
-    self, model::module::{Perfil, Permission, RolePermission, User, UserRoles}, repository::{PerfilRepository, PermissionRepository, RolePermissionRepository, UserRepository, UserRolesRepository}, schema::{
-        PerfilCreateSchema, PerfilUpdateSchema, PermissionCreateSchema, PermissionModuloSchema, PermissionUpdateSchema, RolePermissionCreateSchema, RolePermissionUpdateSchema, RolePermissionViewSchema, UserCreateSchema, UserPasswordUpdateSchema, UserRolesCreateSchema, UserRolesUpdateSchema, UserRolesViewSchema, UserUpdateSchema
-    }, ModuleRepository};
+    self, ModuleRepository,
+    model::module::{Perfil, Permission, RolePermission, User, UserRoles},
+    repository::{
+        PerfilRepository, PermissionRepository, RolePermissionRepository, UserRepository,
+        UserRolesRepository,
+    },
+    schema::{
+        PerfilCreateSchema, PerfilUpdateSchema, PermissionCreateSchema, PermissionModuloSchema,
+        PermissionUpdateSchema, RolePermissionCreateSchema, RolePermissionUpdateSchema,
+        RolePermissionViewSchema, UserCreateSchema, UserPasswordUpdateSchema,
+        UserRolesCreateSchema, UserRolesUpdateSchema, UserRolesViewSchema, UserUpdateSchema,
+    },
+};
 use anyhow::Result;
 use argon2::{
     Algorithm, Argon2, Params, Version,
@@ -398,14 +408,10 @@ impl UserService {
             .await?)
     }
 
-    /* 
-        Utilizado somente por admins super user
-     */
-    pub async fn update_otp(
-        pool: &PgPool,
-        id: i64,
-    ) -> Result<User> {
-
+    /*
+       Utilizado somente por admins super user
+    */
+    pub async fn update_otp(pool: &PgPool, id: i64) -> Result<User> {
         let base = &Self::random_base32().to_string();
 
         let hash = Self::gerar_otp(base);
@@ -436,13 +442,22 @@ impl UserService {
             id: current.id,
             username: input.username.unwrap_or_else(|| current.username.clone()),
             email: input.email.unwrap_or_else(|| current.email.clone()),
-            full_name: input.full_name.clone().unwrap_or_else(|| current.full_name.clone()),
-            otp_base32: input.otp_base32.clone().or_else(|| current.otp_base32.clone()),
+            full_name: input
+                .full_name
+                .clone()
+                .unwrap_or_else(|| current.full_name.clone()),
+            otp_base32: input
+                .otp_base32
+                .clone()
+                .or_else(|| current.otp_base32.clone()),
             is_active: input.is_active,
             is_staff: input.is_staff,
             is_superuser: input.is_superuser,
-            ip_last_login: input.ip_last_login.clone().or_else(|| current.ip_last_login.clone()),
-            created_at: current.created_at,   // mantém campos imutáveis
+            ip_last_login: input
+                .ip_last_login
+                .clone()
+                .or_else(|| current.ip_last_login.clone()),
+            created_at: current.created_at, // mantém campos imutáveis
             updated_at: chrono::Utc::now(),
             last_login: current.last_login,
             password: current.password.clone(),
@@ -574,7 +589,11 @@ impl RolePermissionService {
         Ok(self.repo.get_by_id(pool, id).await?)
     }
 
-    pub async fn create(&self, pool: &PgPool, input: RolePermissionCreateSchema) -> Result<RolePermission> {
+    pub async fn create(
+        &self,
+        pool: &PgPool,
+        input: RolePermissionCreateSchema,
+    ) -> Result<RolePermission> {
         Ok(self.repo.create(pool, input).await?)
     }
 
@@ -667,7 +686,6 @@ impl RolePermissionService {
         })
     }
 }
-
 
 pub async fn home(State(state): State<SharedState>) -> Html<String> {
     let template = state.templates.get_template("index.html").unwrap();

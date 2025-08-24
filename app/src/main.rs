@@ -1,7 +1,7 @@
+mod chamado;
 mod filters;
 mod middlewares;
 mod permissao;
-mod chamado;
 mod utils;
 
 use std::{collections::HashMap, env, sync::Arc};
@@ -18,13 +18,13 @@ use axum::{
     response::{Html, IntoResponse, Redirect},
     routing::get,
 };
-use minijinja::{context, path_loader, Environment};
+use minijinja::{Environment, context, path_loader};
 use percent_encoding::{NON_ALPHANUMERIC, percent_encode};
 use serde::Deserialize;
 use serde_json::{Value, json};
 use time::{Duration, OffsetDateTime, format_description::well_known::Rfc2822};
 use tokio;
-use tower_http::{cors::CorsLayer, services::ServeDir, trace::TraceLayer, BoxError};
+use tower_http::{BoxError, cors::CorsLayer, services::ServeDir, trace::TraceLayer};
 use tower_sessions::{MemoryStore, SessionManagerLayer};
 use tracing::{debug, info};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -32,8 +32,8 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use dotenv::dotenv;
 use sqlx::postgres::PgPoolOptions;
 
-use permissao::router as router_permissao;
 use chamado::router as router_chamado;
+use permissao::router as router_permissao;
 use shared::{AppState, FlashStatus, MessageResponse, SharedState, helpers};
 
 use crate::{

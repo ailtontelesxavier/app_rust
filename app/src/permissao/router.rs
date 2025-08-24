@@ -56,7 +56,6 @@ fn api_permission_router() -> Router<SharedState> {
     Router::new().route("/permission-api", get(view::permission_list_api))
 }
 
-
 fn perfil_router() -> Router<SharedState> {
     Router::new()
         .route("/perfil", get(view::list_perfil))
@@ -89,7 +88,10 @@ fn user_router() -> Router<SharedState> {
         )
         .route("/user-form/otp/{id}", post(view::update_user_otp))
         .route("/user-form-senha/{id}", post(view::update_senha_user))
-        .route("/senha-form",post(view::user_update_senha_local).get(view::user_update_senha_local_form))
+        .route(
+            "/senha-form",
+            post(view::user_update_senha_local).get(view::user_update_senha_local_form),
+        )
         .merge(api_user_router())
     /*.route("/user/{id}", delete(view::delete_user))
      */
@@ -113,8 +115,5 @@ fn user_gestao_perfil_router() -> Router<SharedState> {
             "/gestao-perfil",
             get(view::get_gestao_perfil).post(view::create_gestao_perfil),
         )
-        .route(
-            "/gestao-perfil/{id}",
-            delete(view::delete_gestao_perfil),
-        )
+        .route("/gestao-perfil/{id}", delete(view::delete_gestao_perfil))
 }

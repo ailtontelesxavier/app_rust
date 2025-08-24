@@ -1,30 +1,38 @@
 use axum::{
-    extract::{Form, Path, Query, State}, http::StatusCode, response::{Html, IntoResponse, Redirect, Response}, Extension, Json
+    Extension, Json,
+    extract::{Form, Path, Query, State},
+    http::StatusCode,
+    response::{Html, IntoResponse, Redirect, Response},
 };
 
 use minijinja::Value;
 use minijinja::context;
-use serde::Deserialize;
 use shared::{
-    helpers::{self, get_qr_code_base64}, AppError, FlashStatus, ListParams, PaginatedResponse, SharedState
+    FlashStatus, ListParams, PaginatedResponse, PaginationQuery, SharedState,
+    helpers::{self, get_qr_code_base64},
 };
 use std::collections::{BTreeMap, HashMap};
 use tracing::debug;
 use validator::Validate;
 
-use crate::{middlewares, permissao::{model::module::{Module, Permission}, schema::{IdParams, RolePermissionCreateSchema, UserLocalPasswordUpdateSchema, UserUpdateSchema}, service::RolePermissionService}};
 use crate::permissao::{
     User,
     model::module::Perfil,
-    repository::{
-        ModuleRepository, PerfilRepository, PermissionRepository,
-        UserRepository,
-    },
     schema::{
         PerfilCreateSchema, PerfilUpdateSchema, UserCreateSchema, UserParams,
         UserPasswordUpdateSchema, UserRolesCreateSchema,
     },
     service::{PerfilService, PermissionService, UserRolesService, UserService},
+};
+use crate::{
+    middlewares,
+    permissao::{
+        model::module::{Module, Permission},
+        schema::{
+            IdParams, RolePermissionCreateSchema, UserLocalPasswordUpdateSchema, UserUpdateSchema,
+        },
+        service::RolePermissionService,
+    },
 };
 use crate::{
     permissao::schema::{CreateModuleSchema, PermissionCreateSchema, PermissionUpdateSchema},
@@ -170,13 +178,6 @@ pub async fn create_model(
             Redirect::to(&redirect_url).into_response()
         }
     }
-}
-
-#[derive(Debug, Deserialize)]
-pub struct PaginationQuery {
-    pub find: Option<String>,
-    pub page: Option<u32>,
-    pub page_size: Option<u32>,
 }
 
 pub async fn modules_list_api(
@@ -1271,7 +1272,7 @@ pub async fn get_user(
     }
 }
 
-/* 
+/*
 somente usuarios super podem atualizar usuarios
 */
 pub async fn update_user(
@@ -1280,7 +1281,6 @@ pub async fn update_user(
     Path(id): Path<i64>,
     Form(body): Form<UserUpdateSchema>,
 ) -> Response {
-
     if !current_user.current_user.is_superuser {
         let flash_url = helpers::create_flash_url(
             &format!("/permissao/user-form/{}", id),
@@ -1290,7 +1290,7 @@ pub async fn update_user(
         return Redirect::to(&flash_url).into_response();
     }
 
-    let service  = UserService::new();
+    let service = UserService::new();
     match service.update(&state.db, id, body).await {
         Ok(result) => {
             if result.id > 0 {
@@ -1320,16 +1320,14 @@ pub async fn update_user(
     }
 }
 
-
-/* 
+/*
 somente usuarios super podem atualizar OTP
 */
 pub async fn update_user_otp(
     State(state): State<SharedState>,
     Extension(current_user): Extension<middlewares::CurrentUser>,
-    Path(id): Path<i64>
+    Path(id): Path<i64>,
 ) -> Response {
-
     if !current_user.current_user.is_superuser {
         let flash_url = helpers::create_flash_url(
             &format!("/permissao/user-form/{}", id),
@@ -1368,7 +1366,6 @@ pub async fn update_user_otp(
     }
 }
 
-
 /*
 atualizar senhas de usuarios somente para super usuarios admin
 */
@@ -1406,13 +1403,11 @@ pub async fn update_senha_user(
     }
 }
 
-
 /* troca de usuario pelo proprio usuario */
 pub async fn user_update_senha_local_form(
     State(state): State<SharedState>,
     Query(params): Query<HashMap<String, String>>,
 ) -> Result<Html<String>, Response> {
-
     // Extrair mensagens flash dos parâmetros da query
     let flash_message = params
         .get("msg")
@@ -1451,7 +1446,6 @@ pub async fn user_update_senha_local(
     Extension(current_user): Extension<middlewares::CurrentUser>,
     Form(form): Form<UserLocalPasswordUpdateSchema>,
 ) -> Response {
-
     //validar senha atual
     if !UserService::verify_password(&form.password, &current_user.current_user.password).unwrap() {
         let flash_url = helpers::create_flash_url(
@@ -1477,8 +1471,12 @@ pub async fn user_update_senha_local(
     match UserService::update_password(
         &state.db,
         current_user.current_user.id,
-        UserPasswordUpdateSchema{password: form.password}
-    ).await {
+        UserPasswordUpdateSchema {
+            password: form.password,
+        },
+    )
+    .await
+    {
         Ok(user) => {
             let flash_url = helpers::create_flash_url(
                 &format!("/permissao/senha-form"),
@@ -1496,7 +1494,6 @@ pub async fn user_update_senha_local(
             Redirect::to(&flash_url).into_response()
         }
     }
-
 }
 
 pub async fn users_list_api(
@@ -1580,7 +1577,10 @@ pub async fn get_user_gestao_perfil(
         None => (),
     }
 
-    match state.templates.get_template("permissao/perfil_usuario.html") {
+    match state
+        .templates
+        .get_template("permissao/perfil_usuario.html")
+    {
         Ok(template) => match template.render(context) {
             Ok(html) => Ok(Html(html)),
             Err(err) => Err((
@@ -1654,7 +1654,6 @@ pub async fn delete_user_gestao_perfil(
     }
 }
 
-
 //===========================
 // Gestão Perfil
 //===========================
@@ -1684,7 +1683,12 @@ pub async fn get_gestao_perfil(
 
     match form.id {
         Some(id) => {
-            perfil = Some(service_perfil.get_by_id(&*state.db, id as i32).await.unwrap());
+            perfil = Some(
+                service_perfil
+                    .get_by_id(&*state.db, id as i32)
+                    .await
+                    .unwrap(),
+            );
             let result = service
                 .get_paginated_with_permission(
                     &state.db,
@@ -1742,10 +1746,7 @@ pub async fn create_gestao_perfil(
     match service.create(&state.db, body).await {
         Ok(_) => {
             let flash_url = helpers::create_flash_url(
-                &format!(
-                    "/permissao/gestao-perfil?id={}",
-                    role_id.to_string()
-                ),
+                &format!("/permissao/gestao-perfil?id={}", role_id.to_string()),
                 "Permissão adicionada com sucesso!",
                 FlashStatus::Success,
             );
@@ -1787,4 +1788,3 @@ pub async fn delete_gestao_perfil(
         }
     }
 }
-

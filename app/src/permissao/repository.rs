@@ -68,7 +68,6 @@ impl Repository<Module, i32> for ModuleRepository {
             .await?;
         Ok(())
     }
-
 }
 
 pub struct PermissionRepository;
@@ -355,7 +354,6 @@ impl Repository<UserRoles, i32> for UserRolesRepository {
     }
 }
 
-
 pub struct RolePermissionRepository;
 
 #[async_trait]
@@ -392,7 +390,12 @@ impl Repository<RolePermission, i64> for RolePermissionRepository {
         .await?)
     }
 
-    async fn update(&self, pool: &PgPool, id: i64, input: Self::UpdateInput) -> Result<RolePermission> {
+    async fn update(
+        &self,
+        pool: &PgPool,
+        id: i64,
+        input: Self::UpdateInput,
+    ) -> Result<RolePermission> {
         Ok(sqlx::query_as!(
             RolePermission,
             r#"UPDATE role_permissions 
@@ -413,5 +416,4 @@ impl Repository<RolePermission, i64> for RolePermissionRepository {
             .await?;
         Ok(())
     }
-
 }

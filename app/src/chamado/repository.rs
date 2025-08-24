@@ -1,4 +1,3 @@
-
 use anyhow::Ok;
 use anyhow::Result;
 use async_trait::async_trait;
@@ -8,7 +7,6 @@ use sqlx::PgPool;
 use crate::chamado::model::TipoChamado;
 use crate::chamado::schema::CreateTipoChamadoSchema;
 use crate::chamado::schema::UpdateTipoChamadoSchema;
-
 
 pub struct TipoChamadoRepository;
 
@@ -43,7 +41,12 @@ impl Repository<TipoChamado, i64> for TipoChamadoRepository {
         .await?)
     }
 
-    async fn update(&self, pool: &PgPool, id: i64, input: Self::UpdateInput) -> Result<TipoChamado> {
+    async fn update(
+        &self,
+        pool: &PgPool,
+        id: i64,
+        input: Self::UpdateInput,
+    ) -> Result<TipoChamado> {
         Ok(sqlx::query_as!(
             TipoChamado,
             r#"UPDATE chamado_tipos_chamado SET nome = $1 WHERE id = $2 RETURNING *"#,
@@ -60,7 +63,4 @@ impl Repository<TipoChamado, i64> for TipoChamadoRepository {
             .await?;
         Ok(())
     }
-
 }
-
-

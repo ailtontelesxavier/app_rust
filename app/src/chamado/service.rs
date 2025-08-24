@@ -1,8 +1,12 @@
+use anyhow::Result;
 use shared::{PaginatedResponse, Repository};
 use sqlx::PgPool;
-use anyhow::Result;
 
-use crate::chamado::{model::TipoChamado, repository::TipoChamadoRepository, schema::{CreateTipoChamadoSchema, UpdateTipoChamadoSchema}};
+use crate::chamado::{
+    model::TipoChamado,
+    repository::TipoChamadoRepository,
+    schema::{CreateTipoChamadoSchema, UpdateTipoChamadoSchema},
+};
 
 pub struct TipoChamadoService {
     repo: TipoChamadoRepository,
@@ -19,7 +23,11 @@ impl TipoChamadoService {
         Repository::<TipoChamado, i64>::get_by_id(&self.repo, pool, id).await
     }
 
-    pub async fn create(&self, pool: &PgPool, input: CreateTipoChamadoSchema) -> Result<TipoChamado> {
+    pub async fn create(
+        &self,
+        pool: &PgPool,
+        input: CreateTipoChamadoSchema,
+    ) -> Result<TipoChamado> {
         self.repo.create(pool, input).await
     }
 
@@ -45,5 +53,14 @@ impl TipoChamadoService {
     ) -> Result<PaginatedResponse<TipoChamado>> {
         Repository::<TipoChamado, i64>::get_paginated(&self.repo, pool, find, page, page_size).await
     }
-}
 
+    pub async fn get_by_name(&self, pool: &PgPool, nome: String) -> Result<TipoChamado> {
+        let query = format!(
+            "SELECT {} FROM {} WHERE m.nome = '$1' LIMIT 1",
+            self.repo.select_clause(),
+            self.repo.from_clause()
+        );
+
+        Ok(sqlx::query_as(&query).bind(nome).fetch_one(pool).await?)
+    }
+}

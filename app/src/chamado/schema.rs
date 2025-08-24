@@ -1,6 +1,5 @@
-
-use serde::{Serialize, Deserialize};
 use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CreateTipoChamadoSchema {
@@ -11,7 +10,6 @@ pub struct CreateTipoChamadoSchema {
 pub struct UpdateTipoChamadoSchema {
     pub nome: String,
 }
-
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CreateServicoChamadoSchema {
@@ -24,7 +22,6 @@ pub struct UpdateServicoChamadoSchema {
     pub nome: Option<String>,
     pub tipo_id: Option<i64>,
 }
-
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CreateCategoriaChamadoSchema {

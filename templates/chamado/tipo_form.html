@@ -1,0 +1,73 @@
+{% extends 'principal.html'%}
+{% include "components/icons_svg.html"%}
+
+{% block title %}Formulario de Tipo{%endblock%}
+
+{% block main %}
+<div class="card w-full max-w-3xl shadow-lg bg-base-100">
+    <div class="card-body">
+        <h2 class="card-title">Formulario de Tipo</h2>
+        
+        <form id="form_tipo" class="space-y-4" method="POST" action="{% if row %}/chamado/tipo-form/{{row.id}}{% else %}/chamado/tipo-form{% endif %}">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {% if row %}
+                <div class="col-span-2 md:col-span-1">
+                    <div class="flex flex-col min-w-full">
+                        <label for="id" class="label">ID</label>
+                        <input id="id" name="id" type="hidden" value="{{row.id}}" class="input input-bordered" required />
+                        <input type="text" value="{{row.id}}" class="input input-bordered" disabled />
+                    </div>
+                </div>
+                {% endif %}
+                <div class="col-span-2 md:col-span-1 min-w-full">
+                    <div class="flex flex-col">
+                        <label for="nome" class="label">Nome</label>
+                        {% if row %}
+                        <input id="nome" name="nome" type="text" value="{{row.nome}}" class="input input-bordered"
+                            required />
+                        {% else %}
+                        <input id="nome" name="nome" type="text" placeholder="Digite o nome"
+                            class="input input-bordered" required />
+                        {% endif %}
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Footer com botões -->
+            <div class="card-footer flex flex-col gap-2 p-4 md:flex-row md:justify-end">
+                <button id="btnCancelar" type="button" class="btn btn-primary w-full md:w-auto">Cancelar</button>
+                <button id="btnSubmit" type="submit"class="btn btn-success w-full md:w-auto">Salvar</button>
+            </div>
+        </form>
+        {% include 'parts/flash_message.html' %}
+    </div>
+</div>
+
+{%endblock%}
+{% block extra_js %}
+
+{# acao cancelar voltar para listagem #}
+<script>
+    document.getElementById('btnCancelar').addEventListener('click', function () {
+        window.location.href = "/chamado/tipo";
+    });
+</script>
+
+{# acao criar ou atualizar #}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+
+        // Função para lidar com o evento de submit
+        document.getElementById("btnSubmit").addEventListener("click", function () {
+            const form = document.getElementById('form_tipo');
+            
+            form.submit();
+        });
+
+    });
+</script>
+
+
+
+{% endblock %}

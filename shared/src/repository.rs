@@ -15,6 +15,13 @@ pub struct PaginatedResponse<T> {
     pub total_pages: i32,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct PaginationQuery {
+    pub find: Option<String>,
+    pub page: Option<u32>,
+    pub page_size: Option<u32>,
+}
+
 #[derive(Deserialize)]
 pub struct ListParams {
     pub page: Option<i32>,
@@ -151,8 +158,9 @@ where
 
     async fn get_by_id(&self, pool: &PgPool, id: ID) -> anyhow::Result<T> {
         let query = format!(
-            "SELECT * FROM {} WHERE {} = $1 LIMIT 1",
-            self.table_name(),
+            "SELECT {} FROM {} WHERE {} = $1 LIMIT 1",
+            self.select_clause(),
+            self.from_clause(),
             self.id_column()
         );
 
