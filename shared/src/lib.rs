@@ -7,5 +7,5 @@ mod repository;
 pub use error::AppError;
 pub use helpers::FlashStatus;
 pub use state::{AppState, MessageResponse, SharedState};
-pub use repository::{Repository, PaginatedResponse};
+pub use repository::{Repository, PaginatedResponse, ListParams};
 

@@ -6,7 +6,7 @@ use minijinja::Value;
 use minijinja::context;
 use serde::Deserialize;
 use shared::{
-    helpers::{self, get_qr_code_base64}, AppError, FlashStatus, PaginatedResponse, SharedState
+    helpers::{self, get_qr_code_base64}, AppError, FlashStatus, ListParams, PaginatedResponse, SharedState
 };
 use std::collections::{BTreeMap, HashMap};
 use tracing::debug;
@@ -30,15 +30,6 @@ use crate::{
     permissao::schema::{CreateModuleSchema, PermissionCreateSchema, PermissionUpdateSchema},
     permissao::service::ModuleService,
 };
-
-#[derive(Deserialize)]
-pub struct ListParams {
-    pub page: Option<i32>,
-    pub find: Option<String>,
-    pub msg: Option<String>,
-    pub status: Option<String>,
-    pub page_size: Option<i32>,
-}
 
 pub async fn home(State(state): State<SharedState>) -> Html<String> {
     let template = state.templates.get_template("index.html").unwrap();

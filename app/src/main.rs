@@ -1,6 +1,7 @@
 mod filters;
 mod middlewares;
 mod permissao;
+mod chamado;
 mod utils;
 
 use std::{collections::HashMap, env, sync::Arc};
@@ -17,13 +18,13 @@ use axum::{
     response::{Html, IntoResponse, Redirect},
     routing::get,
 };
-use minijinja::{Environment, path_loader};
+use minijinja::{context, path_loader, Environment};
 use percent_encoding::{NON_ALPHANUMERIC, percent_encode};
 use serde::Deserialize;
 use serde_json::{Value, json};
 use time::{Duration, OffsetDateTime, format_description::well_known::Rfc2822};
 use tokio;
-use tower_http::{cors::CorsLayer, services::ServeDir, trace::TraceLayer};
+use tower_http::{cors::CorsLayer, services::ServeDir, trace::TraceLayer, BoxError};
 use tower_sessions::{MemoryStore, SessionManagerLayer};
 use tracing::{debug, info};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -32,6 +33,7 @@ use dotenv::dotenv;
 use sqlx::postgres::PgPoolOptions;
 
 use permissao::router as router_permissao;
+use chamado::router as router_chamado;
 use shared::{AppState, FlashStatus, MessageResponse, SharedState, helpers};
 
 use crate::{
@@ -110,6 +112,7 @@ async fn main() {
         )
         .route("/logout", get(logout))
         .nest("/permissao", router_permissao())
+        .nest("/chamado", router_chamado())
         .layer(middleware::from_fn_with_state(
             state.clone(),
             middlewares::autenticar,
@@ -355,6 +358,25 @@ pub async fn page_metodo_proibido_handler(
     State(state): State<SharedState>,
 ) -> Result<Html<String>, impl IntoResponse> {
     match state.templates.get_template("403.html") {
+        Ok(template) => match template.render({}) {
+            Ok(html) => Ok(Html(html)),
+            Err(err) => Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Erro ao renderizar template: {}", err),
+            )
+                .into_response()),
+        },
+        Err(err) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Erro ao carregar template: {}", err),
+        )
+            .into_response()),
+    }
+}
+
+// Handler para renderizar erro 500 como página HTML
+pub async fn error_500_handler(state: Arc<AppState>) -> Result<Html<String>, impl IntoResponse> {
+    match state.templates.get_template("500.html") {
         Ok(template) => match template.render({}) {
             Ok(html) => Ok(Html(html)),
             Err(err) => Err((

@@ -1,7 +1,6 @@
 use anyhow::Ok;
 use anyhow::Result;
 use async_trait::async_trait;
-use shared::PaginatedResponse;
 use shared::Repository;
 use sqlx::PgPool;
 

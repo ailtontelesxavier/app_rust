@@ -8,6 +8,12 @@ pub struct CreateTipoChamadoSchema {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct UpdateTipoChamadoSchema {
+    pub nome: String,
+}
+
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct CreateServicoChamadoSchema {
     pub nome: String,
     pub tipo_id: i64,

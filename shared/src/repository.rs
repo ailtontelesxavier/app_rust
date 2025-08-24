@@ -1,6 +1,7 @@
 use anyhow::Ok;
 use anyhow::Result;
 use async_trait::async_trait;
+use serde::Deserialize;
 use serde::{Serialize, de::DeserializeOwned};
 use sqlx::{Encode, FromRow, PgPool, Postgres, Type, postgres::PgRow};
 use std::fmt::Display;
@@ -12,6 +13,15 @@ pub struct PaginatedResponse<T> {
     pub page: i32,
     pub page_size: i32,
     pub total_pages: i32,
+}
+
+#[derive(Deserialize)]
+pub struct ListParams {
+    pub page: Option<i32>,
+    pub find: Option<String>,
+    pub msg: Option<String>,
+    pub status: Option<String>,
+    pub page_size: Option<i32>,
 }
 
 #[async_trait]
