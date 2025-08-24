@@ -255,7 +255,7 @@
             })
             .then(response => {
                 if (response.ok) {
-                    {% set param_user_id = user.id if user else '' %}
+                    {% set param_user_id = user.id if user else 0 %}
                     let param_user_id = {{param_user_id}};
                     window.location.href = `/permissao/user-gestao-perfil?user_id=${param_user_id}`
                 } else {
@@ -281,7 +281,7 @@
     // Função para limpar busca
     function clearSearch() {
         document.getElementById('find').value = '';
-        {% set param_user_id = user.id if user else '' %}
+        {% set param_user_id = user.id if user else 0 %}
         let param_user_id = {{param_user_id}};
         window.location.href = `/permissao/user-gestao-perfil?user_id=${param_user_id}`
     }

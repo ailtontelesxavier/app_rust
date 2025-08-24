@@ -6,8 +6,7 @@ use minijinja::Value;
 use minijinja::context;
 use serde::Deserialize;
 use shared::{
-    AppError, FlashStatus, SharedState,
-    helpers::{self, get_qr_code_base64},
+    helpers::{self, get_qr_code_base64}, AppError, FlashStatus, PaginatedResponse, SharedState
 };
 use std::collections::{BTreeMap, HashMap};
 use tracing::debug;
@@ -18,12 +17,12 @@ use crate::permissao::{
     User,
     model::module::Perfil,
     repository::{
-        ModuleRepository, PaginatedResponse, PerfilRepository, PermissionRepository, Repository,
+        ModuleRepository, PerfilRepository, PermissionRepository,
         UserRepository,
     },
     schema::{
         PerfilCreateSchema, PerfilUpdateSchema, UserCreateSchema, UserParams,
-        UserPasswordUpdateSchema, UserRolesCreateSchema, UserRolesViewSchema,
+        UserPasswordUpdateSchema, UserRolesCreateSchema,
     },
     service::{PerfilService, PermissionService, UserRolesService, UserService},
 };
@@ -193,8 +192,8 @@ pub async fn modules_list_api(
     Query(q): Query<PaginationQuery>,
     State(state): State<SharedState>,
 ) -> Result<Json<PaginatedResponse<Module>>, StatusCode> {
-    let repo = ModuleRepository;
-    let res = repo
+    let service = ModuleService::new();
+    let res = service
         .get_paginated(
             &state.db,
             q.find.as_deref(),
@@ -762,8 +761,8 @@ pub async fn permission_list_api(
     Query(q): Query<PaginationQuery>,
     State(state): State<SharedState>,
 ) -> Result<Json<PaginatedResponse<Permission>>, StatusCode> {
-    let repo = PermissionRepository;
-    let res = repo
+    let service = PermissionService::new();
+    let res = service
         .get_paginated(
             &state.db,
             q.find.as_deref(),
@@ -1046,8 +1045,8 @@ pub async fn perfil_list_api(
     Query(q): Query<PaginationQuery>,
     State(state): State<SharedState>,
 ) -> Result<Json<PaginatedResponse<Perfil>>, StatusCode> {
-    let repo = PerfilRepository;
-    let res = repo
+    let service = PerfilService::new();
+    let res = service
         .get_paginated(
             &state.db,
             q.find.as_deref(),
@@ -1513,8 +1512,8 @@ pub async fn users_list_api(
     Query(q): Query<PaginationQuery>,
     State(state): State<SharedState>,
 ) -> Result<Json<PaginatedResponse<User>>, StatusCode> {
-    let repo = UserRepository;
-    let res = repo
+    let service = UserService::new();
+    let res = service
         .get_paginated(
             &state.db,
             q.find.as_deref(),

@@ -132,3 +132,32 @@ async fn main() {
     // ...existing code...
 }
 // ...existing code...
+
+
+
+use axum::{
+    body::Body,
+    http::{Request, Response},
+};
+
+// fn get_ip(request: &Request<axum::body::Body>) -> String {
+//     if let Some(ConnectInfo(addr)) = request.extensions().get::<ConnectInfo<SocketAddr>>() {
+//         return addr.ip().to_string();
+//     }
+
+//     String::from("unknown")
+// }
+
+pub fn make_span(_req: &Request<axum::body::Body>) -> Span {
+    tracing::info_span!("http-request")
+}
+
+pub fn on_request(request: &Request<Body>, _: &Span) {
+    // let ip = get_ip(&request);
+
+    // tracing::info!(
+    //     "-> Request started: method {} path {} ip {}",
+    //     request.method(),
+    //     request.uri().path(),
+    //     ip
+    // )

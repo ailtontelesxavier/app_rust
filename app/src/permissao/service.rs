@@ -1,10 +1,7 @@
 use crate::permissao::{
-    model::module::{Perfil, Permission, RolePermission, User, UserRoles},
-    repository::{self, PaginatedResponse, Repository},
-    schema::{
+    self, model::module::{Perfil, Permission, RolePermission, User, UserRoles}, repository::{PerfilRepository, PermissionRepository, RolePermissionRepository, UserRepository, UserRolesRepository}, schema::{
         PerfilCreateSchema, PerfilUpdateSchema, PermissionCreateSchema, PermissionModuloSchema, PermissionUpdateSchema, RolePermissionCreateSchema, RolePermissionUpdateSchema, RolePermissionViewSchema, UserCreateSchema, UserPasswordUpdateSchema, UserRolesCreateSchema, UserRolesUpdateSchema, UserRolesViewSchema, UserUpdateSchema
-    },
-};
+    }, ModuleRepository};
 use anyhow::Result;
 use argon2::{
     Algorithm, Argon2, Params, Version,
@@ -20,7 +17,7 @@ use sqlx::PgPool;
 use validator::Validate;
 
 use axum::{extract::State, response::Html};
-use shared::SharedState;
+use shared::{PaginatedResponse, Repository, SharedState};
 
 use crate::{
     permissao::model::module::Module,
@@ -28,18 +25,18 @@ use crate::{
 };
 
 pub struct ModuleService {
-    repo: repository::ModuleRepository,
+    repo: ModuleRepository,
 }
 
 impl ModuleService {
     pub fn new() -> Self {
         Self {
-            repo: repository::ModuleRepository,
+            repo: super::ModuleRepository,
         }
     }
 
     pub async fn get_by_id(&self, pool: &PgPool, id: i32) -> Result<Module> {
-        self.repo.get_by_id(pool, id).await
+        Repository::<Module, i32>::get_by_id(&self.repo, pool, id).await
     }
 
     pub async fn create(&self, pool: &PgPool, input: CreateModuleSchema) -> Result<Module> {
@@ -66,18 +63,18 @@ impl ModuleService {
         page: i32,
         page_size: i32,
     ) -> Result<PaginatedResponse<Module>> {
-        self.repo.get_paginated(pool, find, page, page_size).await
+        Repository::<Module, i32>::get_paginated(&self.repo, pool, find, page, page_size).await
     }
 }
 
 pub struct PermissionService {
-    repo: repository::PermissionRepository,
+    repo: PermissionRepository,
 }
 
 impl PermissionService {
     pub fn new() -> Self {
         Self {
-            repo: repository::PermissionRepository,
+            repo: PermissionRepository,
         }
     }
 
@@ -108,7 +105,7 @@ impl PermissionService {
         find: Option<&str>,
         page: i32,
         page_size: i32,
-    ) -> Result<repository::PaginatedResponse<Permission>> {
+    ) -> Result<PaginatedResponse<Permission>> {
         Ok(self.repo.get_paginated(pool, find, page, page_size).await?)
     }
 
@@ -118,7 +115,7 @@ impl PermissionService {
         find: Option<&str>,
         page: i64,
         page_size: i64,
-    ) -> Result<repository::PaginatedResponse<PermissionModuloSchema>> {
+    ) -> Result<PaginatedResponse<PermissionModuloSchema>> {
         let page = page.max(1) as i32;
         let page_size = page_size.min(100) as i32;
         let offset = (page - 1) * page_size;
@@ -171,7 +168,7 @@ impl PermissionService {
         .fetch_all(pool)
         .await?;
 
-        Ok(repository::PaginatedResponse {
+        Ok(PaginatedResponse {
             data: items,
             total_records,
             page,
@@ -182,13 +179,13 @@ impl PermissionService {
 }
 
 pub struct PerfilService {
-    repo: repository::PerfilRepository,
+    repo: PerfilRepository,
 }
 
 impl PerfilService {
     pub fn new() -> Self {
         Self {
-            repo: repository::PerfilRepository,
+            repo: PerfilRepository,
         }
     }
 
@@ -219,19 +216,19 @@ impl PerfilService {
         find: Option<&str>,
         page: i32,
         page_size: i32,
-    ) -> Result<repository::PaginatedResponse<Perfil>> {
+    ) -> Result<PaginatedResponse<Perfil>> {
         Ok(self.repo.get_paginated(pool, find, page, page_size).await?)
     }
 }
 
 pub struct UserService {
-    repo: repository::UserRepository,
+    repo: UserRepository,
 }
 
 impl UserService {
     pub fn new() -> Self {
         Self {
-            repo: repository::UserRepository,
+            repo: UserRepository,
         }
     }
 
@@ -300,7 +297,7 @@ impl UserService {
         find: Option<&str>,
         page: i32,
         page_size: i32,
-    ) -> Result<repository::PaginatedResponse<User>> {
+    ) -> Result<PaginatedResponse<User>> {
         Ok(self.repo.get_paginated(pool, find, page, page_size).await?)
     }
 
@@ -454,13 +451,13 @@ impl UserService {
 }
 
 pub struct UserRolesService {
-    repo: repository::UserRolesRepository,
+    repo: UserRolesRepository,
 }
 
 impl UserRolesService {
     pub fn new() -> Self {
         Self {
-            repo: repository::UserRolesRepository,
+            repo: UserRolesRepository,
         }
     }
 
@@ -491,7 +488,7 @@ impl UserRolesService {
         find: Option<&str>,
         page: i32,
         page_size: i32,
-    ) -> Result<repository::PaginatedResponse<UserRoles>> {
+    ) -> Result<PaginatedResponse<UserRoles>> {
         Ok(self.repo.get_paginated(pool, find, page, page_size).await?)
     }
 
@@ -501,7 +498,7 @@ impl UserRolesService {
         find: Option<&str>,
         page: i64,
         page_size: i64,
-    ) -> Result<repository::PaginatedResponse<UserRolesViewSchema>> {
+    ) -> Result<PaginatedResponse<UserRolesViewSchema>> {
         let page = page.max(1) as i32;
         let page_size = page_size.min(100) as i32;
         let offset = (page - 1) * page_size;
@@ -552,7 +549,7 @@ impl UserRolesService {
         .fetch_all(pool)
         .await?;
 
-        Ok(repository::PaginatedResponse {
+        Ok(PaginatedResponse {
             data: items,
             total_records,
             page,
@@ -563,13 +560,13 @@ impl UserRolesService {
 }
 
 pub struct RolePermissionService {
-    repo: repository::RolePermissionRepository,
+    repo: RolePermissionRepository,
 }
 
 impl RolePermissionService {
     pub fn new() -> Self {
         Self {
-            repo: repository::RolePermissionRepository,
+            repo: RolePermissionRepository,
         }
     }
 
@@ -600,7 +597,7 @@ impl RolePermissionService {
         find: Option<&str>,
         page: i32,
         page_size: i32,
-    ) -> Result<repository::PaginatedResponse<RolePermission>> {
+    ) -> Result<PaginatedResponse<RolePermission>> {
         Ok(self.repo.get_paginated(pool, find, page, page_size).await?)
     }
 
@@ -610,7 +607,7 @@ impl RolePermissionService {
         find: Option<&str>,
         page: i64,
         page_size: i64,
-    ) -> Result<repository::PaginatedResponse<RolePermissionViewSchema>> {
+    ) -> Result<PaginatedResponse<RolePermissionViewSchema>> {
         let page = page.max(1) as i32;
         let page_size = page_size.min(100) as i32;
         let offset = (page - 1) * page_size;
@@ -661,7 +658,7 @@ impl RolePermissionService {
         .fetch_all(pool)
         .await?;
 
-        Ok(repository::PaginatedResponse {
+        Ok(PaginatedResponse {
             data: items,
             total_records,
             page,

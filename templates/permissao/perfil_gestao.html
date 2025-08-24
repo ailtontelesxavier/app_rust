@@ -178,7 +178,7 @@
     //observer
     document.addEventListener("DOMContentLoaded", function () {
 
-      const hiddenPerfilInput = document.getElementById("hidden_perfil_id_id");
+      const hiddenPerfilInput = document.getElementById("hidden_role_id_id");
     
       //if (!hiddenPerfilInput) return;
 
@@ -255,7 +255,7 @@
             })
             .then(response => {
                 if (response.ok) {
-                    {% set param_perfil_id = perfil.id if perfil else '' %}
+                    {% set param_perfil_id = perfil.id if perfil else 0 %}
                     let param_perfil_id = {{param_perfil_id}};
                     window.location.href = `/permissao/gestao-perfil?id=${param_perfil_id}`
                 } else {
@@ -274,7 +274,7 @@
     // Função para limpar busca
     function clearSearch() {
         document.getElementById('find').value = '';
-        {% set param_perfil_id = perfil.id if perfil else '' %}
+        {% set param_perfil_id = perfil.id if perfil else 0 %}
         let param_perfil_id = {{param_perfil_id}};
         window.location.href = `/permissao/gestao-perfil?id=${param_perfil_id}`
     }
