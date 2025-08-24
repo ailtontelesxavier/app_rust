@@ -29,6 +29,11 @@ pub struct CreateCategoriaChamadoSchema {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct UpdateCategoriaChamadoSchema {
+    pub nome: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct CreateChamadoSchema {
     pub titulo: String,
     pub descricao: String,
