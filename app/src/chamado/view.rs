@@ -11,8 +11,11 @@ use shared::{FlashStatus, ListParams, SharedState, helpers};
 use tracing::debug;
 
 use crate::chamado::{
-    schema::{CreateCategoriaChamadoSchema, CreateTipoChamadoSchema, UpdateCategoriaChamadoSchema, UpdateTipoChamadoSchema},
-    service::{CategoriaChamadoService, TipoChamadoService},
+    schema::{
+        CreateCategoriaChamadoSchema, CreateTipoChamadoSchema, UpdateCategoriaChamadoSchema,
+        UpdateTipoChamadoSchema,
+    },
+    service::{CategoriaService, TipoChamadoService},
 };
 
 pub async fn list_tipo_chamado(
@@ -265,7 +268,7 @@ pub async fn delete_tipo(
         }
     }
 }
-/* 
+/*
 ==========================================
 
 ------------- CATEGORIA ------------------
@@ -277,7 +280,7 @@ pub async fn list_categoria(
     State(state): State<SharedState>,
     Query(params): Query<ListParams>,
 ) -> impl IntoResponse {
-    let service = CategoriaChamadoService::new();
+    let service = CategoriaService::new();
 
     // Extrair mensagens flash dos parâmetros da query
     let flash_message = params
@@ -313,7 +316,7 @@ pub async fn list_categoria(
                 flash_status => flash_status,
             };
 
-            match state.templates.get_template("chamado/tipo_list.html") {
+            match state.templates.get_template("chamado/categoria_list.html") {
                 Ok(template) => match template.render(context) {
                     Ok(html) => Html(html).into_response(),
                     Err(err) => {
@@ -358,7 +361,7 @@ pub async fn show_categoria_form(
         flash_status => flash_status,
     };
 
-    match state.templates.get_template("chamado/tipo_form.html") {
+    match state.templates.get_template("chamado/categoria_form.html") {
         Ok(template) => match template.render(context) {
             Ok(html) => Ok(Html(html)),
             Err(err) => Err((
@@ -380,7 +383,7 @@ pub async fn get_categoria(
     Path(id): Path<i64>,
     Query(params): Query<HashMap<String, String>>,
 ) -> Result<Html<String>, impl IntoResponse> {
-    let service = CategoriaChamadoService::new();
+    let service = CategoriaService::new();
 
     // Extrair mensagens flash dos parâmetros da query
     let flash_message = params
@@ -394,7 +397,7 @@ pub async fn get_categoria(
     });
 
     // Carregar o template
-    let template = match state.templates.get_template("chamado/tipo_form.html") {
+    let template = match state.templates.get_template("chamado/categoria_form.html") {
         Ok(t) => t,
         Err(err) => {
             return Err((
@@ -408,10 +411,10 @@ pub async fn get_categoria(
     let perfil = match service.get_by_id(&state.db, id).await {
         Ok(p) => p,
         Err(e) => {
-            debug!("Erro ao buscar tipo: {}", e);
+            debug!("Erro ao buscar categoria: {}", e);
             let flash_url = helpers::create_flash_url(
-                "/chamado/tipo-form",
-                &format!("tipo não encontrado: {}", e),
+                "/chamado/categoria-form",
+                &format!("categoria não encontrado: {}", e),
                 FlashStatus::Error,
             );
             return Err(Redirect::to(&flash_url).into_response());
@@ -440,12 +443,15 @@ pub async fn create_categoria(
     State(state): State<SharedState>,
     Form(body): Form<CreateCategoriaChamadoSchema>,
 ) -> impl IntoResponse {
-    let service = CategoriaChamadoService::new();
+    let service = CategoriaService::new();
 
     match service.get_by_name(&*state.db, body.nome.clone()).await {
-        Ok(tipo_existente) if tipo_existente.id > 0 => {
-            let flash_url =
-                helpers::create_flash_url("/chamado/tipo", "Tipo existe!", FlashStatus::Error);
+        Ok(categoria) if categoria.id > 0 => {
+            let flash_url = helpers::create_flash_url(
+                "/chamado/categoria",
+                "Categoria já existe!",
+                FlashStatus::Error,
+            );
             return Redirect::to(&flash_url).into_response();
         }
         _ => {
@@ -453,16 +459,16 @@ pub async fn create_categoria(
             match service.create(&*state.db, body).await {
                 Ok(_) => {
                     let flash_url = helpers::create_flash_url(
-                        "/chamado/tipo",
-                        "Tipo criado com sucesso!",
+                        "/chamado/categoria",
+                        "Categoria criado com sucesso!",
                         FlashStatus::Success,
                     );
                     Redirect::to(&flash_url).into_response()
                 }
                 Err(err) => {
                     let flash_url = helpers::create_flash_url(
-                        "/chamado/tipo-form",
-                        &format!("Erro ao criar Tipo: {}", err),
+                        "/chamado/categoria-form",
+                        &format!("Erro ao criar Categoria: {}", err),
                         FlashStatus::Error,
                     );
                     Redirect::to(&flash_url).into_response()
@@ -477,21 +483,21 @@ pub async fn update_categoria(
     Path(id): Path<i64>,
     Form(input): Form<UpdateCategoriaChamadoSchema>,
 ) -> impl IntoResponse {
-    let service = CategoriaChamadoService::new();
+    let service = CategoriaService::new();
 
     match service.update(&*state.db, id, input).await {
         Ok(_) => {
             let flash_url = helpers::create_flash_url(
-                &format!("/chamado/tipo"),
-                &format!("Tipo atualizado com sucesso!"),
+                &format!("/chamado/categoria"),
+                &format!("Categoria atualizado com sucesso!"),
                 FlashStatus::Success,
             );
             Redirect::to(&flash_url).into_response()
         }
         Err(err) => {
             let flash_url = helpers::create_flash_url(
-                &format!("/chamado/tipo-form/{}", id),
-                &format!("Erro ao atualizar tipo: {}", err),
+                &format!("/chamado/categoria-form/{}", id),
+                &format!("Erro ao atualizar categoria: {}", err),
                 FlashStatus::Error,
             );
             Redirect::to(&flash_url).into_response()
@@ -503,20 +509,20 @@ pub async fn delete_categoria(
     State(state): State<SharedState>,
     Path(id): Path<i64>,
 ) -> impl IntoResponse {
-    let service = CategoriaChamadoService::new();
+    let service = CategoriaService::new();
     match service.delete(&*state.db, id).await {
         Ok(()) => {
             let flash_url = helpers::create_flash_url(
-                "/chamado/tipo",
-                "Tipo excluído com sucesso!",
+                "/chamado/categoria",
+                "Categoria excluído com sucesso!",
                 FlashStatus::Success,
             );
             Redirect::to(&flash_url).into_response()
         }
         Err(err) => {
             let flash_url = helpers::create_flash_url(
-                "/chamado/tipo",
-                &format!("Erro ao excluir tipo: {}", err),
+                "/chamado/categoria",
+                &format!("Erro ao excluir categoria: {}", err),
                 FlashStatus::Error,
             );
             Redirect::to(&flash_url).into_response()

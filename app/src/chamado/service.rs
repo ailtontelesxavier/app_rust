@@ -5,7 +5,10 @@ use sqlx::PgPool;
 use crate::chamado::{
     model::{CategoriaChamado, TipoChamado},
     repository::{CategoriaChamadoRepository, TipoChamadoRepository},
-    schema::{CreateCategoriaChamadoSchema, CreateTipoChamadoSchema, UpdateCategoriaChamadoSchema, UpdateTipoChamadoSchema},
+    schema::{
+        CreateCategoriaChamadoSchema, CreateTipoChamadoSchema, UpdateCategoriaChamadoSchema,
+        UpdateTipoChamadoSchema,
+    },
 };
 
 pub struct TipoChamadoService {
@@ -65,11 +68,11 @@ impl TipoChamadoService {
     }
 }
 
-pub struct CategoriaChamadoService {
+pub struct CategoriaService {
     repo: CategoriaChamadoRepository,
 }
 
-impl CategoriaChamadoService {
+impl CategoriaService {
     pub fn new() -> Self {
         Self {
             repo: CategoriaChamadoRepository,
@@ -108,7 +111,8 @@ impl CategoriaChamadoService {
         page: i32,
         page_size: i32,
     ) -> Result<PaginatedResponse<CategoriaChamado>> {
-        Repository::<CategoriaChamado, i64>::get_paginated(&self.repo, pool, find, page, page_size).await
+        Repository::<CategoriaChamado, i64>::get_paginated(&self.repo, pool, find, page, page_size)
+            .await
     }
 
     pub async fn get_by_name(&self, pool: &PgPool, nome: String) -> Result<CategoriaChamado> {

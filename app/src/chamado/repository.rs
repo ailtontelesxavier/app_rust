@@ -97,12 +97,10 @@ impl Repository<CategoriaChamado, i64> for CategoriaChamadoRepository {
             self.table_name()
         );
 
-        Ok(
-            sqlx::query_as(&query)
+        Ok(sqlx::query_as(&query)
             .bind(input.nome.to_string())
             .fetch_one(pool)
-            .await?
-        )
+            .await?)
     }
 
     async fn update(
