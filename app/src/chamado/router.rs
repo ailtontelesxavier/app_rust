@@ -8,7 +8,10 @@ use shared::SharedState;
 use crate::chamado::view;
 
 pub fn router() -> Router<SharedState> {
-    Router::new().merge(router_tipo()).merge(router_categoria())
+    Router::new()
+        .merge(router_tipo())
+        .merge(router_categoria())
+        .merge(router_servico())
 }
 
 fn router_tipo() -> Router<SharedState> {
@@ -37,4 +40,18 @@ fn router_categoria() -> Router<SharedState> {
             get(view::get_categoria).post(view::update_categoria),
         )
         .route("/categoria/{id}", delete(view::delete_categoria))
+}
+
+fn router_servico() -> Router<SharedState> {
+    Router::new()
+        .route("/servico", get(view::list_servico))
+        .route(
+            "/servico-form",
+            get(view::show_servico_form).post(view::create_servico),
+        )
+        .route(
+            "/servico-form/{id}",
+            get(view::get_servico).post(view::update_servico),
+        )
+        .route("/servico/{id}", delete(view::delete_servico))
 }

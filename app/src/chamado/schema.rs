@@ -23,6 +23,14 @@ pub struct UpdateServicoChamadoSchema {
     pub tipo_id: Option<i64>,
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ServicoTipoViewSchema {
+    pub id: i64,
+    pub nome: String,
+    pub tipo_id: i64,
+    pub nome_tipo: String,
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CreateCategoriaChamadoSchema {
     pub nome: String,

@@ -5,10 +5,13 @@ use shared::Repository;
 use sqlx::PgPool;
 
 use crate::chamado::model::CategoriaChamado;
+use crate::chamado::model::ServicoChamado;
 use crate::chamado::model::TipoChamado;
 use crate::chamado::schema::CreateCategoriaChamadoSchema;
+use crate::chamado::schema::CreateServicoChamadoSchema;
 use crate::chamado::schema::CreateTipoChamadoSchema;
 use crate::chamado::schema::UpdateCategoriaChamadoSchema;
+use crate::chamado::schema::UpdateServicoChamadoSchema;
 use crate::chamado::schema::UpdateTipoChamadoSchema;
 
 pub struct TipoChamadoRepository;
@@ -121,6 +124,67 @@ impl Repository<CategoriaChamado, i64> for CategoriaChamadoRepository {
 
     async fn delete(&self, pool: &PgPool, id: i64) -> Result<()> {
         sqlx::query!("DELETE FROM chamado_categoria_chamado WHERE id = $1", id)
+            .execute(pool)
+            .await?;
+        Ok(())
+    }
+}
+
+pub struct ServicoChamadoRepository;
+
+#[async_trait]
+impl Repository<ServicoChamado, i64> for ServicoChamadoRepository {
+    type CreateInput = CreateServicoChamadoSchema;
+    type UpdateInput = UpdateServicoChamadoSchema;
+
+    fn table_name(&self) -> &str {
+        "chamado_servico_chamado"
+    }
+
+    fn searchable_fields(&self) -> &[&str] {
+        &["m.nome"]
+    }
+
+    fn select_clause(&self) -> &str {
+        "m.id, m.nome, m.tipo_id"
+    }
+
+    fn from_clause(&self) -> &str {
+        "chamado_servico_chamado m"
+    }
+
+    async fn create(&self, pool: &PgPool, input: Self::CreateInput) -> Result<ServicoChamado> {
+        let query = format!(
+            "INSERT INTO {} (nome, tipo_id) VALUES ($1, $2) RETURNING *",
+            self.table_name()
+        );
+
+        Ok(sqlx::query_as(&query)
+            .bind(input.nome.to_string())
+            .bind(input.tipo_id)
+            .fetch_one(pool)
+            .await?)
+    }
+
+    async fn update(
+        &self,
+        pool: &PgPool,
+        id: i64,
+        input: Self::UpdateInput,
+    ) -> Result<ServicoChamado> {
+        Ok(sqlx::query_as!(
+            ServicoChamado,
+            r#"UPDATE chamado_servico_chamado SET nome = $1, tipo_id = $2  WHERE id = $3 RETURNING *"#,
+            input.nome,
+            input.tipo_id,
+            id
+        )
+        .fetch_one(pool)
+        .await?)
+    }
+
+    async fn delete(&self, pool: &PgPool, id: i64) -> Result<()> {
+        sqlx::query!("DELETE FROM chamado_servico_chamado WHERE id = $1", id)
             .execute(pool)
             .await?;
         Ok(())

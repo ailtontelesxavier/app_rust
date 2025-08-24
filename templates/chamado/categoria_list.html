@@ -16,11 +16,7 @@
     </div>
 
     {# Exibir mensagem flash se existir #}
-    {% if flash_message %}
-    <div class="alert {% if flash_status == 'success' %}alert-success{% elif flash_status == 'error' %}alert-error{% else %}alert-info{% endif %} mb-4">
-        <span>{{ flash_message }}</span>
-    </div>
-    {% endif %}
+    {% include 'parts/flash_message.html' %}
 
     <!-- Formulário de busca -->
     <div class="card bg-base-100 shadow-xl mb-6">

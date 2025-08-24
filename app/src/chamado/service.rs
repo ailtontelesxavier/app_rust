@@ -3,10 +3,11 @@ use shared::{PaginatedResponse, Repository};
 use sqlx::PgPool;
 
 use crate::chamado::{
-    model::{CategoriaChamado, TipoChamado},
-    repository::{CategoriaChamadoRepository, TipoChamadoRepository},
+    model::{CategoriaChamado, ServicoChamado, TipoChamado},
+    repository::{CategoriaChamadoRepository, ServicoChamadoRepository, TipoChamadoRepository},
     schema::{
-        CreateCategoriaChamadoSchema, CreateTipoChamadoSchema, UpdateCategoriaChamadoSchema,
+        CreateCategoriaChamadoSchema, CreateServicoChamadoSchema, CreateTipoChamadoSchema,
+        ServicoTipoViewSchema, UpdateCategoriaChamadoSchema, UpdateServicoChamadoSchema,
         UpdateTipoChamadoSchema,
     },
 };
@@ -123,5 +124,129 @@ impl CategoriaService {
         );
 
         Ok(sqlx::query_as(&query).bind(nome).fetch_one(pool).await?)
+    }
+}
+
+pub struct ServicoService {
+    repo: ServicoChamadoRepository,
+}
+
+impl ServicoService {
+    pub fn new() -> Self {
+        Self {
+            repo: ServicoChamadoRepository,
+        }
+    }
+
+    pub async fn get_by_id(&self, pool: &PgPool, id: i64) -> Result<ServicoChamado> {
+        Repository::<ServicoChamado, i64>::get_by_id(&self.repo, pool, id).await
+    }
+
+    pub async fn create(
+        &self,
+        pool: &PgPool,
+        input: CreateServicoChamadoSchema,
+    ) -> Result<ServicoChamado> {
+        self.repo.create(pool, input).await
+    }
+
+    pub async fn update(
+        &self,
+        pool: &PgPool,
+        id: i64,
+        input: UpdateServicoChamadoSchema,
+    ) -> Result<ServicoChamado> {
+        self.repo.update(pool, id, input).await
+    }
+
+    pub async fn delete(&self, pool: &PgPool, id: i64) -> Result<()> {
+        self.repo.delete(pool, id).await
+    }
+
+    pub async fn get_paginated(
+        &self,
+        pool: &PgPool,
+        find: Option<&str>,
+        page: i32,
+        page_size: i32,
+    ) -> Result<PaginatedResponse<ServicoChamado>> {
+        Repository::<ServicoChamado, i64>::get_paginated(&self.repo, pool, find, page, page_size)
+            .await
+    }
+
+    pub async fn get_by_name(&self, pool: &PgPool, nome: String) -> Result<ServicoChamado> {
+        let query = format!(
+            "SELECT {} FROM {} WHERE m.nome = '$1' LIMIT 1",
+            self.repo.select_clause(),
+            self.repo.from_clause()
+        );
+
+        Ok(sqlx::query_as(&query).bind(nome).fetch_one(pool).await?)
+    }
+
+    pub async fn get_paginated_with_tipo(
+        &self,
+        pool: &PgPool,
+        find: Option<&str>,
+        page: i32,
+        page_size: i32,
+    ) -> Result<PaginatedResponse<ServicoTipoViewSchema>> {
+        let page = page.max(1) as i32;
+        let page_size = page_size.min(100) as i32;
+        let offset = (page - 1) * page_size;
+
+        let like_term = match find {
+            Some(search_term) => format!("%{search_term}%"),
+            None => "%".to_string(),
+        };
+
+        // Busca total de registros para paginação
+        let total: (i64,) = sqlx::query_as::<_, (i64,)>(
+            r#"
+            SELECT COUNT(p) FROM chamado_servico_chamado p
+            INNER JOIN chamado_tipos_chamado r ON r.id = p.tipo_id
+            WHERE r.nome ILIKE $1 or p.nome ILIKE $1
+            "#,
+        )
+        .bind(&like_term)
+        .fetch_one(pool)
+        .await?;
+
+        let total_records = total.0;
+        let total_pages = if total_records == 0 {
+            1
+        } else {
+            ((total_records as f64) / (page_size as f64)).ceil() as i32
+        };
+
+        // Busca os registros paginados
+        let items: Vec<ServicoTipoViewSchema> = sqlx::query_as!(
+            ServicoTipoViewSchema,
+            r#"
+            SELECT 
+                p.id, 
+                p.nome,
+                p.tipo_id, 
+                r.nome as nome_tipo
+            FROM chamado_servico_chamado p
+            INNER JOIN chamado_tipos_chamado r ON r.id = p.tipo_id
+            WHERE r.nome ILIKE $1
+            ORDER BY p.id DESC
+            LIMIT $2 OFFSET $3
+            "#,
+            like_term,
+            page_size as i64,
+            offset as i64
+        )
+        .fetch_all(pool)
+        .await?;
+
+        Ok(PaginatedResponse {
+            data: items,
+            total_records,
+            page,
+            page_size,
+            total_pages,
+        })
     }
 }
