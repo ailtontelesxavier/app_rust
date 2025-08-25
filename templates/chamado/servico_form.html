@@ -1,4 +1,5 @@
 {% extends 'principal.html'%}
+{% include "components/combobox.html"%}
 
 {% block title %}Formulario de Serviços{%endblock%}
 
@@ -9,16 +10,33 @@
         
         <form id="form_servico" class="space-y-4" method="POST" action="{% if row %}/chamado/servico-form/{{row.id}}{% else %}/chamado/servico-form{% endif %}">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-                {% if row %}
-                <div class="col-span-2 md:col-span-1">
-                    <div class="flex flex-col min-w-full">
-                        <label for="id" class="label">ID</label>
-                        <input id="id" name="id" type="hidden" value="{{row.id}}" class="input input-bordered" required />
-                        <input type="text" value="{{row.id}}" class="input input-bordered" disabled />
-                    </div>
-                </div>
-                {% endif %}
+                
                 <div class="col-span-2 md:col-span-1 min-w-full">
+                    {% if row %}
+                    <div class="col-span-2 md:col-span-1">
+                        <div class="flex flex-col min-w-full">
+                            <label for="id" class="label">ID</label>
+                            <input id="id" name="id" type="hidden" value="{{row.id}}" class="input input-bordered" required />
+                            <input type="text" value="{{row.id}}" class="input input-bordered" disabled />
+                        </div>
+                    </div>
+                    {% endif %}
+                    <div class="flex flex-col">
+                        <label class="label">
+                            <span class="label-text font-semibold">Serviço</span>
+                        </label>
+                        {% set value_tipo = tipo.id if tipo else '' %}
+                        {% set title_tipo = tipo.nome if tipo else '' %}
+                        {{ combobox(
+                            field_name="tipo_id",
+                            field_label="nome",
+                            placeholder="Selecione o tipo",
+                            endpoint="/chamado/tipo-api",
+                            attrs="required",
+                            search=title_tipo,
+                            value=value_tipo,
+                        ) }}
+                    </div>
                     <div class="flex flex-col">
                         <label for="nome" class="label">Nome</label>
                         {% if row %}
@@ -60,6 +78,11 @@
         // Função para lidar com o evento de submit
         document.getElementById("btnSubmit").addEventListener("click", function () {
             const form = document.getElementById('form_servico');
+
+            if (!form.checkValidity()) {
+                showMessage("Por favor, preencha todos os campos obrigatórios.", type = 'error');
+                return;
+            }
             
             form.submit();
         });

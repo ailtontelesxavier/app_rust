@@ -60,6 +60,11 @@
         // Função para lidar com o evento de submit
         document.getElementById("btnSubmit").addEventListener("click", function () {
             const form = document.getElementById('form_categoria');
+
+            if (!form.checkValidity()) {
+                showMessage("Por favor, preencha todos os campos obrigatórios.", type = 'error');
+                return;
+            }
             
             form.submit();
         });

@@ -26,7 +26,13 @@ fn router_tipo() -> Router<SharedState> {
             get(view::get_tipo).post(view::update_tipo),
         )
         .route("/tipo/{id}", delete(view::delete_tipo))
+        .merge(api_tipo_router())
 }
+
+fn api_tipo_router() -> Router<SharedState> {
+    Router::new().route("/tipo-api", get(view::tipo_list_api))
+}
+
 
 fn router_categoria() -> Router<SharedState> {
     Router::new()

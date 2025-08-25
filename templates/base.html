@@ -49,17 +49,12 @@
   {% block body %}{% endblock %}
 
 
-  <div id="messageBox" class="hidden toast toast-top toast-center overflow-y-auto">
+  <!-- <div id="messageBox" class="hidden toast toast-top toast-center overflow-y-auto">
       <span class="alert alert-success">
         <span id="messageText">New mail arrived.</span>
-        <span id="closeMessage" class="ml-1 hover:cursor-pointer text-xs font-bold">✖</span>
+        <span id="closeMessage" onclick="" class="ml-1 hover:cursor-pointer text-xs font-bold">✖</span>
       </span>
-    <!--
-    <div class="alert alert-info">
-      <span>Message.</span>
-    </div>
-    -->
-  </div>
+  </div> -->
 
   <script>
     //$.blockUI.defaults.baseZ = 9999;
@@ -81,7 +76,7 @@
     function hideLoader() {
         document.getElementById("loader").classList.add("hidden");
     } */
-    function showMessage(text, type = 'success') {
+    /* function showMessage(text, type = 'success') {
       const messageBox = document.getElementById("messageBox");
       const messageText = document.getElementById("messageText");
       const closeMessage = document.getElementById("closeMessage");
@@ -102,6 +97,31 @@
 
       // Ocultar automaticamente após 5 segundos
       setTimeout(() => messageBox.classList.add("hidden"), 5000);
+    } */
+    function showMessage(text, type = 'success') {
+
+      if (type === "error") {
+        $.blockUI({ message: `
+          <div class="">
+            <span class="alert">
+              <span class='text-red-800' style='max-width:350px; width: 100%;' >${text}</span>
+              <span id="closeMessage" onclick="$.unblockUI()" class="ml-1 hover:cursor-pointer text-xs font-bold">✖</span>
+            </span>
+          </div>`,
+        style: "border: none;"});
+      } else {
+        $.blockUI({ message: `
+          <div class="">
+            <span class="alert">
+              <span class='text-green-800' style='max-width:350px; width: 100%;' >${text}</span>
+              <span id="closeMessage" onclick="$.unblockUI()" class="ml-1 hover:cursor-pointer text-xs font-bold">✖</span>
+            </span>
+          </div>`,
+        style: "border: none;"});
+      }
+
+      // Ocultar automaticamente após 5 segundos
+      setTimeout(() => $.unblockUI(), 5000);
     }
   </script>
 

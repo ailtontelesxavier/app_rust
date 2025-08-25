@@ -1,21 +1,17 @@
 use std::collections::HashMap;
 
 use axum::{
-    Form,
-    extract::{Path, Query, State},
-    http::StatusCode,
-    response::{Html, IntoResponse, Redirect},
+    extract::{Path, Query, State}, http::StatusCode, response::{Html, IntoResponse, Redirect}, Form, Json
 };
 use minijinja::context;
-use shared::{FlashStatus, ListParams, SharedState, helpers};
+use shared::{helpers, FlashStatus, ListParams, PaginatedResponse, PaginationQuery, SharedState};
 use tracing::debug;
 
 use crate::chamado::{
-    schema::{
+    model::TipoChamado, schema::{
         CreateCategoriaChamadoSchema, CreateServicoChamadoSchema, CreateTipoChamadoSchema,
         UpdateCategoriaChamadoSchema, UpdateServicoChamadoSchema, UpdateTipoChamadoSchema,
-    },
-    service::{CategoriaService, ServicoService, TipoChamadoService},
+    }, service::{CategoriaService, ServicoService, TipoChamadoService}
 };
 
 pub async fn list_tipo_chamado(
@@ -268,6 +264,28 @@ pub async fn delete_tipo(
         }
     }
 }
+
+pub async fn tipo_list_api(
+    Query(q): Query<PaginationQuery>,
+    State(state): State<SharedState>,
+) -> Result<Json<PaginatedResponse<TipoChamado>>, StatusCode> {
+    let service = TipoChamadoService::new();
+    let res = service
+        .get_paginated(
+            &state.db,
+            q.find.as_deref(),
+            q.page.unwrap_or(1) as i32,
+            q.page_size.unwrap_or(10) as i32,
+        )
+        .await
+        .map_err(|err| {
+            debug!("error:{}", err);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    Ok(Json(res))
+}
+
 /*
 ==========================================
 
@@ -682,9 +700,12 @@ pub async fn get_servico(
         }
     };
 
+    let tipo = TipoChamadoService::new().get_by_id(&*state.db, perfil.tipo_id).await.unwrap();
+
     // Preparar o contexto
     let ctx = context! {
         row => perfil,
+        tipo => tipo,
         flash_message => flash_message,
         flash_status => flash_status,
     };

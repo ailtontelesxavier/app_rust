@@ -58,7 +58,8 @@
                     <thead>
                         <tr>
                             <th>ID</th>
-                            <th>Nome</th>
+                            <th>Serviço</th>
+                            <th>Tipo</th>
                             <th class="text-center">Ações</th>
                         </tr>
                     </thead>
@@ -67,6 +68,7 @@
                         <tr class="hover">
                             <td class="font-mono text-sm">{{ row.id }}</td>
                             <td class="font-medium">{{ row.nome }}</td>
+                            <td class="font-medium">{{ row.nome_tipo }}</td>
                             <td class="text-center">
                                 <div class="flex justify-center gap-2">
                                     <button 
@@ -105,6 +107,7 @@
                             <div class="flex-1">
                                 <h3 class="card-title text-lg">{{ row.nome }}</h3>
                                 <p class="text-sm text-gray-600">ID: {{ row.id }}</p>
+                                <p class="text-sm text-gray-600">Tipo: {{ row.nome_tipo }}</p>
                             </div>
                             <div class="flex gap-2">
                                 <button 

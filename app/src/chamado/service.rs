@@ -59,7 +59,7 @@ impl TipoChamadoService {
     }
 
     pub async fn get_by_name(&self, pool: &PgPool, nome: String) -> Result<TipoChamado> {
-        let query = format!(
+        let query: String = format!(
             "SELECT {} FROM {} WHERE m.nome = '$1' LIMIT 1",
             self.repo.select_clause(),
             self.repo.from_clause()
