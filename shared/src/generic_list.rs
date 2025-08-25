@@ -1,5 +1,3 @@
-use crate::SharedState;
-use axum::{extract::Query, response::Html};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 

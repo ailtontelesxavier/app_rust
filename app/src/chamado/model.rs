@@ -1,6 +1,8 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
+use sqlx::postgres::{PgTypeInfo, PgValueRef};
+use sqlx::{Decode, Encode, Postgres, Type};
 
 #[derive(Debug, Serialize, Deserialize, FromRow)]
 pub struct TipoChamado {
@@ -21,12 +23,59 @@ pub struct CategoriaChamado {
     pub nome: String,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
+#[repr(i32)]
+pub enum StatusChamado {
+    Aberto = 0,
+    EmAtendimento = 1,
+    Pausado = 2,
+    Resolvido = 3,
+    Fechado = 4,
+}
+
+impl TryFrom<i32> for StatusChamado {
+    type Error = &'static str;
+
+    fn try_from(value: i32) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(StatusChamado::Aberto),
+            1 => Ok(StatusChamado::EmAtendimento),
+            2 => Ok(StatusChamado::Pausado),
+            3 => Ok(StatusChamado::Resolvido),
+            4 => Ok(StatusChamado::Fechado),
+            _ => Err("Status inválido"),
+        }
+    }
+}
+
+impl<'r> Decode<'r, Postgres> for StatusChamado {
+    fn decode(value: PgValueRef<'r>) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
+        let v: i32 = <i32 as Decode<Postgres>>::decode(value)?;
+        Ok(StatusChamado::try_from(v)?)
+    }
+}
+
+impl<'q> Encode<'q, Postgres> for StatusChamado {
+    fn encode_by_ref(
+        &self,
+        buf: &mut <Postgres as sqlx::Database>::ArgumentBuffer<'q>,
+    ) -> Result<sqlx::encode::IsNull, Box<dyn std::error::Error + Send + Sync>> {
+        <i32 as sqlx::Encode<'_, Postgres>>::encode_by_ref(&(*self as i32), buf)
+    }
+}
+
+impl Type<Postgres> for StatusChamado {
+    fn type_info() -> PgTypeInfo {
+        <i32 as Type<Postgres>>::type_info()
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, FromRow)]
 pub struct Chamado {
     pub id: i64,
     pub titulo: String,
     pub descricao: String,
-    pub status: i32,
+    pub status: Option<i32>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub user_solic_id: i64,

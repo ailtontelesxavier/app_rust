@@ -1,6 +1,5 @@
 use axum::{Json, extract::State, response::IntoResponse};
 use shared::SharedState;
-use tracing::debug;
 
 use crate::core::repository::{fetch_municipios, fetch_ufs, upsert_municipios, upsert_ufs};
 

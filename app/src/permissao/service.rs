@@ -1,5 +1,5 @@
 use crate::permissao::{
-    self, ModuleRepository,
+    ModuleRepository,
     model::module::{Perfil, Permission, RolePermission, User, UserRoles},
     repository::{
         PerfilRepository, PermissionRepository, RolePermissionRepository, UserRepository,
@@ -18,13 +18,12 @@ use argon2::{
     password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
 };
 use base32;
-use chrono::{DateTime, TimeZone, Utc};
-use chrono_tz::Tz;
+use chrono::{Utc};
 use otpauth::TOTP;
 use password_hash::rand_core::OsRng;
 use rand::Rng;
 use sqlx::PgPool;
-use validator::Validate;
+//use validator::Validate;
 
 use axum::{extract::State, response::Html};
 use shared::{PaginatedResponse, Repository, SharedState};

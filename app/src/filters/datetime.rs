@@ -1,6 +1,6 @@
-use chrono::{DateTime, NaiveDateTime, Utc};
+use chrono::{DateTime, Utc};
 use minijinja::{Error, ErrorKind, value::Value};
-use tracing::debug;
+//use tracing::debug;
 
 // Converte para string formatada: 07/08/2025 00:37
 fn format_datetime_utc(dt: DateTime<Utc>) -> String {

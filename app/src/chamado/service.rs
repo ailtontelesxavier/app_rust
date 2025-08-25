@@ -3,12 +3,10 @@ use shared::{PaginatedResponse, Repository};
 use sqlx::PgPool;
 
 use crate::chamado::{
-    model::{CategoriaChamado, ServicoChamado, TipoChamado},
-    repository::{CategoriaChamadoRepository, ServicoChamadoRepository, TipoChamadoRepository},
+    model::{CategoriaChamado, Chamado, ServicoChamado, TipoChamado},
+    repository::{CategoriaChamadoRepository, ChamadoRepository, ServicoChamadoRepository, TipoChamadoRepository},
     schema::{
-        CreateCategoriaChamadoSchema, CreateServicoChamadoSchema, CreateTipoChamadoSchema,
-        ServicoTipoViewSchema, UpdateCategoriaChamadoSchema, UpdateServicoChamadoSchema,
-        UpdateTipoChamadoSchema,
+        CreateCategoriaChamadoSchema, CreateChamado, CreateServicoChamadoSchema, CreateTipoChamadoSchema, ServicoTipoViewSchema, UpdateCategoriaChamadoSchema, UpdateChamado, UpdateServicoChamadoSchema, UpdateTipoChamadoSchema
     },
 };
 
@@ -249,4 +247,64 @@ impl ServicoService {
             total_pages,
         })
     }
+}
+
+pub struct ChamadoService {
+    repo: ChamadoRepository,
+}
+
+impl ChamadoService {
+    pub fn new() -> Self {
+        Self {
+            repo: ChamadoRepository,
+        }
+    }
+
+    pub async fn get_by_id(&self, pool: &PgPool, id: i64) -> Result<Chamado> {
+        Repository::<Chamado, i64>::get_by_id(&self.repo, pool, id).await
+    }
+
+    pub async fn create(
+        &self,
+        pool: &PgPool,
+        input: CreateChamado,
+    ) -> Result<Chamado> {
+        self.repo.create(pool, input).await
+    }
+
+    pub async fn update(
+        &self,
+        pool: &PgPool,
+        id: i64,
+        input: UpdateChamado,
+    ) -> Result<Chamado> {
+        self.repo.update(pool, id, input).await
+    }
+
+    pub async fn delete(&self, pool: &PgPool, id: i64) -> Result<()> {
+        self.repo.delete(pool, id).await
+    }
+
+    pub async fn get_paginated(
+        &self,
+        pool: &PgPool,
+        find: Option<&str>,
+        page: i32,
+        page_size: i32,
+    ) -> Result<PaginatedResponse<Chamado>> {
+        Repository::<Chamado, i64>::get_paginated(&self.repo, pool, find, page, page_size)
+            .await
+    }
+
+    /* pub async fn get_by_titulo(&self, pool: &PgPool, titulo: String) -> Result<Chamado> {
+        let query = format!(
+            "SELECT {} FROM {} WHERE m.titulo = '$1' LIMIT 1",
+            self.repo.select_clause(),
+            self.repo.from_clause()
+        );
+
+        Ok(sqlx::query_as(&query).bind(titulo).fetch_one(pool).await?)
+    } */
+
+    
 }

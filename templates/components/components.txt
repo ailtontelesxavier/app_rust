@@ -49,7 +49,7 @@ modulo
 tipo
 <div class="flex flex-col">
     <label class="label">
-        <span class="label-text font-semibold">Serviço</span>
+        <span class="label-text font-semibold">Tipo</span>
     </label>
     {% set value_tipo = tipo.id if tipo else '' %}
     {% set title_tipo = tipo.title if tipo else '' %}
@@ -57,10 +57,28 @@ tipo
         field_name="tipo_id",
         field_label="nome", 
         placeholder="Selecione o tipo",
-        endpoint="/permissao/tipo-api",
+        endpoint="/chamado/tipo-api",
         attrs="required",
         search=title_tipo,
         value=value_tipo,
+    ) }}
+</div>
+===============================================================
+serviço
+<div class="flex flex-col">
+    <label class="label">
+        <span class="label-text font-semibold">Serviço</span>
+    </label>
+    {% set value_servico = servico.id if servico else '' %}
+    {% set title_servico = servico.title if servico else '' %}
+    {{ combobox(
+        field_name="servico_id",
+        field_label="nome", 
+        placeholder="Selecione o serviço",
+        endpoint="/chamado/servico-api",
+        attrs="required",
+        search=title_servico,
+        value=value_servico,
     ) }}
 </div>
 ===============================================================

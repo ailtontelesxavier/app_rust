@@ -2,7 +2,6 @@ use crate::permissao::{User, UserService};
 use axum::response::Response as ResponseExt;
 use axum::{
     body::Body,
-    extract::Request as RequestExtract,
     extract::State,
     http::{
         Request, Response, StatusCode,
@@ -14,9 +13,8 @@ use axum::{
 };
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
 use serde::{Deserialize, Serialize};
-use shared::{AppError, AppState, SharedState};
+use shared::{SharedState};
 use std::{
-    sync::Arc,
     time::{Instant, SystemTime, UNIX_EPOCH},
 };
 use tracing::{debug, info};

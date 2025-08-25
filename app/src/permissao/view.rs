@@ -1477,7 +1477,7 @@ pub async fn user_update_senha_local(
     )
     .await
     {
-        Ok(user) => {
+        Ok(_user) => {
             let flash_url = helpers::create_flash_url(
                 &format!("/permissao/senha-form"),
                 "Senha atualizada com sucesso!",
@@ -1530,8 +1530,6 @@ pub async fn get_user_gestao_perfil(
     let service_user = UserService::new();
     let service_user_roles = UserRolesService::new();
 
-    let mut user: Option<User> = None;
-
     let mut context = minijinja::context! {};
 
     // Extrair mensagens flash dos parâmetros da query
@@ -1547,7 +1545,7 @@ pub async fn get_user_gestao_perfil(
 
     match form.user_id {
         Some(user_id) => {
-            user = Some(service_user.get_by_id(&*state.db, user_id).await.unwrap());
+            let user = Some(service_user.get_by_id(&*state.db, user_id).await.unwrap());
             let result = service_user_roles
                 .get_paginated_with_roles(
                     &state.db,
@@ -1666,8 +1664,6 @@ pub async fn get_gestao_perfil(
     let service_perfil = PerfilService::new();
     let service = RolePermissionService::new();
 
-    let mut perfil: Option<Perfil> = None;
-
     let mut context = minijinja::context! {};
 
     // Extrair mensagens flash dos parâmetros da query
@@ -1683,7 +1679,7 @@ pub async fn get_gestao_perfil(
 
     match form.id {
         Some(id) => {
-            perfil = Some(
+            let perfil = Some(
                 service_perfil
                     .get_by_id(&*state.db, id as i32)
                     .await

@@ -1,8 +1,7 @@
-use reqwest::Client;
 use sqlx::PgPool;
 
 use crate::core::{
-    model::{Municipio, Uf},
+    model::{Municipio},
     schema::{CreateMunicipio, MunicipioWithUf, UpdateMunicipio},
 };
 

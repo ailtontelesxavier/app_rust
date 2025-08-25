@@ -1,6 +1,6 @@
 use axum::{
     Router,
-    routing::{delete, get, post},
+    routing::{delete, get},
 };
 
 use shared::SharedState;
@@ -12,6 +12,7 @@ pub fn router() -> Router<SharedState> {
         .merge(router_tipo())
         .merge(router_categoria())
         .merge(router_servico())
+        .merge(router_chamado())
 }
 
 fn router_tipo() -> Router<SharedState> {
@@ -59,4 +60,24 @@ fn router_servico() -> Router<SharedState> {
             get(view::get_servico).post(view::update_servico),
         )
         .route("/servico/{id}", delete(view::delete_servico))
+        .merge(api_servico_router())
 }
+
+fn api_servico_router() -> Router<SharedState> {
+    Router::new().route("/servico-api", get(view::servico_list_api))
+}
+
+fn router_chamado() -> Router<SharedState> {
+    Router::new()
+        .route("/chamado", get(view::list_chamado))
+        .route(
+            "/chamado-form",
+            get(view::show_chamado_form).post(view::create_chamado),
+        )
+        .route(
+            "/chamado-form/{id}",
+            get(view::get_chamado).post(view::update_chamado),
+        )
+        .route("/chamado/{id}", delete(view::delete_chamado))
+}
+

@@ -11,12 +11,11 @@ use shared::{FlashStatus, ListParams, PaginatedResponse, PaginationQuery, Shared
 use tracing::debug;
 
 use crate::chamado::{
-    model::TipoChamado,
+    model::{ServicoChamado, TipoChamado},
     schema::{
-        CreateCategoriaChamadoSchema, CreateServicoChamadoSchema, CreateTipoChamadoSchema,
-        UpdateCategoriaChamadoSchema, UpdateServicoChamadoSchema, UpdateTipoChamadoSchema,
+        CreateCategoriaChamadoSchema, CreateChamado, CreateServicoChamadoSchema, CreateTipoChamadoSchema, UpdateCategoriaChamadoSchema, UpdateChamado, UpdateServicoChamadoSchema, UpdateTipoChamadoSchema
     },
-    service::{CategoriaService, ServicoService, TipoChamadoService},
+    service::{CategoriaService, ChamadoService, ServicoService, TipoChamadoService},
 };
 
 pub async fn list_tipo_chamado(
@@ -813,6 +812,289 @@ pub async fn delete_servico(
             let flash_url = helpers::create_flash_url(
                 "/chamado/servico",
                 &format!("Erro ao excluir serviço: {}", err),
+                FlashStatus::Error,
+            );
+            Redirect::to(&flash_url).into_response()
+        }
+    }
+}
+
+pub async fn servico_list_api(
+    Query(q): Query<PaginationQuery>,
+    State(state): State<SharedState>,
+) -> Result<Json<PaginatedResponse<ServicoChamado>>, StatusCode> {
+    let service = ServicoService::new();
+    let res = service
+        .get_paginated(
+            &state.db,
+            q.find.as_deref(),
+            q.page.unwrap_or(1) as i32,
+            q.page_size.unwrap_or(10) as i32,
+        )
+        .await
+        .map_err(|err| {
+            debug!("error:{}", err);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    Ok(Json(res))
+}
+
+/*
+==========================================
+
+------------- CHAMADO ------------------
+==========================================
+
+*/
+
+pub async fn list_chamado(
+    State(state): State<SharedState>,
+    Query(params): Query<ListParams>,
+) -> impl IntoResponse {
+    let service = ChamadoService::new();
+
+    // Extrair mensagens flash dos parâmetros da query
+    let flash_message = params
+        .msg
+        .as_ref()
+        .map(|msg| urlencoding::decode(msg).unwrap_or_default().to_string());
+    let flash_status = params.status.as_ref().and_then(|s| match s.as_str() {
+        "success" => Some("success"),
+        "error" => Some("error"),
+        _ => None,
+    });
+
+    let permissions_result = service
+        .get_paginated(
+            &state.db,
+            params.find.as_deref(),
+            params.page.unwrap_or(1),
+            params.page_size.unwrap_or(10),
+        )
+        .await;
+
+    match permissions_result {
+        Ok(paginated_response) => {
+            let context = minijinja::context! {
+                rows => paginated_response.data,
+                current_page => paginated_response.page,
+                total_pages => paginated_response.total_pages,
+                page_size => paginated_response.page_size,
+                total_records => paginated_response.total_records,
+                find => params.find.unwrap_or_default(),
+                flash_message => flash_message,
+                flash_status => flash_status,
+            };
+
+            match state.templates.get_template("chamado/chamado_list.html") {
+                Ok(template) => match template.render(context) {
+                    Ok(html) => Html(html).into_response(),
+                    Err(err) => {
+                        debug!("Erro ao renderizar template: {}", err);
+                        StatusCode::INTERNAL_SERVER_ERROR.into_response()
+                    }
+                },
+                Err(err) => {
+                    debug!("Erro ao carregar template: {}", err);
+                    StatusCode::INTERNAL_SERVER_ERROR.into_response()
+                }
+            }
+        }
+        Err(err) => {
+            debug!("Erro ao buscar serviços: {}", err);
+            let redirect_url = helpers::create_flash_url(
+                "/",
+                &format!("Erro ao carregar chamados: {}", err),
+                FlashStatus::Error,
+            );
+            Redirect::to(&redirect_url).into_response()
+        }
+    }
+}
+
+pub async fn show_chamado_form(
+    State(state): State<SharedState>,
+    Query(params): Query<HashMap<String, String>>,
+) -> Result<Html<String>, impl IntoResponse> {
+    // Extrair mensagens flash dos parâmetros da query
+    let flash_message = params
+        .get("msg")
+        .map(|msg| urlencoding::decode(msg).unwrap_or_default().to_string());
+    let flash_status = params.get("status").and_then(|s| match s.as_str() {
+        "success" => Some("success"),
+        "error" => Some("error"),
+        _ => None,
+    });
+
+    let context = minijinja::context! {
+        flash_message => flash_message,
+        flash_status => flash_status,
+    };
+
+    match state.templates.get_template("chamado/chamado_form.html") {
+        Ok(template) => match template.render(context) {
+            Ok(html) => Ok(Html(html)),
+            Err(err) => Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Erro ao renderizar template: {}", err),
+            )
+                .into_response()),
+        },
+        Err(err) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Erro ao carregar template: {}", err),
+        )
+            .into_response()),
+    }
+}
+
+pub async fn get_chamado(
+    State(state): State<SharedState>,
+    Path(id): Path<i64>,
+    Query(params): Query<HashMap<String, String>>,
+) -> Result<Html<String>, impl IntoResponse> {
+    let service = ChamadoService::new();
+
+    // Extrair mensagens flash dos parâmetros da query
+    let flash_message = params
+        .get("msg")
+        .map(|msg| urlencoding::decode(msg).unwrap_or_default().to_string());
+
+    let flash_status = params.get("status").and_then(|s| match s.as_str() {
+        "success" => Some("success"),
+        "error" => Some("error"),
+        _ => None,
+    });
+
+    // Carregar o template
+    let template = match state.templates.get_template("chamado/chamado_form.html") {
+        Ok(t) => t,
+        Err(err) => {
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Falha ao carregar template: {}", err),
+            )
+                .into_response());
+        }
+    };
+
+    let chamado = match service.get_by_id(&state.db, id).await {
+        Ok(p) => p,
+        Err(e) => {
+            debug!("Erro ao buscar chamado: {}", e);
+            let flash_url = helpers::create_flash_url(
+                "/chamado/chamado-form",
+                &format!("chamado não encontrado: {}", e),
+                FlashStatus::Error,
+            );
+            return Err(Redirect::to(&flash_url).into_response());
+        }
+    };
+
+    let tipo = TipoChamadoService::new()
+        .get_by_id(&*state.db, chamado.tipo_id)
+        .await
+        .unwrap();
+
+    let servico = ServicoService::new()
+        .get_by_id(&*state.db, chamado.servico_id)
+        .await
+        .unwrap();
+
+    // Preparar o contexto
+    let ctx = context! {
+        row => chamado,
+        tipo => tipo,
+        servico => servico,
+        flash_message => flash_message,
+        flash_status => flash_status,
+    };
+
+    // Renderizar o template
+    match template.render(&ctx) {
+        Ok(html) => Ok(Html(html)),
+        Err(err) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Falha ao renderizar template: {}", err),
+        )
+            .into_response()),
+    }
+}
+
+pub async fn create_chamado(
+    State(state): State<SharedState>,
+    Extension(current_user): Extension<middlewares::CurrentUser>,
+    Form(body): Form<CreateChamado>,
+) -> impl IntoResponse {
+    let service = ChamadoService::new();
+
+    match service.create(&*state.db, body).await {
+        Ok(_) => {
+            let flash_url = helpers::create_flash_url(
+                "/chamado/chamado",
+                "Chamado criado com sucesso!",
+                FlashStatus::Success,
+            );
+            Redirect::to(&flash_url).into_response()
+        }
+        Err(err) => {
+            let flash_url = helpers::create_flash_url(
+                "/chamado/chamado-form",
+                &format!("Erro ao criar chamado: {}", err),
+                FlashStatus::Error,
+            );
+            Redirect::to(&flash_url).into_response()
+        }
+    }
+    
+}
+
+pub async fn update_chamado(
+    State(state): State<SharedState>,
+    Path(id): Path<i64>,
+    Form(input): Form<UpdateChamado>,
+) -> impl IntoResponse {
+    let service = ChamadoService::new();
+
+    match service.update(&*state.db, id, input).await {
+        Ok(_) => {
+            let flash_url = helpers::create_flash_url(
+                &format!("/chamado/chamado"),
+                &format!("Chamado atualizado com sucesso!"),
+                FlashStatus::Success,
+            );
+            Redirect::to(&flash_url).into_response()
+        }
+        Err(err) => {
+            let flash_url = helpers::create_flash_url(
+                &format!("/chamado/chamado-form/{}", id),
+                &format!("Erro ao atualizar chamado: {}", err),
+                FlashStatus::Error,
+            );
+            Redirect::to(&flash_url).into_response()
+        }
+    }
+}
+
+pub async fn delete_chamado(
+    State(state): State<SharedState>,
+    Path(id): Path<i64>,
+) -> impl IntoResponse {
+    let service = ChamadoService::new();
+    match service.delete(&*state.db, id).await {
+        Ok(()) => {
+            let flash_url = helpers::create_flash_url(
+                "/chamado/chamado",
+                "Chamado excluído com sucesso!",
+                FlashStatus::Success,
+            );
+            Redirect::to(&flash_url).into_response()
+        }
+        Err(err) => {
+            let flash_url = helpers::create_flash_url(
+                "/chamado/chamado",
+                &format!("Erro ao excluir chamado: {}", err),
                 FlashStatus::Error,
             );
             Redirect::to(&flash_url).into_response()
