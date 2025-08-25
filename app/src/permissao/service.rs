@@ -466,6 +466,7 @@ impl UserService {
     }
 }
 
+#[warn(unused_imports)]
 pub struct UserRolesService {
     repo: UserRolesRepository,
 }

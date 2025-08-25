@@ -32,7 +32,7 @@ pub struct MunicipioWithUf {
 
 /// Estrutura retornada pela API do IBGE para UF
 #[derive(Debug, Deserialize)]
-#[warn(dead_code)]
+#[warn(unused_imports)]
 pub struct MunicipioIbge {
     pub id: i64,
     pub nome: String,
@@ -40,7 +40,7 @@ pub struct MunicipioIbge {
 }
 
 #[derive(Debug, Deserialize)]
-#[warn(dead_code)]
+#[warn(unused_imports)]
 pub struct Microrregiao {
     pub id: i64,
     pub nome: String,
@@ -48,7 +48,7 @@ pub struct Microrregiao {
 }
 
 #[derive(Debug, Deserialize)]
-#[warn(dead_code)]
+#[warn(unused_imports)]
 pub struct Mesorregiao {
     pub id: i64,
     pub nome: String,
@@ -57,7 +57,7 @@ pub struct Mesorregiao {
 }
 
 #[derive(Debug, Deserialize)]
-#[warn(dead_code)]
+#[warn(unused_imports)]
 pub struct UfIbge {
     pub id: i64,
     pub sigla: String,
@@ -66,7 +66,7 @@ pub struct UfIbge {
 }
 
 #[derive(Debug, Deserialize)]
-#[warn(dead_code)]
+#[warn(unused_imports)]
 pub struct Regiao {
     pub id: i64,
     pub sigla: String,

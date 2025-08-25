@@ -26,11 +26,11 @@ pub struct CategoriaChamado {
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
 #[repr(i32)]
 pub enum StatusChamado {
-    Aberto = 0,
-    EmAtendimento = 1,
-    Pausado = 2,
-    Resolvido = 3,
-    Fechado = 4,
+    Aberto = 0 as i32,
+    EmAtendimento = 1 as i32,
+    Pausado = 2 as i32,
+    Resolvido = 3 as i32,
+    Fechado = 4 as i32,
 }
 
 impl TryFrom<i32> for StatusChamado {

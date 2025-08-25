@@ -54,8 +54,6 @@ pub struct CreateChamado {
 pub struct UpdateChamado {
     pub titulo: Option<String>,
     pub descricao: Option<String>,
-    pub status: Option<i32>,
-    pub user_solic_id: Option<i64>,
     pub servico_id: Option<i64>,
     pub tipo_id: Option<i64>,
 }

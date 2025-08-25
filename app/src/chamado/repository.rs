@@ -250,11 +250,9 @@ impl Repository<Chamado, i64> for ChamadoRepository {
     ) -> Result<Chamado> {
         Ok(sqlx::query_as!(
             Chamado,
-            r#"UPDATE chamado_chamados SET titulo = $1, descricao = $2, status = $3, user_solic_id = $4, servico_id = $5, tipo_id = $6, updated_at = NOW() WHERE id = $7 RETURNING *"#,
+            r#"UPDATE chamado_chamados SET titulo = $1, descricao = $2, servico_id = $3, tipo_id = $4, updated_at = NOW() WHERE id = $5 RETURNING *"#,
             input.titulo,
             input.descricao,
-            input.status,
-            input.user_solic_id,
             input.servico_id,
             input.tipo_id,
             id

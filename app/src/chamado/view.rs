@@ -1,22 +1,19 @@
 use std::collections::HashMap;
 
 use axum::{
-    Form, Json,
-    extract::{Path, Query, State},
-    http::StatusCode,
-    response::{Html, IntoResponse, Redirect},
+    extract::{Path, Query, State}, http::StatusCode, response::{Html, IntoResponse, Redirect}, Extension, Form, Json
 };
 use minijinja::context;
 use shared::{FlashStatus, ListParams, PaginatedResponse, PaginationQuery, SharedState, helpers};
 use tracing::debug;
 
-use crate::chamado::{
-    model::{ServicoChamado, TipoChamado},
+use crate::{chamado::{
+    model::{ServicoChamado, StatusChamado, TipoChamado},
     schema::{
         CreateCategoriaChamadoSchema, CreateChamado, CreateServicoChamadoSchema, CreateTipoChamadoSchema, UpdateCategoriaChamadoSchema, UpdateChamado, UpdateServicoChamadoSchema, UpdateTipoChamadoSchema
     },
     service::{CategoriaService, ChamadoService, ServicoService, TipoChamadoService},
-};
+}, middlewares::CurrentUser};
 
 pub async fn list_tipo_chamado(
     State(state): State<SharedState>,
@@ -1024,10 +1021,15 @@ pub async fn get_chamado(
 
 pub async fn create_chamado(
     State(state): State<SharedState>,
-    Extension(current_user): Extension<middlewares::CurrentUser>,
-    Form(body): Form<CreateChamado>,
+    Extension(current_user): Extension<CurrentUser>,
+    Form(mut body): Form<CreateChamado>,
 ) -> impl IntoResponse {
     let service = ChamadoService::new();
+
+    // Preenche o usuário logado
+    body.user_solic_id = Some(current_user.current_user.id);
+    // Garante que todo chamado novo comece como "Aberto"
+    body.status = Some(StatusChamado::Aberto as i32);
 
     match service.create(&*state.db, body).await {
         Ok(_) => {
