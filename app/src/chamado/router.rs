@@ -33,7 +33,6 @@ fn api_tipo_router() -> Router<SharedState> {
     Router::new().route("/tipo-api", get(view::tipo_list_api))
 }
 
-
 fn router_categoria() -> Router<SharedState> {
     Router::new()
         .route("/categoria", get(view::list_categoria))

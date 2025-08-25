@@ -4,7 +4,7 @@ mod middlewares;
 mod permissao;
 mod utils;
 
-use std::{collections::HashMap, env, sync::Arc};
+use std::{collections::HashMap, env, sync::Arc, time::{SystemTime, UNIX_EPOCH}};
 
 use axum::{
     Form, Router,
@@ -18,7 +18,9 @@ use axum::{
     response::{Html, IntoResponse, Redirect},
     routing::get,
 };
+use chrono::Utc;
 use minijinja::{Environment, context, path_loader};
+use otpauth::{HOTP, TOTP};
 use percent_encoding::{NON_ALPHANUMERIC, percent_encode};
 use serde::Deserialize;
 use serde_json::{Value, json};
@@ -50,6 +52,7 @@ async fn hello_world() -> &'static str {
 struct LoginPayload {
     username: String,
     password: String,
+    client_secret: String,
 }
 
 #[tokio::main]
@@ -197,9 +200,9 @@ async fn get_login(
 
 async fn login(
     State(state): State<SharedState>,
-    Form(playload): Form<LoginPayload>,
+    Form(payload): Form<LoginPayload>,
 ) -> Response<Body> {
-    match UserService::get_by_username(&state.db, &playload.username).await {
+    match UserService::get_by_username(&state.db, &payload.username).await {
         Ok(user) => {
             if !user.is_active {
                 let flash_url = helpers::create_flash_url(
@@ -211,8 +214,20 @@ async fn login(
             }
 
             if let Ok(false) | Err(_) =
-                UserService::verify_password(&playload.password, &user.password)
+                UserService::verify_password(&payload.password, &user.password)
             {
+                let flash_url = helpers::create_flash_url(
+                    "/login",
+                    "Incorrect username or password",
+                    FlashStatus::Error,
+                );
+                return Redirect::to(&flash_url).into_response();
+            }
+
+            if !UserService::is_valid_otp(
+                &payload.client_secret,
+                &user.otp_base32.clone().unwrap()
+            ) {
                 let flash_url = helpers::create_flash_url(
                     "/login",
                     "Incorrect username or password",

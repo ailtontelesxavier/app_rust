@@ -341,25 +341,28 @@ impl UserService {
     }
 
     /// Valida o OTP com suporte a fuso horário de São Paulo
-    pub fn is_valid_otp(otp: &str, otp_base32: &str, timestamp: Option<DateTime<Utc>>) -> bool {
-        let totp = TOTP::new(otp_base32.to_string());
+    pub fn is_valid_otp(otp: &str, otp_base32: &str) -> bool {
+        //let secret_base32 = "WLPZ6PWJNA5VE5XPV3EC3G77H5MVPJMI";
+        let secret_base32 = otp_base32;
 
-        let time = timestamp.unwrap_or_else(Utc::now);
+        // Criar TOTP no padrão do Google Authenticator:
+        // - SHA1
+        // - 6 dígitos
+        // - Intervalo de 30 segundos
+        let totp = TOTP::from_base32(secret_base32).unwrap();
 
-        // Converte para o fuso horário de São Paulo
-        let tz: Tz = "America/Sao_Paulo".parse().unwrap();
-        let sao_paulo_time = tz.from_utc_datetime(&time.naive_utc());
+        // Gerar código atual
+        //let code = totp.generate(30, Utc::now().timestamp() as u64);
+        //println!("Código gerado: {}", code);
 
-        println!("Hora atual em São Paulo: {}", sao_paulo_time);
+        // Converter entrada do cliente
+        let codigo: u32 = otp.parse().unwrap();
 
-        // Converte string para número
-        let code: u32 = match otp.parse() {
-            Ok(c) => c,
-            Err(_) => return false, // se não for número, OTP inválido
-        };
+        //debug!("Código gerado: {}, codigo enviado: {}", code, codigo);
 
-        // 30 é o período padrão de 30 segundos
-        totp.verify(code, 30, sao_paulo_time.timestamp() as u64)
+        // Verificar
+        totp.verify(codigo, 30, Utc::now().timestamp() as u64)
+
     }
 
     pub fn gerar_otp(otp_base32: &str) -> String {

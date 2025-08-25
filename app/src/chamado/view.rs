@@ -1,17 +1,22 @@
 use std::collections::HashMap;
 
 use axum::{
-    extract::{Path, Query, State}, http::StatusCode, response::{Html, IntoResponse, Redirect}, Form, Json
+    Form, Json,
+    extract::{Path, Query, State},
+    http::StatusCode,
+    response::{Html, IntoResponse, Redirect},
 };
 use minijinja::context;
-use shared::{helpers, FlashStatus, ListParams, PaginatedResponse, PaginationQuery, SharedState};
+use shared::{FlashStatus, ListParams, PaginatedResponse, PaginationQuery, SharedState, helpers};
 use tracing::debug;
 
 use crate::chamado::{
-    model::TipoChamado, schema::{
+    model::TipoChamado,
+    schema::{
         CreateCategoriaChamadoSchema, CreateServicoChamadoSchema, CreateTipoChamadoSchema,
         UpdateCategoriaChamadoSchema, UpdateServicoChamadoSchema, UpdateTipoChamadoSchema,
-    }, service::{CategoriaService, ServicoService, TipoChamadoService}
+    },
+    service::{CategoriaService, ServicoService, TipoChamadoService},
 };
 
 pub async fn list_tipo_chamado(
@@ -700,7 +705,10 @@ pub async fn get_servico(
         }
     };
 
-    let tipo = TipoChamadoService::new().get_by_id(&*state.db, perfil.tipo_id).await.unwrap();
+    let tipo = TipoChamadoService::new()
+        .get_by_id(&*state.db, perfil.tipo_id)
+        .await
+        .unwrap();
 
     // Preparar o contexto
     let ctx = context! {
