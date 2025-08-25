@@ -1,10 +1,16 @@
 mod chamado;
+mod core;
 mod filters;
 mod middlewares;
 mod permissao;
 mod utils;
 
-use std::{collections::HashMap, env, sync::Arc, time::{SystemTime, UNIX_EPOCH}};
+use std::{
+    collections::HashMap,
+    env,
+    sync::Arc,
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 use axum::{
     Form, Router,
@@ -35,6 +41,7 @@ use dotenv::dotenv;
 use sqlx::postgres::PgPoolOptions;
 
 use chamado::router as router_chamado;
+use core::router as router_core;
 use permissao::router as router_permissao;
 use shared::{AppState, FlashStatus, MessageResponse, SharedState, helpers};
 
@@ -116,6 +123,7 @@ async fn main() {
         .route("/logout", get(logout))
         .nest("/permissao", router_permissao())
         .nest("/chamado", router_chamado())
+        .nest("/core", router_core())
         .layer(middleware::from_fn_with_state(
             state.clone(),
             middlewares::autenticar,
@@ -224,10 +232,8 @@ async fn login(
                 return Redirect::to(&flash_url).into_response();
             }
 
-            if !UserService::is_valid_otp(
-                &payload.client_secret,
-                &user.otp_base32.clone().unwrap()
-            ) {
+            if !UserService::is_valid_otp(&payload.client_secret, &user.otp_base32.clone().unwrap())
+            {
                 let flash_url = helpers::create_flash_url(
                     "/login",
                     "Incorrect username or password",

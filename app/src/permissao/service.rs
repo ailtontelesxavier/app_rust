@@ -362,7 +362,6 @@ impl UserService {
 
         // Verificar
         totp.verify(codigo, 30, Utc::now().timestamp() as u64)
-
     }
 
     pub fn gerar_otp(otp_base32: &str) -> String {
