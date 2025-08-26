@@ -39,7 +39,10 @@ use permissao::router as router_permissao;
 use shared::{AppState, FlashStatus, MessageResponse, SharedState, helpers};
 
 use crate::{
-    core::serve_upload, filters::register_filters, middlewares::handle_forbidden, permissao::{Module, UserService}
+    core::serve_upload,
+    filters::register_filters,
+    middlewares::handle_forbidden,
+    permissao::{Module, UserService},
 };
 
 async fn hello_world() -> &'static str {

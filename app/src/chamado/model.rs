@@ -49,6 +49,23 @@ impl TryFrom<i32> for StatusChamado {
     }
 }
 
+impl StatusChamado {
+    pub fn from_i32(value: i32) -> Self {
+        match value {
+            0 => StatusChamado::Aberto,
+            1 => StatusChamado::EmAtendimento,
+            2 => StatusChamado::Pausado,
+            3 => StatusChamado::Resolvido,
+            4 => StatusChamado::Fechado,
+            _ => StatusChamado::Aberto,
+        }
+    }
+    
+    pub fn to_i32(&self) -> i32 {
+        *self as i32
+    }
+}
+
 impl<'r> Decode<'r, Postgres> for StatusChamado {
     fn decode(value: PgValueRef<'r>) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
         let v: i32 = <i32 as Decode<Postgres>>::decode(value)?;

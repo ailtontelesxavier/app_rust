@@ -4,7 +4,7 @@ use anyhow::Result;
 use shared::{PaginatedResponse, Repository};
 use sqlx::PgPool;
 
-use crate::chamado::{
+use crate::{chamado::{
     model::{CategoriaChamado, Chamado, ServicoChamado, TipoChamado},
     repository::{
         CategoriaChamadoRepository, ChamadoRepository, ServicoChamadoRepository,
@@ -15,7 +15,7 @@ use crate::chamado::{
         CreateTipoChamadoSchema, ServicoTipoViewSchema, UpdateCategoriaChamadoSchema,
         UpdateChamado, UpdateServicoChamadoSchema, UpdateTipoChamadoSchema,
     },
-};
+}, permissao::{User, UserRolesService}};
 
 pub struct TipoChamadoService {
     repo: TipoChamadoRepository,
@@ -293,6 +293,54 @@ impl ChamadoService {
         Repository::<Chamado, i64>::get_paginated(&self.repo, pool, find, page, page_size).await
     }
 
+    // Função auxiliar para verificar se o usuário é dono do chamado
+    pub async fn verify_chamado_ownership(db: &PgPool, user_id: i64, chamado_id: i64) -> bool {
+        if chamado_id == 0 {
+            return false;
+        }
+
+        match sqlx::query!(
+            "SELECT user_solic_id FROM chamado_chamados WHERE id = $1",
+            chamado_id
+        )
+        .fetch_optional(db)
+        .await
+        {
+            Ok(Some(record)) => record.user_solic_id == user_id,
+            Ok(None) => false, // Chamado não existe
+            Err(_) => false,   // Erro na consulta
+        }
+    }
+
+    /*
+        verifica se usuario tem permissao de ver chamado
+     */
+    pub async fn can_access(user: &User, object_id: i64, db: &PgPool) -> bool {
+
+        // Verifica se o usuário é um superusuário
+        if user.is_superuser {
+            return true;
+        }
+
+        //pegar todas as permissões pelos perfies do usuario.
+        let list_permissao = match UserRolesService::get_user_permissions(&db, user.id).await {
+            Ok(permissions) => permissions,
+            Err(_) => return false, // Em caso de erro, nega acesso
+        };
+
+        
+        for permissao in list_permissao {
+            // Se tiver permissão de admin, liberar tudo
+            match permissao.as_str() {
+                "chamado_admin" => return true,
+                _ => continue, // Continua verificando outras permissões
+            }
+        }
+        // Se nenhuma permissão foi encontrada, verificar se é dono do chamado
+        ChamadoService::verify_chamado_ownership(&db, user.id, object_id).await
+
+    }
+
     /* pub async fn get_by_titulo(&self, pool: &PgPool, titulo: String) -> Result<Chamado> {
         let query = format!(
             "SELECT {} FROM {} WHERE m.titulo = '$1' LIMIT 1",
@@ -302,7 +350,7 @@ impl ChamadoService {
 
         Ok(sqlx::query_as(&query).bind(titulo).fetch_one(pool).await?)
     } */
-   fn cleanup_images(old_blocks: &serde_json::Value, new_blocks: &serde_json::Value) {
+    fn cleanup_images(old_blocks: &serde_json::Value, new_blocks: &serde_json::Value) {
         let mut old_images = HashSet::new();
         let mut new_images = HashSet::new();
 
@@ -326,8 +374,10 @@ impl ChamadoService {
 
         // imagens que estavam antes mas não existem mais → deletar
         for url in old_images.difference(&new_images) {
-            if url.starts_with("/") { // evita deletar URLs externas
-                if let Err(e) = fs::remove_file(&url[1..]) { // remove "/" inicial
+            if url.starts_with("/") {
+                // evita deletar URLs externas
+                if let Err(e) = fs::remove_file(&url[1..]) {
+                    // remove "/" inicial
                     eprintln!("Erro ao deletar {}: {}", url, e);
                 } else {
                     println!("Arquivo deletado: {}", url);

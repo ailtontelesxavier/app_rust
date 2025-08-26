@@ -482,6 +482,42 @@ impl UserRolesService {
         Ok(self.repo.get_by_id(pool, id).await?)
     }
 
+    pub async fn get_by_user(pool: &PgPool, user_id: i32) -> Result<UserRoles> {
+        Ok(sqlx::query_as!(
+            UserRoles,
+            r#"SELECT id, user_id, role_id FROM user_roles WHERE user_id = $1"#,
+            user_id
+        )
+        .fetch_one(pool)
+        .await?)
+    }
+
+    /*
+     lista de permissões do usuário.
+     somente o nome
+     */
+    pub async fn get_user_permissions(pool: &PgPool, user_id: i64) -> Result<Vec<String>> {
+        let permissions = sqlx::query!(
+            r#"
+            SELECT DISTINCT p.name
+            FROM permission p
+            INNER JOIN role_permissions rp ON p.id = rp.permission_id
+            INNER JOIN roles r ON rp.role_id = r.id
+            INNER JOIN user_roles ur ON r.id = ur.role_id
+            INNER JOIN users u ON ur.user_id = u.id
+            WHERE u.id = $1
+            "#,
+            user_id
+        )
+        .fetch_all(pool)
+        .await?
+        .into_iter()
+        .map(|row| row.name)
+        .collect();
+
+        Ok(permissions)
+    }
+
     pub async fn create(&self, pool: &PgPool, input: UserRolesCreateSchema) -> Result<UserRoles> {
         Ok(self.repo.create(pool, input).await?)
     }

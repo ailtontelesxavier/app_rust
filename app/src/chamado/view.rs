@@ -1,9 +1,9 @@
-use std::{collections::HashMap};
+use std::collections::HashMap;
 use tokio::fs;
 
 use axum::{
     Extension, Form, Json,
-    extract::{Path, Query, State, Multipart},
+    extract::{Multipart, Path, Query, State},
     http::StatusCode,
     response::{Html, IntoResponse, Redirect},
 };
@@ -23,8 +23,7 @@ use crate::{
             UpdateServicoChamadoSchema, UpdateTipoChamadoSchema,
         },
         service::{CategoriaService, ChamadoService, ServicoService, TipoChamadoService},
-    },
-    middlewares::CurrentUser,
+    }, middlewares::CurrentUser
 };
 
 pub async fn list_tipo_chamado(
@@ -1065,10 +1064,22 @@ pub async fn create_chamado(
 
 pub async fn update_chamado(
     State(state): State<SharedState>,
+    Extension(current_user): Extension<CurrentUser>,
     Path(id): Path<i64>,
     Form(input): Form<UpdateChamado>,
 ) -> impl IntoResponse {
     let service = ChamadoService::new();
+
+    //verificar se o chamado é do usuario
+    //ou administrador
+    if !ChamadoService::can_access(&current_user.current_user, id, &*state.db).await {
+        let flash_url = helpers::create_flash_url(
+            &format!("/chamado/chamado"),
+            &format!("Você não tem permissão para atualizar chamado: {}", id),
+            FlashStatus::Error,
+        );
+        return Redirect::to(&flash_url).into_response();
+    }
 
     match service.update(&*state.db, id, input).await {
         Ok(_) => {
@@ -1092,25 +1103,31 @@ pub async fn update_chamado(
 
 pub async fn upload_imagem(
     Extension(current_user): Extension<CurrentUser>,
+    State(state): State<SharedState>,
     Path(id_chamado): Path<i64>,
     mut multipart: Multipart,
 ) -> Json<serde_json::Value> {
-
     //verificar se o chamado é do usuario
+    if !ChamadoService::can_access(&current_user.current_user, id_chamado, &*state.db).await {
+        return Json(serde_json::json!({
+            "success": 0,
+            "error": "Você não tem permissão para acessar este chamado."
+        }));
+    }
 
     let mut file_url = String::new();
 
     while let Some(field) = multipart.next_field().await.unwrap() {
         let name = field.name().unwrap_or_default();
-        
+
         if name == "image" {
             let agora = Local::now();
             let ano = agora.year();
             let mes = agora.month();
-            
+
             // Inclui o ID do chamado no path para organização
             let path_file = format!("uploads/chamado/{}/{}/{}", ano, mes, id_chamado);
-            
+
             // Cria o diretório se não existir
             if let Err(e) = fs::create_dir_all(&path_file).await {
                 eprintln!("Erro ao criar diretório {}: {}", path_file, e);
@@ -1119,15 +1136,11 @@ pub async fn upload_imagem(
 
             // Obtém o nome do arquivo e extensão
             let file_name = field.file_name().unwrap_or("img");
-            let ext = file_name
-                .rsplit('.')
-                .next()
-                .unwrap_or("png")
-                .to_lowercase();
-                
+            let ext = file_name.rsplit('.').next().unwrap_or("png").to_lowercase();
+
             // Gera nome único para o arquivo
             let filename = format!("{}/{}.{}", path_file, Uuid::new_v4(), ext);
-            
+
             // Lê os dados do arquivo
             let data = match field.bytes().await {
                 Ok(data) => data,
@@ -1161,9 +1174,55 @@ pub async fn upload_imagem(
 
 pub async fn delete_chamado(
     State(state): State<SharedState>,
+    Extension(current_user): Extension<CurrentUser>,
     Path(id): Path<i64>,
 ) -> impl IntoResponse {
     let service = ChamadoService::new();
+
+    //verificar se o chamado é do usuario
+    if !ChamadoService::can_access(&current_user.current_user, id, &*state.db).await {
+        let flash_url = helpers::create_flash_url(
+            &format!("/chamado/chamado"),
+            &format!("Você não tem permissão para deletar este chamado: {}", id),
+            FlashStatus::Error,
+        );
+        return Redirect::to(&flash_url).into_response();
+    }
+
+    match service.get_by_id(&state.db, id).await {
+        Ok(chamado) => {
+            // Converta o i32 para StatusChamado antes de comparar
+        let status = match chamado.status {
+            Some(status_code) => StatusChamado::from_i32(status_code),
+            None => {
+                let flash_url = helpers::create_flash_url(
+                    "/chamado/chamado",
+                    "Status do chamado não encontrado.",
+                    FlashStatus::Error,
+                );
+                return Redirect::to(&flash_url).into_response();
+            }
+        };
+        
+        if status != StatusChamado::Aberto {
+            let flash_url = helpers::create_flash_url(
+                "/chamado/chamado",
+                "Chamado não pode ser excluído pois não está mais em Aberto.",
+                FlashStatus::Error,
+            );
+            return Redirect::to(&flash_url).into_response();
+        }
+        },
+        Err(err) => {
+            let flash_url = helpers::create_flash_url(
+                &format!("/chamado/chamado"),
+                &format!("Erro ao obter chamado: {}", err),
+                FlashStatus::Error,
+            );
+            return Redirect::to(&flash_url).into_response();
+        }
+    };
+
     match service.delete(&*state.db, id).await {
         Ok(()) => {
             let flash_url = helpers::create_flash_url(

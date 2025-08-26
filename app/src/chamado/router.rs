@@ -1,5 +1,6 @@
 use axum::{
-    routing::{delete, get, post}, Router
+    Router,
+    routing::{delete, get, post},
 };
 
 use shared::SharedState;

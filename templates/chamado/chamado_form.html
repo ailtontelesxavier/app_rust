@@ -12,7 +12,8 @@
     <div class="card-body">
         <h2 class="card-title">Formulario de Chamado</h2>
 
-        <form id="form_chamado" class="space-y-4" method="POST" action="{% if row %}/chamado/chamado-form/{{row.id}}{% else %}/chamado/chamado-form{% endif %}">
+        <form id="form_chamado" class="space-y-4" method="POST" action="{% if row %}/chamado/chamado-form/{{row.id}}{% else %}/chamado/chamado-form{% endif %}"
+        >
             <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
                 <div class="col-span-2 md:col-span-1 min-w-full">
                     {% if row %}
@@ -69,17 +70,19 @@
                     </label>
 
                     <div id="editorjs" class="border-1 border-gray-300 p-2"></div>
+                    <!-- Campo hidden que receberá os dados do EditorJS -->
+                    <input type="hidden" id="descricao" name="descricao" />
                 </div>
                 {% endif %}
 
             </div>
 
-            <!-- Footer com botões -->
-            <div class="card-footer flex flex-col gap-2 p-4 md:flex-row md:justify-end">
-                <button id="btnCancelar" type="button" class="btn btn-primary w-full md:w-auto">Cancelar</button>
-                <button id="btnSubmit" type="submit"class="btn btn-success w-full md:w-auto">Salvar{% if not row %} e editar{% endif %}</button>
-            </div>
         </form>
+        <!-- Footer com botões -->
+        <div class="card-footer flex flex-col gap-2 p-4 md:flex-row md:justify-end">
+            <button id="btnCancelar" type="button" class="btn btn-primary w-full md:w-auto">Cancelar</button>
+            <button id="btnSubmit" type="button"class="btn btn-success w-full md:w-auto">Salvar{% if not row %} e editar{% endif %}</button>
+        </div>
         {% include 'parts/flash_message.html' %}
     </div>
 </div>
@@ -99,6 +102,27 @@
 {% endif %}
 
 <script>
+
+    // Certifique-se de que os dados iniciais estão no formato correto
+    let initialData = null;
+    {% if row and row.descricao %}
+    try {
+        initialData = JSON.parse('{{row.descricao|safe}}');
+    } catch (e) {
+        console.error('Erro ao parsear dados iniciais:', e);
+        initialData = {
+            time: Date.now(),
+            blocks: [{
+                type: "paragraph",
+                data: {
+                    text: "Descrição do chamado..."
+                }
+            }],
+            version: "2.26.5"
+        };
+    }
+    {% endif %}
+
     {% if row %}
     const editor = new EditorJS({
         holder: 'editorjs',
@@ -118,7 +142,17 @@
                     }
                 }
             }
-        }
+        },
+        data: initialData || {
+            time: Date.now(),
+            blocks: [{
+                type: "paragraph",
+                data: {
+                    text: "Descreva o chamado aqui..."
+                }
+            }],
+            version: "2.31.0-rc.7"
+        },
     });
     {% endif %}
     //editor.blocks.stretchBlock(blockIndex, true); // antigo
@@ -165,7 +199,24 @@
                 return;
             }
             
-            form.submit();
+            // Se tiver EditorJS, salve os dados antes de submeter
+            if (typeof editor !== 'undefined') {
+                try {
+                    // Salva os dados do EditorJS
+                    const editorData = await editor.save();
+                    
+                    // Converte para JSON string e coloca no campo hidden
+                    document.getElementById('descricao').value = JSON.stringify(editorData);
+                    
+                    // Agora submete o formulário
+                    form.submit();
+                } catch (error) {
+                    showMessage("Erro ao salvar a descrição: " + error.message, 'error');
+                }
+            } else {
+                // Se não tem EditorJS, submete normalmente
+                form.submit();
+            }
         });
 
     });
