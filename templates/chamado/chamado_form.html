@@ -99,6 +99,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@editorjs/header@latest/dist/bundle.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@editorjs/list@latest/dist/bundle.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@editorjs/image@latest/dist/bundle.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@editorjs/paragraph@latest/dist/bundle.js"></script>
 {% endif %}
 
 <script>
@@ -123,10 +124,20 @@
     }
     {% endif %}
 
+    // Verifique se as classes das tools estão disponíveis
+    console.log('Header disponível:', typeof Header !== 'undefined');
+    console.log('List disponível:', typeof List !== 'undefined');
+    console.log('ImageTool disponível:', typeof ImageTool !== 'undefined');
+    console.log('Paragraph disponível:', typeof Paragraph !== 'undefined');
+
     {% if row %}
     const editor = new EditorJS({
         holder: 'editorjs',
         tools: {
+            paragraph: {
+                class: Paragraph,
+                inlineToolbar: true
+            },
             header: { class: Header, inlineToolbar: ['link'] },
             list: { class: List, inlineToolbar: true },
             image: {
@@ -143,16 +154,13 @@
                 }
             }
         },
-        data: initialData || {
-            time: Date.now(),
-            blocks: [{
-                type: "paragraph",
-                data: {
-                    text: "Descreva o chamado aqui..."
-                }
-            }],
-            version: "2.31.0-rc.7"
+        data: initialData,
+        onReady: () => {
+            console.log('EditorJS está pronto!');
         },
+        onChange: () => {
+            console.log('Conteúdo alterado');
+        }
     });
     {% endif %}
     //editor.blocks.stretchBlock(blockIndex, true); // antigo
@@ -191,7 +199,7 @@
     document.addEventListener('DOMContentLoaded', function () {
 
         // Função para lidar com o evento de submit
-        document.getElementById("btnSubmit").addEventListener("click", function () {
+        document.getElementById("btnSubmit").addEventListener("click", async function () {
             const form = document.getElementById('form_chamado');
 
             if (!form.checkValidity()) {

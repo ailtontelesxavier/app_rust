@@ -276,7 +276,12 @@ impl ChamadoService {
     }
 
     pub async fn update(&self, pool: &PgPool, id: i64, input: UpdateChamado) -> Result<Chamado> {
-        self.repo.update(pool, id, input).await
+        let old_chamado = self.get_by_id(pool, id).await?;
+
+        
+        let new_chamado = self.repo.update(pool, id, input).await;
+        Self::cleanup_images(old_chamado, &new_chamado?.clone());
+        Ok(new_chamado?)
     }
 
     pub async fn delete(&self, pool: &PgPool, id: i64) -> Result<()> {
@@ -350,11 +355,11 @@ impl ChamadoService {
 
         Ok(sqlx::query_as(&query).bind(titulo).fetch_one(pool).await?)
     } */
-    fn cleanup_images(old_blocks: &serde_json::Value, new_blocks: &serde_json::Value) {
-        let mut old_images = HashSet::new();
-        let mut new_images = HashSet::new();
+    fn cleanup_images(old_chamado: Chamado, new_chamado: Chamado) {
+        let mut old_images = ChamadoService::extrair_urls_imagens(old_chamado.clone()).unwrap_or_default();
+        let mut new_images = ChamadoService::extrair_urls_imagens(new_chamado.clone()).unwrap_or_default();
 
-        // coleta URLs antigas
+        /* // coleta URLs antigas
         for block in old_blocks.as_array().unwrap_or(&vec![]) {
             if block["type"] == "image" {
                 if let Some(url) = block["data"]["file"]["url"].as_str() {
@@ -370,7 +375,7 @@ impl ChamadoService {
                     new_images.insert(url.to_string());
                 }
             }
-        }
+        } */
 
         // imagens que estavam antes mas não existem mais → deletar
         for url in old_images.difference(&new_images) {
@@ -384,5 +389,16 @@ impl ChamadoService {
                 }
             }
         }
+    }
+
+    /// Versão simplificada que retorna apenas URLs das imagens
+    pub fn extrair_urls_imagens(chamando: Chamado) -> Result<Vec<String>> {
+        let imagens = chamando.extrair_imagens()?;
+        let urls = imagens.into_iter()
+            .map(|img| img.url)
+            .filter(|url| !url.is_empty())
+            .collect();
+        
+        Ok(urls)
     }
 }
