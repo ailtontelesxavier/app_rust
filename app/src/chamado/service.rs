@@ -1,9 +1,12 @@
 use std::{collections::HashSet, fs};
 
 use anyhow::Result;
+use anyhow::{anyhow};
+use serde_json::{from_str, Value};
 use shared::{PaginatedResponse, Repository};
 use sqlx::PgPool;
 
+use crate::chamado::model::ImagemChamado;
 use crate::{chamado::{
     model::{CategoriaChamado, Chamado, ServicoChamado, TipoChamado},
     repository::{
@@ -276,12 +279,18 @@ impl ChamadoService {
     }
 
     pub async fn update(&self, pool: &PgPool, id: i64, input: UpdateChamado) -> Result<Chamado> {
-        let old_chamado = self.get_by_id(pool, id).await?;
 
-        
-        let new_chamado = self.repo.update(pool, id, input).await;
-        Self::cleanup_images(old_chamado, &new_chamado?.clone());
-        Ok(new_chamado?)
+        match self.get_by_id(pool, id).await {
+            Ok(old_chamado) => {
+                Self::cleanup_images(old_chamado, input.descricao.clone());
+            }
+            Err(_) =>{
+
+            }
+            
+        }
+
+       self.repo.update(pool, id, input).await
     }
 
     pub async fn delete(&self, pool: &PgPool, id: i64) -> Result<()> {
@@ -355,34 +364,24 @@ impl ChamadoService {
 
         Ok(sqlx::query_as(&query).bind(titulo).fetch_one(pool).await?)
     } */
-    fn cleanup_images(old_chamado: Chamado, new_chamado: Chamado) {
-        let mut old_images = ChamadoService::extrair_urls_imagens(old_chamado.clone()).unwrap_or_default();
-        let mut new_images = ChamadoService::extrair_urls_imagens(new_chamado.clone()).unwrap_or_default();
+    fn cleanup_images(old_chamado: Chamado, new_value: Value) {
+        // Extrai URLs das imagens do chamado antigo e do novo
+        let old_images: HashSet<String> = Self::extrair_urls_imagens(old_chamado)
+            .unwrap_or_default()
+            .into_iter()
+            .collect();
 
-        /* // coleta URLs antigas
-        for block in old_blocks.as_array().unwrap_or(&vec![]) {
-            if block["type"] == "image" {
-                if let Some(url) = block["data"]["file"]["url"].as_str() {
-                    old_images.insert(url.to_string());
-                }
-            }
-        }
+        let new_images: HashSet<String> = Self::extrair_imagens_do_value(&new_value)
+            .unwrap_or_default()
+            .into_iter()
+            .collect();
 
-        // coleta URLs novas
-        for block in new_blocks.as_array().unwrap_or(&vec![]) {
-            if block["type"] == "image" {
-                if let Some(url) = block["data"]["file"]["url"].as_str() {
-                    new_images.insert(url.to_string());
-                }
-            }
-        } */
-
-        // imagens que estavam antes mas não existem mais → deletar
+        // Imagens que estavam antes mas não existem mais → deletar
         for url in old_images.difference(&new_images) {
-            if url.starts_with("/") {
+            if url.starts_with('/') {
                 // evita deletar URLs externas
-                if let Err(e) = fs::remove_file(&url[1..]) {
-                    // remove "/" inicial
+                let path = &url[1..]; // remove "/" inicial
+                if let Err(e) = fs::remove_file(path) {
                     eprintln!("Erro ao deletar {}: {}", url, e);
                 } else {
                     println!("Arquivo deletado: {}", url);
@@ -401,4 +400,118 @@ impl ChamadoService {
         
         Ok(urls)
     }
+    pub fn extrair_imagens(new_value: Value) -> Result<Vec<String>> {
+        let mut imagens = Vec::new();
+        
+        // Obtém o array de blocks
+        let blocks = new_value.get("blocks")
+            .ok_or_else(|| anyhow!("Campo 'blocks' não encontrado"))?
+            .as_array()
+            .ok_or_else(|| anyhow!("'blocks' não é um array"))?;
+        
+        // Itera por todos os blocks
+        for block in blocks {
+            if let Some(block_type) = block.get("type").and_then(|t| t.as_str()) {
+                if block_type == "image" {
+                    if let Some(data) = block.get("data") {
+                        let imagem = ImagemChamado {
+                            url: data.get("file")
+                                .and_then(|f| f.get("url"))
+                                .and_then(|u| u.as_str())
+                                .unwrap_or("")
+                                .to_string(),
+                            caption: data.get("caption")
+                                .and_then(|c| c.as_str())
+                                .unwrap_or("")
+                                .to_string(),
+                            with_border: data.get("withBorder")
+                                .and_then(|b| b.as_bool())
+                                .unwrap_or(false),
+                            stretched: data.get("stretched")
+                                .and_then(|s| s.as_bool())
+                                .unwrap_or(false),
+                            with_background: data.get("withBackground")
+                                .and_then(|b| b.as_bool())
+                                .unwrap_or(false),
+                        };
+                        
+                        // Só adiciona se tiver URL
+                        if !imagem.url.is_empty() {
+                            imagens.push(imagem);
+                        }
+                    }
+                }
+            }
+        }
+
+        let urls = imagens.into_iter()
+            .map(|img| img.url)
+            .filter(|url| !url.is_empty())
+            .collect();
+        
+        Ok(urls)
+    }
+
+    fn extrair_imagens_do_value(descricao: &Value) -> Result<Vec<String>> {
+        let mut imagens = Vec::new();
+        
+        // Converte Value para string se necessário, e depois parseia para JSON
+        let descricao_str = match descricao {
+            Value::String(s) => s.as_str(),
+            _ => return Ok(Vec::new()), // Se não for string, retorna vazio
+        };
+        
+        // Parseia a string JSON para Value
+        let parsed: Value = serde_json::from_str(descricao_str)
+            .map_err(|e| anyhow!("Erro ao parsear JSON: {}", e))?;
+        
+        // Obtém o array de blocks
+        let blocks = parsed.get("blocks")
+            .ok_or_else(|| anyhow!("Campo 'blocks' não encontrado"))?
+            .as_array()
+            .ok_or_else(|| anyhow!("'blocks' não é um array"))?;
+        
+        // Itera por todos os blocks
+        for block in blocks {
+            if let Some(block_type) = block.get("type").and_then(|t| t.as_str()) {
+                if block_type == "image" {
+                    if let Some(data) = block.get("data") {
+                        let imagem = ImagemChamado {
+                            url: data.get("file")
+                                .and_then(|f| f.get("url"))
+                                .and_then(|u| u.as_str())
+                                .unwrap_or("")
+                                .to_string(),
+                            caption: data.get("caption")
+                                .and_then(|c| c.as_str())
+                                .unwrap_or("")
+                                .to_string(),
+                            with_border: data.get("withBorder")
+                                .and_then(|b| b.as_bool())
+                                .unwrap_or(false),
+                            stretched: data.get("stretched")
+                                .and_then(|s| s.as_bool())
+                                .unwrap_or(false),
+                            with_background: data.get("withBackground")
+                                .and_then(|b| b.as_bool())
+                                .unwrap_or(false),
+                        };
+                        
+                        // Só adiciona se tiver URL
+                        if !imagem.url.is_empty() {
+                            imagens.push(imagem);
+                        }
+                    }
+                }
+            }
+        }
+        
+        let urls = imagens.into_iter()
+            .map(|img| img.url)
+            .filter(|url| !url.is_empty())
+            .collect();
+    
+        Ok(urls)
+    }
+    
 }
