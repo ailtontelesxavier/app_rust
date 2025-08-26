@@ -18,7 +18,7 @@ use argon2::{
     password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
 };
 use base32;
-use chrono::{Utc};
+use chrono::Utc;
 use otpauth::TOTP;
 use password_hash::rand_core::OsRng;
 use rand::Rng;

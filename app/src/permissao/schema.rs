@@ -6,7 +6,7 @@ use sqlx::FromRow;
 use std::sync::LazyLock;
 use validator::Validate;
 
-use crate::utils::serde_utils::{bool_from_str};
+use crate::utils::serde_utils::bool_from_str;
 
 static EMAIL_RX: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$").unwrap());

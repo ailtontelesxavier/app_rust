@@ -61,37 +61,23 @@
                         <label for="titulo" class="label">Título</label>
                         <input id="titulo" name="titulo" type="text" value="{% if row %}{{row.titulo}}{% endif %}" class="input input-bordered" required />
                     </div>
-                    <div class="col-span-2 ">
-                        <label class="block text-sm font-medium text-gray-700 " label="title" for="descricao">
-                            Descrição
-                        </label>
-                        <textarea id="id_descricao"
-                            rows="4"
-                            class="block p-2.5 w-full shadow text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500"
-                            name="descricao"
-                            placeholder="descrição"
-                            required>
-                        </textarea>
-
-                        <script src="https://cdn.jsdelivr.net/npm/@editorjs/editorjs@latest"></script>
-                        <style>
-                            body { font-family: Arial, sans-serif; margin: 20px; }
-                            .editor-container { border: 1px solid #ccc; padding: 10px; }
-                            button { margin-top: 10px; padding: 8px 16px; }
-                        </style>
-
-                        <!-- Container do Editor -->
-                        <div id="editorjs"></div>
-
-                    </div>
                 </div>
+                {% if row %}
+                <div class="col-span-2 ">
+                    <label class="label-text font-semibold" for="editorjs">
+                        Descrição
+                    </label>
+
+                    <div id="editorjs" class="border-1 border-gray-300 p-2"></div>
+                </div>
+                {% endif %}
 
             </div>
 
             <!-- Footer com botões -->
             <div class="card-footer flex flex-col gap-2 p-4 md:flex-row md:justify-end">
                 <button id="btnCancelar" type="button" class="btn btn-primary w-full md:w-auto">Cancelar</button>
-                <button id="btnSubmit" type="submit"class="btn btn-success w-full md:w-auto">Salvar</button>
+                <button id="btnSubmit" type="submit"class="btn btn-success w-full md:w-auto">Salvar{% if not row %} e editar{% endif %}</button>
             </div>
         </form>
         {% include 'parts/flash_message.html' %}
@@ -101,134 +87,62 @@
 {%endblock%}
 {% block extra_js %}
 
-<!-- Scripts do EditorJS -->
-  <script src="https://cdn.jsdelivr.net/npm/@editorjs/editorjs@latest"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@editorjs/header@latest"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@editorjs/list@latest"></script>
+{% if row %}
+<!-- Importa Editor.js direto do CDN -->
+<script src="https://cdn.jsdelivr.net/npm/@editorjs/editorjs@latest"></script>
 
-  <script type="module">
-        document.addEventListener('DOMContentLoaded', function() {
-            const statusElement = document.getElementById('status');
-            
-            // Verificar se o EditorJS e as ferramentas estão carregados
-            if (typeof EditorJS === 'undefined') {
-                showStatus('Erro: EditorJS não foi carregado corretamente', 'error');
-                return;
-            }
-            
-            if (typeof Header === 'undefined') {
-                showStatus('Erro: Ferramenta Header não foi carregada corretamente', 'error');
-                return;
-            }
-            
-            if (typeof List === 'undefined') {
-                showStatus('Erro: Ferramenta List não foi carregada corretamente', 'error');
-                return;
-            }
-            
-            // Inicializar o EditorJS
-            let editor;
-            
-            try {
-                editor = new EditorJS({
-                    holder: 'editorjs',
-                    tools: {
-                        header: {
-                            class: Header,
-                            config: {
-                                placeholder: 'Digite um título...',
-                                levels: [1, 2, 3, 4],
-                                defaultLevel: 2
-                            }
-                        },
-                        list: {
-                            class: List,
-                            inlineToolbar: true
+<!-- Plugins -->
+<!-- Plugins com bundle UMD -->
+<script src="https://cdn.jsdelivr.net/npm/@editorjs/header@latest/dist/bundle.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@editorjs/list@latest/dist/bundle.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@editorjs/image@latest/dist/bundle.js"></script>
+{% endif %}
+
+<script>
+    {% if row %}
+    const editor = new EditorJS({
+        holder: 'editorjs',
+        tools: {
+            header: { class: Header, inlineToolbar: ['link'] },
+            list: { class: List, inlineToolbar: true },
+            image: {
+                class: ImageTool,
+                config: {
+                    uploader: {
+                        async uploadByFile(file) {
+                            const form = new FormData();
+                            form.append("image", file);
+                            const res = await fetch("/chamado/chamado-upload-imagem/{{row.id}}", { method: "POST", body: form });
+                            return await res.json();
                         }
-                    },
-                    placeholder: 'Comece a escrever seu conteúdo...',
-                    onReady: () => {
-                        showStatus('Editor carregado com sucesso!', 'success');
-                    },
-                    onChange: () => {
-                        // Limpar status quando o usuário começar a editar
-                        clearStatus();
                     }
-                });
-                
-                showStatus('Editor inicializado com sucesso!', 'success');
-            } catch (error) {
-                showStatus('Erro ao inicializar o editor: ' + error.message, 'error');
-                console.error(error);
-                return;
-            }
-            
-            // Elementos da UI
-            const saveButton = document.getElementById('save-button');
-            const clearButton = document.getElementById('clear-button');
-            const outputElement = document.getElementById('output');
-            
-            // Salvar conteúdo
-            saveButton.addEventListener('click', function() {
-                editor.save().then(outputData => {
-                    outputElement.textContent = JSON.stringify(outputData, null, 2);
-                    showStatus('Conteúdo salvo com sucesso!', 'success');
-                }).catch(error => {
-                    showStatus('Erro ao salvar: ' + error.message, 'error');
-                    console.log('Erro ao salvar: ', error);
-                });
-            });
-            
-            // Limpar editor
-            clearButton.addEventListener('click', function() {
-                editor.clear();
-                outputElement.textContent = 'O conteúdo aparecerá aqui após salvar...';
-                showStatus('Editor limpo com sucesso!', 'success');
-            });
-            
-            // Adicionar conteúdo inicial de exemplo
-            setTimeout(() => {
-                try {
-                    editor.blocks.insert('header', {
-                        text: 'Bem-vindo ao EditorJS Corrigido',
-                        level: 1
-                    });
-                    
-                    editor.blocks.insert('paragraph', {
-                        text: 'O erro "Uncaught ReferenceError: List is not defined" foi resolvido! Agora você pode usar todas as funcionalidades do editor.'
-                    });
-                    
-                    editor.blocks.insert('header', {
-                        text: 'Recursos do Editor',
-                        level: 2
-                    });
-                    
-                    editor.blocks.insert('list', {
-                        style: 'unordered',
-                        items: [
-                            'Editor de blocos modular',
-                            'Interface limpa e intuitiva',
-                            'Suporte a diversos tipos de conteúdo',
-                            'Fácil integração com Vanilla JS'
-                        ]
-                    });
-                } catch (error) {
-                    console.error('Erro ao inserir blocos iniciais:', error);
                 }
-            }, 1000);
-            
-            // Funções auxiliares para mostrar status
-            function showStatus(message, type) {
-                statusElement.textContent = message;
-                statusElement.className = 'status ' + type;
             }
-            
-            function clearStatus() {
-                statusElement.textContent = '';
-                statusElement.className = 'status';
-            }
-        });
-    </script>
+        }
+    });
+    {% endif %}
+    //editor.blocks.stretchBlock(blockIndex, true); // antigo
+    //const block = editor.blocks.getBlockByIndex(blockIndex);
+    //block.stretch(true); // usando BlockAPI
+
+    /* const editor = new EditorJS({
+      holder: 'editorjs',
+      tools: {
+        header: {
+          class: Header,
+          inlineToolbar: ['link'],
+          config: {
+            placeholder: 'Digite um título'
+          }
+        },
+        list: {
+          class: List,
+          inlineToolbar: true
+        }
+      }
+    }); */
+
+  </script>
 
 
 {# acao cancelar voltar para listagem #}

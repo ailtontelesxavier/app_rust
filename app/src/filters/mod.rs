@@ -4,8 +4,8 @@ mod number;
 mod string;
 
 pub use array::*;
-pub use datetime::{format_datetime_filter};
-pub use number::{currency, format_number, currency_float, format_number_int};
+pub use datetime::format_datetime_filter;
+pub use number::{currency, currency_float, format_number, format_number_int};
 pub use string::*;
 
 use minijinja::Environment;

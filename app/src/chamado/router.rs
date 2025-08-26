@@ -1,6 +1,5 @@
 use axum::{
-    Router,
-    routing::{delete, get},
+    routing::{delete, get, post}, Router
 };
 
 use shared::SharedState;
@@ -78,6 +77,9 @@ fn router_chamado() -> Router<SharedState> {
             "/chamado-form/{id}",
             get(view::get_chamado).post(view::update_chamado),
         )
+        .route(
+            "/chamado-upload-imagem/{id_chamado}",
+            post(view::upload_imagem),
+        )
         .route("/chamado/{id}", delete(view::delete_chamado))
 }
-

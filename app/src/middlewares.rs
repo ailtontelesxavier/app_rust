@@ -13,10 +13,8 @@ use axum::{
 };
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
 use serde::{Deserialize, Serialize};
-use shared::{SharedState};
-use std::{
-    time::{Instant, SystemTime, UNIX_EPOCH},
-};
+use shared::SharedState;
+use std::time::{Instant, SystemTime, UNIX_EPOCH};
 use tracing::{debug, info};
 
 static SECRET: &[u8] = b"chave_secreta_super_segura";

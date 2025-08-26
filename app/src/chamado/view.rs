@@ -1,19 +1,31 @@
-use std::collections::HashMap;
+use std::{collections::HashMap};
+use tokio::fs;
 
 use axum::{
-    extract::{Path, Query, State}, http::StatusCode, response::{Html, IntoResponse, Redirect}, Extension, Form, Json
+    Extension, Form, Json,
+    extract::{Path, Query, State, Multipart},
+    http::StatusCode,
+    response::{Html, IntoResponse, Redirect},
 };
+
+use chrono::{Datelike, Local};
 use minijinja::context;
 use shared::{FlashStatus, ListParams, PaginatedResponse, PaginationQuery, SharedState, helpers};
 use tracing::debug;
+use uuid::Uuid;
 
-use crate::{chamado::{
-    model::{ServicoChamado, StatusChamado, TipoChamado},
-    schema::{
-        CreateCategoriaChamadoSchema, CreateChamado, CreateServicoChamadoSchema, CreateTipoChamadoSchema, UpdateCategoriaChamadoSchema, UpdateChamado, UpdateServicoChamadoSchema, UpdateTipoChamadoSchema
+use crate::{
+    chamado::{
+        model::{ServicoChamado, StatusChamado, TipoChamado},
+        schema::{
+            CreateCategoriaChamadoSchema, CreateChamado, CreateServicoChamadoSchema,
+            CreateTipoChamadoSchema, UpdateCategoriaChamadoSchema, UpdateChamado,
+            UpdateServicoChamadoSchema, UpdateTipoChamadoSchema,
+        },
+        service::{CategoriaService, ChamadoService, ServicoService, TipoChamadoService},
     },
-    service::{CategoriaService, ChamadoService, ServicoService, TipoChamadoService},
-}, middlewares::CurrentUser};
+    middlewares::CurrentUser,
+};
 
 pub async fn list_tipo_chamado(
     State(state): State<SharedState>,
@@ -1032,9 +1044,9 @@ pub async fn create_chamado(
     body.status = Some(StatusChamado::Aberto as i32);
 
     match service.create(&*state.db, body).await {
-        Ok(_) => {
+        Ok(chamado) => {
             let flash_url = helpers::create_flash_url(
-                "/chamado/chamado",
+                &format!("/chamado/chamado-form/{}", chamado.id),
                 "Chamado criado com sucesso!",
                 FlashStatus::Success,
             );
@@ -1049,7 +1061,6 @@ pub async fn create_chamado(
             Redirect::to(&flash_url).into_response()
         }
     }
-    
 }
 
 pub async fn update_chamado(
@@ -1077,6 +1088,75 @@ pub async fn update_chamado(
             Redirect::to(&flash_url).into_response()
         }
     }
+}
+
+pub async fn upload_imagem(
+    Extension(current_user): Extension<CurrentUser>,
+    Path(id_chamado): Path<i64>,
+    mut multipart: Multipart,
+) -> Json<serde_json::Value> {
+
+    //verificar se o chamado é do usuario
+
+    let mut file_url = String::new();
+
+    while let Some(field) = multipart.next_field().await.unwrap() {
+        let name = field.name().unwrap_or_default();
+        
+        if name == "image" {
+            let agora = Local::now();
+            let ano = agora.year();
+            let mes = agora.month();
+            
+            // Inclui o ID do chamado no path para organização
+            let path_file = format!("uploads/chamado/{}/{}/{}", ano, mes, id_chamado);
+            
+            // Cria o diretório se não existir
+            if let Err(e) = fs::create_dir_all(&path_file).await {
+                eprintln!("Erro ao criar diretório {}: {}", path_file, e);
+                continue;
+            }
+
+            // Obtém o nome do arquivo e extensão
+            let file_name = field.file_name().unwrap_or("img");
+            let ext = file_name
+                .rsplit('.')
+                .next()
+                .unwrap_or("png")
+                .to_lowercase();
+                
+            // Gera nome único para o arquivo
+            let filename = format!("{}/{}.{}", path_file, Uuid::new_v4(), ext);
+            
+            // Lê os dados do arquivo
+            let data = match field.bytes().await {
+                Ok(data) => data,
+                Err(e) => {
+                    eprintln!("Erro ao ler dados do arquivo: {}", e);
+                    continue;
+                }
+            };
+
+            // Salva o arquivo
+            match fs::write(&filename, &data).await {
+                Ok(_) => {
+                    file_url = format!("/{}", filename);
+                    break; // Sai do loop após processar a primeira imagem
+                }
+                Err(e) => {
+                    eprintln!("Erro ao salvar arquivo {}: {}", filename, e);
+                }
+            }
+        }
+    }
+
+    // Retorno esperado pelo Editor.js
+    Json(serde_json::json!({
+        "success": if file_url.is_empty() { 0 } else { 1 },
+        "file": {
+            "url": file_url
+        }
+    }))
 }
 
 pub async fn delete_chamado(

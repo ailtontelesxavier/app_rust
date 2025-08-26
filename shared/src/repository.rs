@@ -6,6 +6,13 @@ use serde::{Serialize, de::DeserializeOwned};
 use sqlx::{Encode, FromRow, PgPool, Postgres, Type, postgres::PgRow};
 use std::fmt::Display;
 
+#[derive(Serialize, Deserialize, Debug)]
+struct EditorContent {
+    time: u64,
+    blocks: serde_json::Value,
+    version: String,
+}
+
 #[derive(Debug, Serialize)]
 pub struct PaginatedResponse<T> {
     pub data: Vec<T>,

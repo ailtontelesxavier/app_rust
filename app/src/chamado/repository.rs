@@ -1,6 +1,8 @@
 use anyhow::Ok;
 use anyhow::Result;
 use async_trait::async_trait;
+use serde_json::json;
+use serde_json::Value;
 use shared::Repository;
 use sqlx::PgPool;
 
@@ -215,6 +217,12 @@ impl Repository<Chamado, i64> for ChamadoRepository {
     }
 
     async fn create(&self, pool: &PgPool, input: Self::CreateInput) -> Result<Chamado> {
+        // Conteúdo vazio inicial
+        let editor_data: Value = json!({
+            "time": 0,
+            "blocks": [],
+            "version": "2.31.0-rc.7"
+        });
         let query = format!(
             "INSERT INTO {} 
             (
@@ -233,7 +241,7 @@ impl Repository<Chamado, i64> for ChamadoRepository {
 
         Ok(sqlx::query_as(&query)
             .bind(input.titulo.to_string())
-            .bind(input.descricao.to_string())
+            .bind(editor_data)
             .bind(input.status)
             .bind(input.user_solic_id)
             .bind(input.servico_id)
@@ -242,12 +250,7 @@ impl Repository<Chamado, i64> for ChamadoRepository {
             .await?)
     }
 
-    async fn update(
-        &self,
-        pool: &PgPool,
-        id: i64,
-        input: Self::UpdateInput,
-    ) -> Result<Chamado> {
+    async fn update(&self, pool: &PgPool, id: i64, input: Self::UpdateInput) -> Result<Chamado> {
         Ok(sqlx::query_as!(
             Chamado,
             r#"UPDATE chamado_chamados SET titulo = $1, descricao = $2, servico_id = $3, tipo_id = $4, updated_at = NOW() WHERE id = $5 RETURNING *"#,

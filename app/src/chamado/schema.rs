@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CreateTipoChamadoSchema {
@@ -43,7 +44,6 @@ pub struct UpdateCategoriaChamadoSchema {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CreateChamado {
     pub titulo: String,
-    pub descricao: String,
     pub status: Option<i32>,
     pub user_solic_id: Option<i64>,
     pub servico_id: i64,
@@ -53,7 +53,7 @@ pub struct CreateChamado {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UpdateChamado {
     pub titulo: Option<String>,
-    pub descricao: Option<String>,
+    pub descricao: Value,
     pub servico_id: Option<i64>,
     pub tipo_id: Option<i64>,
 }

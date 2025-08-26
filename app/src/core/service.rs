@@ -1,7 +1,7 @@
 use sqlx::PgPool;
 
 use crate::core::{
-    model::{Municipio},
+    model::Municipio,
     schema::{CreateMunicipio, MunicipioWithUf, UpdateMunicipio},
 };
 

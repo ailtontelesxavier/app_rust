@@ -5,11 +5,7 @@ mod middlewares;
 mod permissao;
 mod utils;
 
-use std::{
-    collections::HashMap,
-    env,
-    sync::Arc,
-};
+use std::{collections::HashMap, env, sync::Arc};
 
 use axum::{
     Form, Router,
@@ -43,9 +39,7 @@ use permissao::router as router_permissao;
 use shared::{AppState, FlashStatus, MessageResponse, SharedState, helpers};
 
 use crate::{
-    filters::register_filters,
-    middlewares::handle_forbidden,
-    permissao::{Module, UserService},
+    core::serve_upload, filters::register_filters, middlewares::handle_forbidden, permissao::{Module, UserService}
 };
 
 async fn hello_world() -> &'static str {
@@ -118,6 +112,7 @@ async fn main() {
             ]))),
         )
         .route("/logout", get(logout))
+        .route("/uploads/{*path}", get(serve_upload))
         .nest("/permissao", router_permissao())
         .nest("/chamado", router_chamado())
         .nest("/core", router_core())

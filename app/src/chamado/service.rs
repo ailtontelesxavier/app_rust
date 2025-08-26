@@ -1,12 +1,19 @@
+use std::{collections::HashSet, fs};
+
 use anyhow::Result;
 use shared::{PaginatedResponse, Repository};
 use sqlx::PgPool;
 
 use crate::chamado::{
     model::{CategoriaChamado, Chamado, ServicoChamado, TipoChamado},
-    repository::{CategoriaChamadoRepository, ChamadoRepository, ServicoChamadoRepository, TipoChamadoRepository},
+    repository::{
+        CategoriaChamadoRepository, ChamadoRepository, ServicoChamadoRepository,
+        TipoChamadoRepository,
+    },
     schema::{
-        CreateCategoriaChamadoSchema, CreateChamado, CreateServicoChamadoSchema, CreateTipoChamadoSchema, ServicoTipoViewSchema, UpdateCategoriaChamadoSchema, UpdateChamado, UpdateServicoChamadoSchema, UpdateTipoChamadoSchema
+        CreateCategoriaChamadoSchema, CreateChamado, CreateServicoChamadoSchema,
+        CreateTipoChamadoSchema, ServicoTipoViewSchema, UpdateCategoriaChamadoSchema,
+        UpdateChamado, UpdateServicoChamadoSchema, UpdateTipoChamadoSchema,
     },
 };
 
@@ -264,20 +271,11 @@ impl ChamadoService {
         Repository::<Chamado, i64>::get_by_id(&self.repo, pool, id).await
     }
 
-    pub async fn create(
-        &self,
-        pool: &PgPool,
-        input: CreateChamado,
-    ) -> Result<Chamado> {
+    pub async fn create(&self, pool: &PgPool, input: CreateChamado) -> Result<Chamado> {
         self.repo.create(pool, input).await
     }
 
-    pub async fn update(
-        &self,
-        pool: &PgPool,
-        id: i64,
-        input: UpdateChamado,
-    ) -> Result<Chamado> {
+    pub async fn update(&self, pool: &PgPool, id: i64, input: UpdateChamado) -> Result<Chamado> {
         self.repo.update(pool, id, input).await
     }
 
@@ -292,8 +290,7 @@ impl ChamadoService {
         page: i32,
         page_size: i32,
     ) -> Result<PaginatedResponse<Chamado>> {
-        Repository::<Chamado, i64>::get_paginated(&self.repo, pool, find, page, page_size)
-            .await
+        Repository::<Chamado, i64>::get_paginated(&self.repo, pool, find, page, page_size).await
     }
 
     /* pub async fn get_by_titulo(&self, pool: &PgPool, titulo: String) -> Result<Chamado> {
@@ -305,6 +302,37 @@ impl ChamadoService {
 
         Ok(sqlx::query_as(&query).bind(titulo).fetch_one(pool).await?)
     } */
+   fn cleanup_images(old_blocks: &serde_json::Value, new_blocks: &serde_json::Value) {
+        let mut old_images = HashSet::new();
+        let mut new_images = HashSet::new();
 
-    
+        // coleta URLs antigas
+        for block in old_blocks.as_array().unwrap_or(&vec![]) {
+            if block["type"] == "image" {
+                if let Some(url) = block["data"]["file"]["url"].as_str() {
+                    old_images.insert(url.to_string());
+                }
+            }
+        }
+
+        // coleta URLs novas
+        for block in new_blocks.as_array().unwrap_or(&vec![]) {
+            if block["type"] == "image" {
+                if let Some(url) = block["data"]["file"]["url"].as_str() {
+                    new_images.insert(url.to_string());
+                }
+            }
+        }
+
+        // imagens que estavam antes mas não existem mais → deletar
+        for url in old_images.difference(&new_images) {
+            if url.starts_with("/") { // evita deletar URLs externas
+                if let Err(e) = fs::remove_file(&url[1..]) { // remove "/" inicial
+                    eprintln!("Erro ao deletar {}: {}", url, e);
+                } else {
+                    println!("Arquivo deletado: {}", url);
+                }
+            }
+        }
+    }
 }

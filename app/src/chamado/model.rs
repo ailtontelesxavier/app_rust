@@ -1,5 +1,6 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use sqlx::FromRow;
 use sqlx::postgres::{PgTypeInfo, PgValueRef};
 use sqlx::{Decode, Encode, Postgres, Type};
@@ -74,7 +75,7 @@ impl Type<Postgres> for StatusChamado {
 pub struct Chamado {
     pub id: i64,
     pub titulo: String,
-    pub descricao: String,
+    pub descricao: Value,
     pub status: Option<i32>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
