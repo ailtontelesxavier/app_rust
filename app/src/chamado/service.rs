@@ -400,57 +400,6 @@ impl ChamadoService {
         
         Ok(urls)
     }
-    pub fn extrair_imagens(new_value: Value) -> Result<Vec<String>> {
-        let mut imagens = Vec::new();
-        
-        // Obtém o array de blocks
-        let blocks = new_value.get("blocks")
-            .ok_or_else(|| anyhow!("Campo 'blocks' não encontrado"))?
-            .as_array()
-            .ok_or_else(|| anyhow!("'blocks' não é um array"))?;
-        
-        // Itera por todos os blocks
-        for block in blocks {
-            if let Some(block_type) = block.get("type").and_then(|t| t.as_str()) {
-                if block_type == "image" {
-                    if let Some(data) = block.get("data") {
-                        let imagem = ImagemChamado {
-                            url: data.get("file")
-                                .and_then(|f| f.get("url"))
-                                .and_then(|u| u.as_str())
-                                .unwrap_or("")
-                                .to_string(),
-                            caption: data.get("caption")
-                                .and_then(|c| c.as_str())
-                                .unwrap_or("")
-                                .to_string(),
-                            with_border: data.get("withBorder")
-                                .and_then(|b| b.as_bool())
-                                .unwrap_or(false),
-                            stretched: data.get("stretched")
-                                .and_then(|s| s.as_bool())
-                                .unwrap_or(false),
-                            with_background: data.get("withBackground")
-                                .and_then(|b| b.as_bool())
-                                .unwrap_or(false),
-                        };
-                        
-                        // Só adiciona se tiver URL
-                        if !imagem.url.is_empty() {
-                            imagens.push(imagem);
-                        }
-                    }
-                }
-            }
-        }
-
-        let urls = imagens.into_iter()
-            .map(|img| img.url)
-            .filter(|url| !url.is_empty())
-            .collect();
-        
-        Ok(urls)
-    }
 
     fn extrair_imagens_do_value(descricao: &Value) -> Result<Vec<String>> {
         let mut imagens = Vec::new();

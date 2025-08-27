@@ -72,6 +72,8 @@
                     <div id="editorjs" class="border-1 border-gray-300 p-2"></div>
                     <!-- Campo hidden que receberá os dados do EditorJS -->
                     <input type="hidden" id="descricao" name="descricao" />
+
+                    <div id="viewer"></div>
                 </div>
                 {% endif %}
 
@@ -100,15 +102,31 @@
 <script src="https://cdn.jsdelivr.net/npm/@editorjs/list@latest/dist/bundle.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@editorjs/image@latest/dist/bundle.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@editorjs/paragraph@latest/dist/bundle.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@editorjs/table@latest/dist/bundle.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@editorjs/checklist@latest/dist/bundle.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@editorjs/inline-code@latest/dist/bundle.js"></script>
+
+<!-- Plugins extras -->
+<script src="https://cdn.jsdelivr.net/npm/editorjs-style@latest"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/editorjs-inline-template@latest"></script>    
+<script src="https://cdn.jsdelivr.net/npm/editorjs-inline@latest"></script>
+
+
 {% endif %}
 
+<!-- <script type="module">
+ -->
 <script>
+    //<!-- Plugins extras -->
+    //import CodeTool from "https://cdn.jsdelivr.net/npm/@editorjs/code@latest/+esm";
+
 
     // Certifique-se de que os dados iniciais estão no formato correto
     let initialData = null;
     {% if row and row.descricao %}
     try {
-        initialData = JSON.parse('{{row.descricao|safe}}');
+        initialData = {{row.descricao|safe}}; //JSON.parse('row.descricao|safe');
     } catch (e) {
         console.error('Erro ao parsear dados iniciais:', e);
         initialData = {
@@ -140,6 +158,18 @@
             },
             header: { class: Header, inlineToolbar: ['link'] },
             list: { class: List, inlineToolbar: true },
+            checklist: {
+                class: Checklist,
+                inlineToolbar: true,
+            },
+            table: {
+            class: Table,
+                inlineToolbar: true,
+                config: {
+                    rows: 2,
+                    cols: 2,
+                }
+            },
             image: {
                 class: ImageTool,
                 config: {
@@ -152,7 +182,9 @@
                         }
                     }
                 }
-            }
+            },
+            //code: CodeTool,
+            style: EditorJSStyle.StyleInlineTool,
         },
         data: initialData,
         onReady: () => {
@@ -162,6 +194,7 @@
             console.log('Conteúdo alterado');
         }
     });
+    
     {% endif %}
     //editor.blocks.stretchBlock(blockIndex, true); // antigo
     //const block = editor.blocks.getBlockByIndex(blockIndex);
@@ -182,6 +215,41 @@
           inlineToolbar: true
         }
       }
+    }); */
+
+    //visulaizar
+    /* const container = document.getElementById('viewer');
+    initialData.blocks.forEach(block => {
+        let el;
+        switch(block.type){
+            case 'paragraph':
+            el = document.createElement('p');
+            el.innerHTML = block.data.text;
+            break;
+            case 'image':
+            el = document.createElement('img');
+            el.src = block.data.file.url;
+            el.alt = block.data.caption || '';
+            el.style.border = block.data.withBorder ? '1px solid #ccc' : 'none';
+            break;
+            case 'table':
+            el = document.createElement('table');
+            el.style.borderCollapse = 'collapse';
+            block.data.content.forEach(row => {
+                const tr = document.createElement('tr');
+                row.forEach(cell => {
+                const td = document.createElement('td');
+                td.style.border = '1px solid #ccc';
+                td.style.padding = '4px';
+                td.innerHTML = cell;
+                tr.appendChild(td);
+                });
+                el.appendChild(tr);
+            });
+            break;
+            // adicionar mais tipos se precisar
+        }
+        if(el) container.appendChild(el);
     }); */
 
   </script>
@@ -212,6 +280,8 @@
                 try {
                     // Salva os dados do EditorJS
                     const editorData = await editor.save();
+
+                    alert('aqui');
                     
                     // Converte para JSON string e coloca no campo hidden
                     document.getElementById('descricao').value = JSON.stringify(editorData);
