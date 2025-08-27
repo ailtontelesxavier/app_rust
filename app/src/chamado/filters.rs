@@ -1,5 +1,4 @@
-
-/* 
+/*
 Filtra o status do chamado com base no seu valor numérico.
 let mut env = minijinja::Environment::new();
 env.add_filter("status_label", status_filter);

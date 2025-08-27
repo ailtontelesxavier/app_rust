@@ -13,6 +13,7 @@ pub fn router() -> Router<SharedState> {
         .merge(router_categoria())
         .merge(router_servico())
         .merge(router_chamado())
+        .merge(router_chamado_atendimento())
 }
 
 fn router_tipo() -> Router<SharedState> {
@@ -83,4 +84,11 @@ fn router_chamado() -> Router<SharedState> {
             post(view::upload_imagem),
         )
         .route("/chamado/{id}", delete(view::delete_chamado))
+}
+
+fn router_chamado_atendimento() -> Router<SharedState> {
+    Router::new().route(
+        "/chamado-atender/{chamado_id}",
+        get(view::get_atendimento_chamado),
+    )
 }

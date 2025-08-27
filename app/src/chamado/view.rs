@@ -11,6 +11,7 @@ use axum::{
 use chrono::{Datelike, Local};
 use minijinja::context;
 use shared::{FlashStatus, ListParams, PaginatedResponse, PaginationQuery, SharedState, helpers};
+use tower_sessions::service;
 use tracing::debug;
 use uuid::Uuid;
 
@@ -22,7 +23,8 @@ use crate::{
             CreateTipoChamadoSchema, UpdateCategoriaChamadoSchema, UpdateChamado,
             UpdateServicoChamadoSchema, UpdateTipoChamadoSchema,
         },
-        service::{CategoriaService, ChamadoService, ServicoService, TipoChamadoService}, status_filter,
+        service::{CategoriaService, ChamadoService, GerenciamentoChamadoService, ServicoService, TipoChamadoService},
+        status_filter,
     },
     middlewares::CurrentUser,
 };
@@ -1270,4 +1272,121 @@ pub async fn delete_chamado(
             Redirect::to(&flash_url).into_response()
         }
     }
+}
+
+/*
+==========================================
+
+-------------ATENDIMENTO CHAMADO --------
+==========================================
+
+*/
+
+/* 
+verifica se usuario tem permissão para atendimento
+se o chamado estiver em aberto inicia atendimento
+
+*/
+pub async fn inicia_atendimento_chamado(
+    State(state): State<SharedState>,
+    Query(params): Query<HashMap<String, String>>,
+    Path(chamado_id): Path<i64>,
+) -> impl IntoResponse {
+
+    let service_chamado = ChamadoService::new();
+    let service_atendimento = GerenciamentoChamadoService::new();
+
+
+    let chamado = if let Ok(chamado) = service_chamado.get_by_id(&state.db, chamado_id).await {
+        chamado
+        } else {
+            let flash_url = helpers::create_flash_url(
+                "/chamado/chamado",
+                &format!("Chamado não encontrado: {}", chamado_id),
+                FlashStatus::Error,
+            );
+            return Redirect::to(&flash_url).into_response();
+        };
+    
+    // busca se ja em atendimento
+    let atendimento = if let Ok(atendimento) =  service_atendimento.get_by_chamado_id(&state.db, chamado_id).await {
+        atendimento
+    } else {
+        todo!();
+        match service_atendimento.create(&state.db, chamado_id).await {
+            Ok(atendimento) => atendimento,
+            Err(e) => {
+                let flash_url = helpers::create_flash_url(
+                    "/chamado/chamado",
+                    &format!("Erro ao iniciar atendimento: {}", e),
+                    FlashStatus::Error,
+                );
+                return Redirect::to(&flash_url).into_response();
+            }
+        }
+    };
+
+
+    let flash_url = helpers::create_flash_url(
+        "/chamado/chamado-form",
+        &format!("Atendimento já iniciado com sucesso: {}", chamado_id),
+        FlashStatus::Error,
+    );
+    Redirect::to(&flash_url).into_response()
+
+
+/* 
+    
+
+
+
+    // se não tiver atendimento e o chamado estiver em aberto inicia atendimento
+    if chamado.status == Some(StatusChamado::Aberto as i32) {
+        match ChamadoService::update_status(&state.db, chamado.id, StatusChamado::EmAtendimento as i32 ).await {
+            Ok(_) => (),
+            Err(e) => {
+                let flash_url = helpers::create_flash_url(
+                    "/chamado/chamado",
+                    &format!("Erro ao iniciar atendimento: {}", e),
+                    FlashStatus::Error,
+                );
+                return Redirect::to(&flash_url).into_response();
+            }
+        }
+    } else {
+        let flash_url = helpers::create_flash_url(
+            "/chamado/chamado",
+            "Chamado não está em Aberto, não pode iniciar atendimento.",
+            FlashStatus::Error,
+        );
+        return Redirect::to(&flash_url).into_response();
+    } */
+
+}
+
+
+pub async fn get_atendimento_chamado(
+    State(state): State<SharedState>,
+    Query(params): Query<HashMap<String, String>>,
+    Path(chamado_id): Path<i64>,
+) -> impl IntoResponse {
+
+    let service_chamado = ChamadoService::new();
+    let service_atendimento = GerenciamentoChamadoService::new();
+
+    
+    let chamado = if let Ok(chamado) = service_chamado.get_by_id(&state.db, chamado_id).await {
+        chamado
+        } else {
+            let flash_url = helpers::create_flash_url(
+                "/chamado/chamado",
+                &format!("Chamado não encontrado: {}", chamado_id),
+                FlashStatus::Error,
+            );
+            return Redirect::to(&flash_url).into_response();
+        };
+    
+    // busca se ja em atendimento
+    let atendimento = service_atendimento.get_by_chamado_id(&state.db, chamado_id).await.unwrap();
+
 }

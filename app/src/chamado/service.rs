@@ -6,7 +6,12 @@ use serde_json::{Value, from_str};
 use shared::{PaginatedResponse, Repository};
 use sqlx::PgPool;
 
+use crate::chamado::model::GerenciamentoChamado;
 use crate::chamado::model::ImagemChamado;
+use crate::chamado::repository::GerenciamentoChamadoRepository;
+use crate::chamado::schema::CreateGerenciamentoChamado;
+use crate::chamado::schema::UpdateGerenciamentoChamado;
+use crate::chamado::StatusChamado;
 use crate::{
     chamado::{
         model::{CategoriaChamado, Chamado, ServicoChamado, TipoChamado},
@@ -381,6 +386,30 @@ impl ChamadoService {
         })
     }
 
+    pub async fn update_status(
+        pool: &PgPool,
+        id: i64,
+        status: i32,
+    ) -> Result<Chamado> {
+        // valida status
+        StatusChamado::try_from(status); 
+
+        Ok(sqlx::query_as!(
+            Chamado,
+            r#"
+            UPDATE chamado_chamados
+            SET 
+                status = $1,
+                updated_at = NOW()
+            WHERE id = $2
+            RETURNING *"#,
+            status,
+            id
+        )
+        .fetch_one(pool)
+        .await?)
+    }
+
     // Função auxiliar para verificar se o usuário é dono do chamado
     pub async fn verify_chamado_ownership(db: &PgPool, user_id: i64, chamado_id: i64) -> bool {
         if chamado_id == 0 {
@@ -541,4 +570,64 @@ impl ChamadoService {
 
         Ok(urls)
     }
+}
+
+
+pub struct GerenciamentoChamadoService {
+    repo: GerenciamentoChamadoRepository,
+}
+
+impl GerenciamentoChamadoService {
+    pub fn new() -> Self {
+        Self {
+            repo: GerenciamentoChamadoRepository,
+        }
+    }
+
+    pub async fn get_by_id(&self, pool: &PgPool, id: i64) -> Result<GerenciamentoChamado> {
+        Repository::<GerenciamentoChamado, i64>::get_by_id(&self.repo, pool, id).await
+    }
+
+    pub async fn get_by_chamado_id(&self, pool: &PgPool, chamado_id: i64) -> Result<GerenciamentoChamado> {
+        let query = format!(
+            "SELECT {} FROM {} WHERE chamado_id = $1 LIMIT 1",
+            self.repo.select_clause(),
+            self.repo.from_clause(),
+        );
+
+        Ok(sqlx::query_as(&query).bind(chamado_id).fetch_one(pool).await?)
+    }
+
+    pub async fn create(
+        &self,
+        pool: &PgPool,
+        input: CreateGerenciamentoChamado,
+    ) -> Result<GerenciamentoChamado> {
+        self.repo.create(pool, input).await
+    }
+
+    pub async fn update(
+        &self,
+        pool: &PgPool,
+        id: i64,
+        input: UpdateGerenciamentoChamado,
+    ) -> Result<GerenciamentoChamado> {
+        self.repo.update(pool, id, input).await
+    }
+
+    pub async fn delete(&self, pool: &PgPool, id: i64) -> Result<()> {
+        self.repo.delete(pool, id).await
+    }
+
+    pub async fn get_paginated(
+        &self,
+        pool: &PgPool,
+        find: Option<&str>,
+        page: i32,
+        page_size: i32,
+    ) -> Result<PaginatedResponse<GerenciamentoChamado>> {
+        Repository::<GerenciamentoChamado, i64>::get_paginated(&self.repo, pool, find, page, page_size)
+            .await
+    }
+
 }
