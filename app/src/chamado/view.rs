@@ -19,9 +19,7 @@ use crate::{
     chamado::{
         model::{ServicoChamado, StatusChamado, TipoChamado},
         schema::{
-            CreateCategoriaChamadoSchema, CreateChamado, CreateServicoChamadoSchema,
-            CreateTipoChamadoSchema, UpdateCategoriaChamadoSchema, UpdateChamado,
-            UpdateServicoChamadoSchema, UpdateTipoChamadoSchema,
+            CreateCategoriaChamadoSchema, CreateChamado, CreateGerenciamentoChamado, CreateServicoChamadoSchema, CreateTipoChamadoSchema, UpdateCategoriaChamadoSchema, UpdateChamado, UpdateServicoChamadoSchema, UpdateTipoChamadoSchema
         },
         service::{CategoriaService, ChamadoService, GerenciamentoChamadoService, ServicoService, TipoChamadoService},
         status_filter,
@@ -1289,6 +1287,7 @@ se o chamado estiver em aberto inicia atendimento
 */
 pub async fn inicia_atendimento_chamado(
     State(state): State<SharedState>,
+    Extension(current_user): Extension<CurrentUser>,
     Query(params): Query<HashMap<String, String>>,
     Path(chamado_id): Path<i64>,
 ) -> impl IntoResponse {
@@ -1312,8 +1311,14 @@ pub async fn inicia_atendimento_chamado(
     let atendimento = if let Ok(atendimento) =  service_atendimento.get_by_chamado_id(&state.db, chamado_id).await {
         atendimento
     } else {
-        todo!();
-        match service_atendimento.create(&state.db, chamado_id).await {
+        let gerenciamento = CreateGerenciamentoChamado {
+            descricao: None,
+            categoria_id: None,
+            chamado_id: chamado_id,
+            user_atend_id: current_user.current_user.id,
+            observacao_chamado: None,
+        };
+        match service_atendimento.create(&state.db, gerenciamento).await {
             Ok(atendimento) => atendimento,
             Err(e) => {
                 let flash_url = helpers::create_flash_url(
@@ -1328,39 +1333,11 @@ pub async fn inicia_atendimento_chamado(
 
 
     let flash_url = helpers::create_flash_url(
-        "/chamado/chamado-form",
-        &format!("Atendimento já iniciado com sucesso: {}", chamado_id),
-        FlashStatus::Error,
+        &format!("/chamado/chamado-atendimento/{}", atendimento.id),
+        None,
+        FlashStatus::Success,
     );
     Redirect::to(&flash_url).into_response()
-
-
-/* 
-    
-
-
-
-    // se não tiver atendimento e o chamado estiver em aberto inicia atendimento
-    if chamado.status == Some(StatusChamado::Aberto as i32) {
-        match ChamadoService::update_status(&state.db, chamado.id, StatusChamado::EmAtendimento as i32 ).await {
-            Ok(_) => (),
-            Err(e) => {
-                let flash_url = helpers::create_flash_url(
-                    "/chamado/chamado",
-                    &format!("Erro ao iniciar atendimento: {}", e),
-                    FlashStatus::Error,
-                );
-                return Redirect::to(&flash_url).into_response();
-            }
-        }
-    } else {
-        let flash_url = helpers::create_flash_url(
-            "/chamado/chamado",
-            "Chamado não está em Aberto, não pode iniciar atendimento.",
-            FlashStatus::Error,
-        );
-        return Redirect::to(&flash_url).into_response();
-    } */
 
 }
 
@@ -1369,7 +1346,7 @@ pub async fn get_atendimento_chamado(
     State(state): State<SharedState>,
     Query(params): Query<HashMap<String, String>>,
     Path(chamado_id): Path<i64>,
-) -> impl IntoResponse {
+) -> Result<Html<String>, impl IntoResponse> {
 
     let service_chamado = ChamadoService::new();
     let service_atendimento = GerenciamentoChamadoService::new();
