@@ -1,24 +1,27 @@
 use std::{collections::HashSet, fs};
 
 use anyhow::Result;
-use anyhow::{anyhow};
-use serde_json::{from_str, Value};
+use anyhow::anyhow;
+use serde_json::{Value, from_str};
 use shared::{PaginatedResponse, Repository};
 use sqlx::PgPool;
 
 use crate::chamado::model::ImagemChamado;
-use crate::{chamado::{
-    model::{CategoriaChamado, Chamado, ServicoChamado, TipoChamado},
-    repository::{
-        CategoriaChamadoRepository, ChamadoRepository, ServicoChamadoRepository,
-        TipoChamadoRepository,
+use crate::{
+    chamado::{
+        model::{CategoriaChamado, Chamado, ServicoChamado, TipoChamado},
+        repository::{
+            CategoriaChamadoRepository, ChamadoRepository, ServicoChamadoRepository,
+            TipoChamadoRepository,
+        },
+        schema::{
+            CreateCategoriaChamadoSchema, CreateChamado, CreateServicoChamadoSchema,
+            CreateTipoChamadoSchema, ServicoTipoViewSchema, UpdateCategoriaChamadoSchema,
+            UpdateChamado, UpdateServicoChamadoSchema, UpdateTipoChamadoSchema,
+        },
     },
-    schema::{
-        CreateCategoriaChamadoSchema, CreateChamado, CreateServicoChamadoSchema,
-        CreateTipoChamadoSchema, ServicoTipoViewSchema, UpdateCategoriaChamadoSchema,
-        UpdateChamado, UpdateServicoChamadoSchema, UpdateTipoChamadoSchema,
-    },
-}, permissao::{User, UserRolesService}};
+    permissao::{User, UserRolesService},
+};
 
 pub struct TipoChamadoService {
     repo: TipoChamadoRepository,
@@ -279,18 +282,14 @@ impl ChamadoService {
     }
 
     pub async fn update(&self, pool: &PgPool, id: i64, input: UpdateChamado) -> Result<Chamado> {
-
         match self.get_by_id(pool, id).await {
             Ok(old_chamado) => {
                 Self::cleanup_images(old_chamado, input.descricao.clone());
             }
-            Err(_) =>{
-
-            }
-            
+            Err(_) => {}
         }
 
-       self.repo.update(pool, id, input).await
+        self.repo.update(pool, id, input).await
     }
 
     pub async fn delete(&self, pool: &PgPool, id: i64) -> Result<()> {
@@ -305,6 +304,81 @@ impl ChamadoService {
         page_size: i32,
     ) -> Result<PaginatedResponse<Chamado>> {
         Repository::<Chamado, i64>::get_paginated(&self.repo, pool, find, page, page_size).await
+    }
+
+    /*
+       retorna lista de chamados do usuario
+    */
+    pub async fn get_paginated_ownership(
+        &self,
+        pool: &PgPool,
+        find: Option<&str>,
+        page: i32,
+        page_size: i32,
+        user_id: i64,
+    ) -> Result<PaginatedResponse<Chamado>> {
+        let page = page.max(1) as i32;
+        let page_size = page_size.min(100) as i32;
+        let offset = (page - 1) * page_size;
+
+        let like_term = match find {
+            Some(search_term) => format!("%{search_term}%"),
+            None => "%".to_string(),
+        };
+
+        // Busca total de registros para paginação
+        let total: (i64,) = sqlx::query_as::<_, (i64,)>(
+            r#"
+            SELECT COUNT(p) FROM chamado_chamados p
+            WHERE p.titulo ILIKE $1 and p.user_solic_id = $2
+            "#,
+        )
+        .bind(&like_term)
+        .bind(user_id)
+        .fetch_one(pool)
+        .await?;
+
+        let total_records = total.0;
+        let total_pages = if total_records == 0 {
+            1
+        } else {
+            ((total_records as f64) / (page_size as f64)).ceil() as i32
+        };
+
+        // Busca os registros paginados
+        let items: Vec<Chamado> = sqlx::query_as!(
+            Chamado,
+            r#"
+            SELECT 
+                id,
+                titulo,
+                descricao,
+                status,
+                created_at,
+                updated_at,
+                user_solic_id,
+                servico_id,
+                tipo_id
+            FROM chamado_chamados p
+            WHERE p.titulo ILIKE $1 and p.user_solic_id = $2
+            ORDER BY p.id DESC
+            LIMIT $3 OFFSET $4
+            "#,
+            like_term,
+            user_id,
+            page_size as i64,
+            offset as i64
+        )
+        .fetch_all(pool)
+        .await?;
+
+        Ok(PaginatedResponse {
+            data: items,
+            total_records,
+            page,
+            page_size,
+            total_pages,
+        })
     }
 
     // Função auxiliar para verificar se o usuário é dono do chamado
@@ -327,10 +401,9 @@ impl ChamadoService {
     }
 
     /*
-        verifica se usuario tem permissao de ver chamado
-     */
+       verifica se usuario tem permissao de ver chamado
+    */
     pub async fn can_access(user: &User, object_id: i64, db: &PgPool) -> bool {
-
         // Verifica se o usuário é um superusuário
         if user.is_superuser {
             return true;
@@ -342,7 +415,6 @@ impl ChamadoService {
             Err(_) => return false, // Em caso de erro, nega acesso
         };
 
-        
         for permissao in list_permissao {
             // Se tiver permissão de admin, liberar tudo
             match permissao.as_str() {
@@ -352,7 +424,6 @@ impl ChamadoService {
         }
         // Se nenhuma permissão foi encontrada, verificar se é dono do chamado
         ChamadoService::verify_chamado_ownership(&db, user.id, object_id).await
-
     }
 
     /* pub async fn get_by_titulo(&self, pool: &PgPool, titulo: String) -> Result<Chamado> {
@@ -393,59 +464,66 @@ impl ChamadoService {
     /// Versão simplificada que retorna apenas URLs das imagens
     pub fn extrair_urls_imagens(chamando: Chamado) -> Result<Vec<String>> {
         let imagens = chamando.extrair_imagens()?;
-        let urls = imagens.into_iter()
+        let urls = imagens
+            .into_iter()
             .map(|img| img.url)
             .filter(|url| !url.is_empty())
             .collect();
-        
+
         Ok(urls)
     }
 
     fn extrair_imagens_do_value(descricao: &Value) -> Result<Vec<String>> {
         let mut imagens = Vec::new();
-        
+
         // Converte Value para string se necessário, e depois parseia para JSON
         let descricao_str = match descricao {
             Value::String(s) => s.as_str(),
             _ => return Ok(Vec::new()), // Se não for string, retorna vazio
         };
-        
+
         // Parseia a string JSON para Value
         let parsed: Value = serde_json::from_str(descricao_str)
             .map_err(|e| anyhow!("Erro ao parsear JSON: {}", e))?;
-        
+
         // Obtém o array de blocks
-        let blocks = parsed.get("blocks")
+        let blocks = parsed
+            .get("blocks")
             .ok_or_else(|| anyhow!("Campo 'blocks' não encontrado"))?
             .as_array()
             .ok_or_else(|| anyhow!("'blocks' não é um array"))?;
-        
+
         // Itera por todos os blocks
         for block in blocks {
             if let Some(block_type) = block.get("type").and_then(|t| t.as_str()) {
                 if block_type == "image" {
                     if let Some(data) = block.get("data") {
                         let imagem = ImagemChamado {
-                            url: data.get("file")
+                            url: data
+                                .get("file")
                                 .and_then(|f| f.get("url"))
                                 .and_then(|u| u.as_str())
                                 .unwrap_or("")
                                 .to_string(),
-                            caption: data.get("caption")
+                            caption: data
+                                .get("caption")
                                 .and_then(|c| c.as_str())
                                 .unwrap_or("")
                                 .to_string(),
-                            with_border: data.get("withBorder")
+                            with_border: data
+                                .get("withBorder")
                                 .and_then(|b| b.as_bool())
                                 .unwrap_or(false),
-                            stretched: data.get("stretched")
+                            stretched: data
+                                .get("stretched")
                                 .and_then(|s| s.as_bool())
                                 .unwrap_or(false),
-                            with_background: data.get("withBackground")
+                            with_background: data
+                                .get("withBackground")
                                 .and_then(|b| b.as_bool())
                                 .unwrap_or(false),
                         };
-                        
+
                         // Só adiciona se tiver URL
                         if !imagem.url.is_empty() {
                             imagens.push(imagem);
@@ -454,13 +532,13 @@ impl ChamadoService {
                 }
             }
         }
-        
-        let urls = imagens.into_iter()
+
+        let urls = imagens
+            .into_iter()
             .map(|img| img.url)
             .filter(|url| !url.is_empty())
             .collect();
-    
+
         Ok(urls)
     }
-    
 }

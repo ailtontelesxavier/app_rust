@@ -22,6 +22,7 @@ static SECRET: &[u8] = b"chave_secreta_super_segura";
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CurrentUser {
     pub current_user: User,
+    pub permissions: Vec<String>,
 }
 
 // Middleware de autenticação JWT
@@ -78,13 +79,18 @@ pub async fn autenticar(
                     req.extensions_mut().insert(data.claims.clone());
 
                     //busca usuario:
-                    let user = UserService::get_by_username(&*state.db, &data.claims.sub)
+                    let mut user = UserService::get_by_username(&*state.db, &data.claims.sub)
                         .await
                         .map_err(|_| Redirect::to("/login").into_response());
+
+                    let user_id = user.as_mut().unwrap().id;
+                    // Busca permissões do usuário
+                    let permissions = UserService::get_user_permissions(&*state.db, user_id).await;
 
                     // Adiciona o usuário logado às extensões
                     req.extensions_mut().insert(CurrentUser {
                         current_user: user.unwrap(),
+                        permissions,
                     });
 
                     next.run(req).await
@@ -160,18 +166,26 @@ pub async fn role_check(
     match current_user {
         Some(user_data) => {
             // Aqui você precisaria verificar se o usuário tem as roles necessárias
-            // Por exemplo, se você tiver um campo `roles` no User:
 
             // Simples verificação - você pode ajustar conforme sua estrutura de roles
             let user_has_required_role = required_roles.is_empty()
                 || required_roles.iter().any(|role| {
                     // Assumindo que você tem um método para verificar roles
                     // ou um campo roles no User
-                    match role.as_str() {
+                    for perm in user_data.permissions.iter() {
+                        // Se tiver permissão de admin, liberar tudo
+                        if role.eq_ignore_ascii_case(&perm) {
+                            return true;
+                        } else {
+                            continue;
+                        }
+                    }
+                    return false;
+                    /*  match role.as_str() {
                         "admin" => user_data.current_user.is_superuser,
                         "user" => true, // qualquer usuário autenticado
                         _ => false,
-                    }
+                    } */
                 });
 
             // verifica se super user

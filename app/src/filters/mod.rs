@@ -10,6 +10,8 @@ pub use string::*;
 
 use minijinja::Environment;
 
+use crate::chamado::status_filter;
+
 /// Registra todos os filtros no ambiente MiniJinja
 pub fn register_filters(env: &mut Environment) {
     // Datetime filters
@@ -30,4 +32,7 @@ pub fn register_filters(env: &mut Environment) {
     // Array filters
     env.add_filter("join", join);
     env.add_filter("unique", unique);
+
+    // Chamado filters
+    env.add_filter("status_label", status_filter);
 }

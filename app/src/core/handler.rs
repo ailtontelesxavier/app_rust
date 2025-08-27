@@ -12,9 +12,7 @@ use std::sync::Arc;
 use tokio::fs::File;
 use tokio_util::io::ReaderStream;
 
-use crate::{
-    chamado::ChamadoService, middlewares::CurrentUser, permissao::{User}
-};
+use crate::{chamado::ChamadoService, middlewares::CurrentUser, permissao::User};
 
 #[async_trait]
 pub trait PermissionChecker {
@@ -75,7 +73,9 @@ pub async fn serve_upload(
         //pegar id do objeto
         if let Some(id_objeto) = file_path.components().nth(1) {
             let id_objeto = id_objeto.as_os_str().to_string_lossy();
-            if !user_has_permission(&folder_str, &user, id_objeto.to_string(), state.db.clone()).await {
+            if !user_has_permission(&folder_str, &user, id_objeto.to_string(), state.db.clone())
+                .await
+            {
                 return StatusCode::FORBIDDEN.into_response();
             }
         } else {
@@ -104,7 +104,11 @@ async fn user_has_permission(
     db: Arc<PgPool>,
 ) -> bool {
     match folder {
-        "chamado" => ChamadoPermissionChecker.can_access(user, id_objeto, db).await,
+        "chamado" => {
+            ChamadoPermissionChecker
+                .can_access(user, id_objeto, db)
+                .await
+        }
         "arquivos" => false,
         _ => false,
     }

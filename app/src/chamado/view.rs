@@ -22,8 +22,9 @@ use crate::{
             CreateTipoChamadoSchema, UpdateCategoriaChamadoSchema, UpdateChamado,
             UpdateServicoChamadoSchema, UpdateTipoChamadoSchema,
         },
-        service::{CategoriaService, ChamadoService, ServicoService, TipoChamadoService},
-    }, middlewares::CurrentUser
+        service::{CategoriaService, ChamadoService, ServicoService, TipoChamadoService}, status_filter,
+    },
+    middlewares::CurrentUser,
 };
 
 pub async fn list_tipo_chamado(
@@ -857,6 +858,7 @@ pub async fn servico_list_api(
 */
 
 pub async fn list_chamado(
+    Extension(current_user): Extension<CurrentUser>,
     State(state): State<SharedState>,
     Query(params): Query<ListParams>,
 ) -> impl IntoResponse {
@@ -873,19 +875,46 @@ pub async fn list_chamado(
         _ => None,
     });
 
-    let permissions_result = service
-        .get_paginated(
-            &state.db,
-            params.find.as_deref(),
-            params.page.unwrap_or(1),
-            params.page_size.unwrap_or(10),
-        )
-        .await;
+    let permissions = current_user.permissions.clone();
 
-    match permissions_result {
+    //verificar se permiter atender chamados
+    let can_attend = |perm| {
+        if permissions.contains(&perm) {
+            return true;
+        } else if current_user.current_user.is_superuser {
+            return true;
+        }
+        false
+    };
+
+    let result;
+    // verificar listagem somente chamados do usuario
+    if can_attend("chamado_admin".into()) {
+        result = service
+            .get_paginated_ownership(
+                &state.db,
+                params.find.as_deref(),
+                params.page.unwrap_or(1),
+                params.page_size.unwrap_or(10),
+                current_user.current_user.id,
+            )
+            .await;
+    } else {
+        result = service
+            .get_paginated(
+                &state.db,
+                params.find.as_deref(),
+                params.page.unwrap_or(1),
+                params.page_size.unwrap_or(10),
+            )
+            .await;
+    }
+
+    match result {
         Ok(paginated_response) => {
             let context = minijinja::context! {
                 rows => paginated_response.data,
+                is_atender => can_attend("chamado_admin".into()),
                 current_page => paginated_response.page,
                 total_pages => paginated_response.total_pages,
                 page_size => paginated_response.page_size,
@@ -1192,27 +1221,27 @@ pub async fn delete_chamado(
     match service.get_by_id(&state.db, id).await {
         Ok(chamado) => {
             // Converta o i32 para StatusChamado antes de comparar
-        let status = match chamado.status {
-            Some(status_code) => StatusChamado::from_i32(status_code),
-            None => {
+            let status = match chamado.status {
+                Some(status_code) => StatusChamado::from_i32(status_code),
+                None => {
+                    let flash_url = helpers::create_flash_url(
+                        "/chamado/chamado",
+                        "Status do chamado não encontrado.",
+                        FlashStatus::Error,
+                    );
+                    return Redirect::to(&flash_url).into_response();
+                }
+            };
+
+            if status != StatusChamado::Aberto {
                 let flash_url = helpers::create_flash_url(
                     "/chamado/chamado",
-                    "Status do chamado não encontrado.",
+                    "Chamado não pode ser excluído pois não está mais em Aberto.",
                     FlashStatus::Error,
                 );
                 return Redirect::to(&flash_url).into_response();
             }
-        };
-        
-        if status != StatusChamado::Aberto {
-            let flash_url = helpers::create_flash_url(
-                "/chamado/chamado",
-                "Chamado não pode ser excluído pois não está mais em Aberto.",
-                FlashStatus::Error,
-            );
-            return Redirect::to(&flash_url).into_response();
         }
-        },
         Err(err) => {
             let flash_url = helpers::create_flash_url(
                 &format!("/chamado/chamado"),

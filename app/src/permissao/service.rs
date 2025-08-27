@@ -300,6 +300,43 @@ impl UserService {
         Ok(self.repo.delete(pool, id).await?)
     }
 
+    /*
+       verifica se usuario tem permissao
+    */
+    pub async fn have_permission(user: &User, permission: String, db: &PgPool) -> bool {
+        // Verifica se o usuário é um superusuário
+        if user.is_superuser {
+            return true;
+        }
+
+        //pegar todas as permissões pelos perfies do usuario.
+        let list_permissao = match UserRolesService::get_user_permissions(&db, user.id).await {
+            Ok(permissions) => permissions,
+            Err(_) => return false, // Em caso de erro, nega acesso
+        };
+
+        for perm in list_permissao {
+            // Se tiver permissão de admin, liberar tudo
+            if permission.eq_ignore_ascii_case(&perm) {
+            } else {
+                continue;
+            }
+        }
+
+        false
+    }
+
+    /*
+    retorna todas as permissões de um usuário
+    */
+    pub async fn get_user_permissions(db: &PgPool, user_id: i64) -> Vec<String> {
+        let list_permissao = match UserRolesService::get_user_permissions(&db, user_id).await {
+            Ok(permissions) => permissions,
+            Err(_) => return vec![],
+        };
+        list_permissao
+    }
+
     pub async fn get_paginated(
         &self,
         pool: &PgPool,
@@ -493,9 +530,9 @@ impl UserRolesService {
     }
 
     /*
-     lista de permissões do usuário.
-     somente o nome
-     */
+    lista de permissões do usuário.
+    somente o nome
+    */
     pub async fn get_user_permissions(pool: &PgPool, user_id: i64) -> Result<Vec<String>> {
         let permissions = sqlx::query!(
             r#"

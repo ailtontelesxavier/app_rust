@@ -58,6 +58,7 @@
                         <tr>
                             <th>ID</th>
                             <th>Nome</th>
+                            <th>Status</th>
                             <th class="text-center">Ações</th>
                         </tr>
                     </thead>
@@ -66,8 +67,17 @@
                         <tr class="hover">
                             <td class="font-mono text-sm">{{ row.id }}</td>
                             <td class="font-medium">{{ row.titulo }}</td>
+                            <td class="font-medium">{{ row.status|status_label }}</td>
                             <td class="text-center">
                                 <div class="flex justify-center gap-2">
+                                    {% if is_atender%}
+                                    <button type="button" class="btn btn-sm atenderRowButton text-primary-foreground shadow hover:bg-emerald-300" 
+                                        data-id="{{ row.id }}"
+                                        title="Atender"
+                                    >
+                                        {{play()}}
+                                    </button>
+                                    {% endif %}
                                     <button 
                                         class="btn btn-sm btn-primary updateRowButton" 
                                         data-id="{{ row.id }}"
