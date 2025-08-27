@@ -392,7 +392,7 @@ impl ChamadoService {
         status: i32,
     ) -> Result<Chamado> {
         // valida status
-        StatusChamado::try_from(status); 
+        let _ = StatusChamado::try_from(status); 
 
         Ok(sqlx::query_as!(
             Chamado,

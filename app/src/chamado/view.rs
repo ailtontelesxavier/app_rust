@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use anyhow::Error;
 use tokio::fs;
 
 use axum::{
@@ -1334,7 +1335,7 @@ pub async fn inicia_atendimento_chamado(
 
     let flash_url = helpers::create_flash_url(
         &format!("/chamado/chamado-atendimento/{}", atendimento.id),
-        None,
+        "Iniciado com sucesso",
         FlashStatus::Success,
     );
     Redirect::to(&flash_url).into_response()
@@ -1345,25 +1346,60 @@ pub async fn inicia_atendimento_chamado(
 pub async fn get_atendimento_chamado(
     State(state): State<SharedState>,
     Query(params): Query<HashMap<String, String>>,
-    Path(chamado_id): Path<i64>,
+    Path(atendimento_id): Path<i64>,
 ) -> Result<Html<String>, impl IntoResponse> {
-
-    let service_chamado = ChamadoService::new();
     let service_atendimento = GerenciamentoChamadoService::new();
 
+    // Extrair mensagens flash dos parâmetros da query
+    let flash_message = params
+        .get("msg")
+        .map(|msg| urlencoding::decode(msg).unwrap_or_default().to_string());
+
+    let flash_status = params.get("status").and_then(|s| match s.as_str() {
+        "success" => Some("success"),
+        "error" => Some("error"),
+        _ => None,
+    });
+
+    // Carregar o template
+    let template = match state.templates.get_template("chamado/atendimento_chamado.html") {
+        Ok(t) => t,
+        Err(err) => {
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Falha ao carregar template: {}", err),
+            )
+                .into_response());
+        }
+    };
+
     
-    let chamado = if let Ok(chamado) = service_chamado.get_by_id(&state.db, chamado_id).await {
-        chamado
-        } else {
+    let atendimento = match service_atendimento.get_by_id(&state.db, atendimento_id).await {
+        Ok(atendimento) => atendimento,
+        Err(e) => {
             let flash_url = helpers::create_flash_url(
                 "/chamado/chamado",
-                &format!("Chamado não encontrado: {}", chamado_id),
+                &format!("Chamado não encontrado: {}", e),
                 FlashStatus::Error,
             );
-            return Redirect::to(&flash_url).into_response();
-        };
-    
-    // busca se ja em atendimento
-    let atendimento = service_atendimento.get_by_chamado_id(&state.db, chamado_id).await.unwrap();
+            return Err(Redirect::to(&flash_url).into_response());
+        }
+    };
+     // Preparar o contexto
+    let ctx = context! {
+        row => atendimento,
+        flash_message => flash_message,
+        flash_status => flash_status,
+    };
+
+     // Renderizar o template
+    match template.render(&ctx) {
+        Ok(html) => Ok(Html(html)),
+        Err(err) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Falha ao renderizar template: {}", err),
+        )
+            .into_response()),
+    }
 
 }
