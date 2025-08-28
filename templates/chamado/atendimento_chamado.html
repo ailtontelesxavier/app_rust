@@ -7,6 +7,8 @@
 <div class="card w-full max-w-3xl shadow-lg bg-base-100">
     <div class="card-body">
         <h2 class="card-title">Atendimento Chamado</h2>
+        {# Exibir mensagem flash se existir #}
+        {% include 'parts/flash_message.html' %}
 
         <form id="form_chamado" class="space-y-4" method="POST" action="{% if row %}/chamado/chamado-form/{{row.id}}{% else %}/chamado/chamado-form{% endif %}"
         >
