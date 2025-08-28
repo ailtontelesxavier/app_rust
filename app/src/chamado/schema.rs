@@ -69,9 +69,8 @@ pub struct CreateGerenciamentoChamado {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UpdateGerenciamentoChamado {
-    pub descricao: Option<String>,
-    pub categoria_id: Option<i64>,
-    pub chamado_id: Option<i64>,
-    pub user_atend_id: Option<i64>,
-    pub observacao_chamado: Option<String>,
+    pub descricao: Option<String>, //descriçao interna
+    pub status: i32,               //status para alterar no chamado
+    pub categoria_id: i64,
+    pub observacao_chamado: Option<String>, //observaçao para o usuario do chamado
 }

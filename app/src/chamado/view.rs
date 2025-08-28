@@ -18,11 +18,14 @@ use uuid::Uuid;
 
 use crate::{
     chamado::{
-        model::{CategoriaChamado, ServicoChamado, StatusChamado, TipoChamado},
+        model::{
+            CategoriaChamado, GerenciamentoChamado, ServicoChamado, StatusChamado, TipoChamado,
+        },
         schema::{
             CreateCategoriaChamadoSchema, CreateChamado, CreateGerenciamentoChamado,
             CreateServicoChamadoSchema, CreateTipoChamadoSchema, UpdateCategoriaChamadoSchema,
-            UpdateChamado, UpdateServicoChamadoSchema, UpdateTipoChamadoSchema,
+            UpdateChamado, UpdateGerenciamentoChamado, UpdateServicoChamadoSchema,
+            UpdateTipoChamadoSchema,
         },
         service::{
             CategoriaService, ChamadoService, GerenciamentoChamadoService, ServicoService,
@@ -567,7 +570,6 @@ pub async fn delete_categoria(
         }
     }
 }
-
 
 pub async fn categoria_list_api(
     Query(q): Query<PaginationQuery>,
@@ -1378,6 +1380,8 @@ pub async fn get_atendimento_chamado(
     let service_chamado = ChamadoService::new();
     let service_user = UserService::new();
     let service_categoria = CategoriaService::new();
+    let service_tipo = TipoChamadoService::new();
+    let service_servico = ServicoService::new();
 
     let mut categoria: Option<CategoriaChamado> = None;
 
@@ -1441,12 +1445,24 @@ pub async fn get_atendimento_chamado(
         );
     }
 
+    let tipo = service_tipo
+        .get_by_id(&state.db, chamado.tipo_id)
+        .await
+        .unwrap();
+
+    let servico = service_servico
+        .get_by_id(&state.db, chamado.servico_id)
+        .await
+        .unwrap();
+
     // Preparar o contexto
     let ctx = context! {
         row => atendimento,
         chamado => chamado,
         user_atendimento => user_atendimento,
         categoria => categoria,
+        tipo => tipo,
+        servico => servico,
         status_options => StatusChamado::status_options(),
         flash_message => flash_message,
         flash_status => flash_status,
@@ -1460,5 +1476,57 @@ pub async fn get_atendimento_chamado(
             format!("Falha ao renderizar template: {}", err),
         )
             .into_response()),
+    }
+}
+
+/*
+ atualizar atendimento do chamado
+ recebe o id do atendimento
+ * somente usuario chamado_admin
+ * (validado no router)
+*/
+pub async fn update_atendimento_chamado(
+    State(state): State<SharedState>,
+    Extension(current_user): Extension<CurrentUser>,
+    Path(atendimento_id): Path<i64>,
+    Form(input): Form<UpdateGerenciamentoChamado>,
+) -> impl IntoResponse {
+    if !current_user
+        .permissions
+        .contains(&"chamado_admin".to_string())
+        && !current_user.current_user.is_superuser
+    {
+        let flash_url = helpers::create_flash_url(
+            &format!("/chamado/chamado"),
+            &format!("Você não tem permissão para atualizar este atendimento!"),
+            FlashStatus::Error,
+        );
+        return Redirect::to(&flash_url).into_response();
+    }
+
+    let service = GerenciamentoChamadoService::new();
+
+    let atendimento = service.get_by_id(&*state.db, atendimento_id).await.unwrap();
+
+    match service
+        .update(&*state.db, atendimento_id, atendimento.chamado_id, input)
+        .await
+    {
+        Ok(_) => {
+            let flash_url = helpers::create_flash_url(
+                &format!("/chamado/chamado-atendimento/{}", atendimento.chamado_id),
+                &format!("Atendimento atualizado com sucesso!"),
+                FlashStatus::Success,
+            );
+            Redirect::to(&flash_url).into_response()
+        }
+        Err(err) => {
+            let flash_url = helpers::create_flash_url(
+                &format!("/chamado/chamado-atendimento/{}", atendimento.chamado_id),
+                &format!("Erro ao atualizar atendimento: {}", err),
+                FlashStatus::Error,
+            );
+            Redirect::to(&flash_url).into_response()
+        }
     }
 }

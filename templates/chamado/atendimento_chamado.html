@@ -10,7 +10,7 @@
         {# Exibir mensagem flash se existir #}
         {% include 'parts/flash_message.html' %}
 
-        <form id="form_chamado" class="space-y-4" method="POST"
+        <form id="form_atendimento" class="space-y-4" method="POST"
             action="{% if row %}/chamado/chamado-atendimento/{{row.id}}{% endif %}">
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-2 w-full">
@@ -19,8 +19,8 @@
                     <div class="flex flex-col min-w-full">
                         <label for="id" class="label">ID</label>
                         <input id="id" name="id" type="hidden" value="{{row.id}}" />
+                        <input id="chamado_id" name="chamado_id" type="hidden" value="{{chamado.id}}" />
                         <input type="text" value="{{row.id}}" class="input input-bordered" disabled />
-                        <input id="status" name="status" type="hidden" value="{{row.status}}" />
                     </div>
                 </div>
                 {% endif %}
@@ -51,7 +51,7 @@
                             <span class="label-text">Categoria</span>
                         </label>
                         {% set value_categoria = categoria.id if categoria else '' %}
-                        {% set title_categoria = categoria.title if categoria else '' %}
+                        {% set title_categoria = categoria.nome if categoria else '' %}
                         {{ combobox(
                             field_name="categoria_id",
                             field_label="nome", 
@@ -68,17 +68,136 @@
                 <label class="label">
                     <span class="label-text">Observação interna</span>
                 </label>
-                <textarea id="observacao" name="observacao" class="textarea min-w-full" rows="4"
-                    placeholder="Digite sua observação aqui..."></textarea>
+                <textarea id="descricao" name="descricao" class="textarea min-w-full" rows="4"
+                    placeholder="Digite sua observação aqui..." required>{{row.descricao|default("", true)}}</textarea>
             </div>
             <div class="flex flex-col mb-2">
                 <label class="label">
                     <span class="label-text">Observação para Usuario</span>
                 </label>
-                <textarea id="observacao_usuario" name="observacao_usuario" class="textarea min-w-full" rows="4"
-                    placeholder="Digite sua observação aqui..."></textarea>
+                <textarea id="observacao_chamado" name="observacao_chamado" class="textarea min-w-full" rows="4"
+                    placeholder="Digite sua observação aqui..." required>{{row.observacao_chamado|default("", true)}}</textarea>
             </div>
         </form>
+        <!-- Footer com botões -->
+        <div class="card-footer flex flex-col gap-2 p-4 md:flex-row md:justify-end">
+            <button id="btnCancelar" type="button" class="btn btn-primary w-full md:w-auto">Cancelar</button>
+            <button id="btnSubmit" type="button" class="btn btn-success w-full md:w-auto">Salvar</button>
+        </div>
+        <label for="viewer">Detalhes do Chamado</label>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-2 w-full">
+
+            <div class="flex flex-col col-span-2 md:col-span-1">
+                <label class="label">
+                    <span class="label-text">Titulo</span>
+                </label>
+                <input type="text" id="titulo" value="{{chamado.titulo}}" class="input input-bordered"
+                disabled />
+            </div>
+            <div class="flex flex-col col-span-2 md:col-span-1">
+                <label class="label">
+                    <span class="label-text">Tipo</span>
+                </label>
+                <input type="text" id="tipo" value="{{tipo.nome}}" class="input input-bordered"
+                disabled />
+            </div>
+            <div class="flex flex-col col-span-2 md:col-span-1">
+                <label class="label">
+                    <span class="label-text">Serviço</span>
+                </label>
+                <input type="text" id="servico" value="{{servico.nome}}" class="input input-bordered"
+                disabled />
+            </div>
+        </div>
+        <div class="flex flex-col mb-2">
+
+            <label for="viewer">Descrição do Chamado</label>
+            <div id="viewer" class="mt-4"></div>
+        </div>
     </div>
 </div>
 {% endblock %}
+
+{% block extra_js %}
+{# acao cancelar voltar para listagem #}
+<script>
+    document.getElementById('btnCancelar').addEventListener('click', function () {
+        window.location.href = "/chamado/chamado";
+    });
+</script>
+{# atendimento atualizar #}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+
+        // Função para lidar com o evento de submit
+        document.getElementById("btnSubmit").addEventListener("click", async function () {
+            const form = document.getElementById('form_atendimento');
+
+            if (!form.checkValidity()) {
+                showMessage("Por favor, preencha todos os campos obrigatórios.", type = 'error');
+                return;
+            }
+            showLoader();
+            form.submit();
+            hideLoader();
+        });
+
+    });
+</script>
+<script>
+    // carrega da descrição do chamado
+    let initialData = null;
+    try {
+        // eslint-disable-next-line no-console, no-unused-vars, prettier-ignore
+        initialData = {{ chamado.descricao | safe }};
+        //JSON.parse('row.descricao|safe');
+    }catch (e) {
+        console.error('Erro ao parsear dados iniciais:', e);
+        initialData = {
+            time: Date.now(),
+            blocks: [{
+                type: "paragraph",
+                data: {
+                    text: "Descrição do chamado..."
+                }
+            }],
+            version: "2.26.5"
+        };
+    };
+
+    //visulaizar
+    const container = document.getElementById('viewer');
+    initialData.blocks.forEach(block => {
+        let el;
+        switch(block.type){
+            case 'paragraph':
+            el = document.createElement('p');
+            el.innerHTML = block.data.text;
+            break;
+            case 'image':
+            el = document.createElement('img');
+            el.src = block.data.file.url;
+            el.alt = block.data.caption || '';
+            el.style.border = block.data.withBorder ? '1px solid #ccc' : 'none';
+            break;
+            case 'table':
+            el = document.createElement('table');
+            el.style.borderCollapse = 'collapse';
+            block.data.content.forEach(row => {
+                const tr = document.createElement('tr');
+                row.forEach(cell => {
+                const td = document.createElement('td');
+                td.style.border = '1px solid #ccc';
+                td.style.padding = '4px';
+                td.innerHTML = cell;
+                tr.appendChild(td);
+                });
+                el.appendChild(tr);
+            });
+            break;
+            // adicionar mais tipos se precisar
+        }
+        if(el) container.appendChild(el);
+    }); 
+</script>
+{%endblock%}

@@ -115,22 +115,19 @@ impl StatusChamado {
         ]
     }
 
-    /* 
-     para o select do html
-     */
+    /*
+    para o select do html
+    */
     pub fn status_options() -> Vec<StatusOpt> {
         StatusChamado::all()
             .into_iter()
             .map(|s| StatusOpt {
-                value: s as i32,         // valor do <option>
-                label: s.to_string(),    // usa impl Display p/ rótulo
+                value: s as i32,      // valor do <option>
+                label: s.to_string(), // usa impl Display p/ rótulo
             })
             .collect()
     }
 }
-
-
-
 
 #[derive(Debug)]
 pub struct ImagemChamado {

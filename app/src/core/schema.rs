@@ -73,8 +73,7 @@ pub struct Regiao {
     pub nome: String,
 }
 
-
-/* 
+/*
  utilizado para gerar option para o html
 */
 #[derive(serde::Serialize)]
@@ -82,4 +81,3 @@ pub struct StatusOpt {
     pub value: i32,
     pub label: String,
 }
-

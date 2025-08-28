@@ -671,9 +671,48 @@ impl GerenciamentoChamadoService {
         &self,
         pool: &PgPool,
         id: i64,
+        chamado_id: i64,
         input: UpdateGerenciamentoChamado,
     ) -> Result<GerenciamentoChamado> {
-        self.repo.update(pool, id, input).await
+        let _status = StatusChamado::try_from(input.status);
+        // abre a transação
+        let mut tx: Transaction<'_, Postgres> = pool.begin().await?;
+
+        // atualiza o status do chamado
+        let _chamado: Chamado = sqlx::query_as!(
+            Chamado,
+            r#"
+            UPDATE chamado_chamados
+            SET 
+                status = $1,
+                updated_at = NOW()
+            WHERE id = $2
+            RETURNING id, titulo, descricao, status, created_at, updated_at, user_solic_id, servico_id, tipo_id
+            "#,
+            input.status,
+            chamado_id
+        )
+        .fetch_one(&mut *tx)
+        .await?;
+
+        // insere na tabela gerenciamento
+        let query = format!(
+            "UPDATE {} SET descricao = $1, categoria_id = $2 , observacao_chamado = $3, updated_at = NOW()
+            WHERE id = $4 RETURNING * ",
+            self.repo.table_name()
+        );
+
+        let gerenciamento: GerenciamentoChamado = sqlx::query_as(&query)
+            .bind(input.descricao)
+            .bind(input.categoria_id)
+            .bind(input.observacao_chamado)
+            .bind(id)
+            .fetch_one(&mut *tx)
+            .await?;
+
+        tx.commit().await?;
+
+        Ok(gerenciamento)
     }
 
     pub async fn delete(&self, pool: &PgPool, id: i64) -> Result<()> {

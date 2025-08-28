@@ -285,8 +285,6 @@
                     // Salva os dados do EditorJS
                     const editorData = await editor.save();
 
-                    alert('aqui');
-
                     // Converte para JSON string e coloca no campo hidden
                     document.getElementById('descricao').value = JSON.stringify(editorData);
 

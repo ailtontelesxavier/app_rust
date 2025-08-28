@@ -1,18 +1,22 @@
 use axum::{
-    Router,
+    Router, middleware,
     routing::{delete, get, post},
 };
 
 use shared::SharedState;
 
-use crate::chamado::view;
+use crate::{chamado::view, middlewares};
 
 pub fn router() -> Router<SharedState> {
     Router::new()
         .merge(router_tipo())
         .merge(router_categoria())
         .merge(router_servico())
-        .merge(router_chamado())
+        .merge(
+            router_chamado().layer(middleware::from_fn(middlewares::require_roles(vec![
+                "chamado_user",
+            ]))),
+        )
         .merge(router_chamado_atendimento())
 }
 
@@ -95,10 +99,16 @@ fn router_chamado_atendimento() -> Router<SharedState> {
     Router::new()
         .route(
             "/chamado-atender/{chamado_id}",
-            get(view::inicia_atendimento_chamado),
+            get(view::inicia_atendimento_chamado).layer(middleware::from_fn(
+                middlewares::require_roles(vec!["chamado_admin"]),
+            )),
         )
         .route(
             "/chamado-atendimento/{chamado_id}",
-            get(view::get_atendimento_chamado),
+            get(view::get_atendimento_chamado)
+                .post(view::update_atendimento_chamado)
+                .layer(middleware::from_fn(middlewares::require_roles(vec![
+                    "chamado_admin",
+                ]))),
         )
 }

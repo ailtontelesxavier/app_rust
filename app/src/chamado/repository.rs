@@ -334,16 +334,8 @@ impl Repository<GerenciamentoChamado, i64> for GerenciamentoChamadoRepository {
         id: i64,
         input: Self::UpdateInput,
     ) -> Result<GerenciamentoChamado> {
-        Ok(sqlx::query_as!(
-            GerenciamentoChamado,
-            r#"UPDATE chamado_gerenciamento_chamado SET descricao = $1, categoria_id = $2, chamado_id = $3, updated_at = NOW() WHERE id = $4 RETURNING *"#,
-            input.descricao,
-            input.categoria_id,
-            input.chamado_id,
-            id
-        )
-        .fetch_one(pool)
-        .await?)
+        //nao implementado somente no service
+        todo!()
     }
 
     async fn delete(&self, pool: &PgPool, id: i64) -> Result<()> {
