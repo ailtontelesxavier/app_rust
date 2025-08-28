@@ -1334,7 +1334,7 @@ pub async fn inicia_atendimento_chamado(
 
 
     let flash_url = helpers::create_flash_url(
-        &format!("/chamado/chamado-atendimento/{}", atendimento.id),
+        &format!("/chamado/chamado-atendimento/{}", atendimento.chamado_id),
         "Iniciado com sucesso",
         FlashStatus::Success,
     );
@@ -1346,7 +1346,7 @@ pub async fn inicia_atendimento_chamado(
 pub async fn get_atendimento_chamado(
     State(state): State<SharedState>,
     Query(params): Query<HashMap<String, String>>,
-    Path(atendimento_id): Path<i64>,
+    Path(chamado_id): Path<i64>,
 ) -> Result<Html<String>, impl IntoResponse> {
     let service_atendimento = GerenciamentoChamadoService::new();
 
@@ -1374,7 +1374,7 @@ pub async fn get_atendimento_chamado(
     };
 
     
-    let atendimento = match service_atendimento.get_by_id(&state.db, atendimento_id).await {
+    let atendimento = match service_atendimento.get_by_chamado_id(&state.db, chamado_id).await {
         Ok(atendimento) => atendimento,
         Err(e) => {
             let flash_url = helpers::create_flash_url(
