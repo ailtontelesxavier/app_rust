@@ -5,6 +5,8 @@ use anyhow::anyhow;
 use serde_json::{Value, from_str};
 use shared::{PaginatedResponse, Repository};
 use sqlx::PgPool;
+use sqlx::Postgres;
+use sqlx::Transaction;
 
 use crate::chamado::model::GerenciamentoChamado;
 use crate::chamado::model::ImagemChamado;
@@ -598,12 +600,68 @@ impl GerenciamentoChamadoService {
         Ok(sqlx::query_as(&query).bind(chamado_id).fetch_one(pool).await?)
     }
 
+    /* 
+        sempre que iniciar um atendimento
+        mudar o estatus do chamado para em atendimento
+    
+     */
     pub async fn create(
         &self,
         pool: &PgPool,
         input: CreateGerenciamentoChamado,
     ) -> Result<GerenciamentoChamado> {
-        self.repo.create(pool, input).await
+
+        let status = StatusChamado::EmAtendimento.to_i32(); 
+        // abre a transação
+        let mut tx: Transaction<'_, Postgres> = pool.begin().await?;
+
+        // atualiza o status do chamado
+        let _chamado: Chamado = sqlx::query_as!(
+            Chamado,
+            r#"
+            UPDATE chamado_chamados
+            SET 
+                status = $1,
+                updated_at = NOW()
+            WHERE id = $2
+            RETURNING id, titulo, descricao, status, created_at, updated_at, user_solic_id, servico_id, tipo_id
+            "#,
+            status,
+            input.chamado_id
+        )
+        .fetch_one(&mut *tx)
+        .await?;
+
+        // insere na tabela gerenciamento
+        let query = format!(
+            "INSERT INTO {} 
+            (
+                descricao,
+                categoria_id,
+                chamado_id,
+                user_atend_id,
+                observacao_chamado,
+                created_at,
+                updated_at
+            ) VALUES (
+                $1, $2, $3, $4, $5, NOW(), NOW()
+            ) RETURNING id, descricao, categoria_id, chamado_id, user_atend_id, observacao_chamado, created_at, updated_at",
+            self.repo.table_name()
+        );
+
+        let gerenciamento: GerenciamentoChamado = sqlx::query_as(&query)
+            .bind(input.descricao)
+            .bind(input.categoria_id)
+            .bind(input.chamado_id)
+            .bind(input.user_atend_id)
+            .bind(input.observacao_chamado)
+            .fetch_one(&mut *tx)
+            .await?;
+
+        tx.commit().await?;
+
+        Ok(gerenciamento)
+
     }
 
     pub async fn update(

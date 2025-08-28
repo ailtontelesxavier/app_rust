@@ -453,3 +453,48 @@ CREATE INDEX idx_obs_interno_old ON modulo ((modulo->'obs_interno'->>'old'));
 Assim o ILIKE (ou mesmo =) fica mais rápido.
 
 👉 Quer que eu te mostre também como ficaria se você tipar modulo como uma struct Rust (ModuleTyped) com obs_interno: Change<String> (com new e old), em vez de serde_json::Value? Isso dá pra usar no query_as direto.
+
+
+===============================================================================================================================================
+
+pub async fn criar_usuario(
+    pool: PgPool,
+    Json(payload): Json<NovoUsuario>,
+) -> impl IntoResponse {
+    // inicia a transação
+    let mut tx: Transaction<'_, Postgres> = match pool.begin().await {
+        Ok(tx) => tx,
+        Err(e) => return format!("Erro iniciando transação: {}", e),
+    };
+
+    // primeira query
+    if let Err(e) = sqlx::query("INSERT INTO usuarios (nome, email) VALUES ($1, $2)")
+        .bind(&payload.nome)
+        .bind(&payload.email)
+        .execute(&mut *tx)
+        .await
+    {
+        // rollback se der erro
+        let _ = tx.rollback().await;
+        return format!("Erro na query: {}", e);
+    }
+
+    // segunda query (exemplo)
+    if let Err(e) = sqlx::query("INSERT INTO logs (mensagem) VALUES ($1)")
+        .bind(format!("Usuário {} criado", payload.nome))
+        .execute(&mut *tx)
+        .await
+    {
+        // rollback se der erro
+        let _ = tx.rollback().await;
+        return format!("Erro no log: {}", e);
+    }
+
+    // confirma transação
+    if let Err(e) = tx.commit().await {
+        return format!("Erro no commit: {}", e);
+    }
+
+    "Usuário criado com sucesso".to_string()
+}
+

@@ -1297,7 +1297,7 @@ pub async fn inicia_atendimento_chamado(
     let service_atendimento = GerenciamentoChamadoService::new();
 
 
-    let chamado = if let Ok(chamado) = service_chamado.get_by_id(&state.db, chamado_id).await {
+    let _chamado = if let Ok(chamado) = service_chamado.get_by_id(&state.db, chamado_id).await {
         chamado
         } else {
             let flash_url = helpers::create_flash_url(
