@@ -8,3 +8,4 @@ mod view;
 
 pub use handler::serve_upload;
 pub use router::router;
+pub use schema::StatusOpt;

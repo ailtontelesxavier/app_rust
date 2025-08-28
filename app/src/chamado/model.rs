@@ -1,10 +1,16 @@
+use std::sync::Arc;
+
 use anyhow::{Result, anyhow};
 use chrono::{DateTime, Utc};
+use minijinja::Error;
+use minijinja::value::{Value as minijinjaValue, ValueKind};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, from_str};
 use sqlx::FromRow;
 use sqlx::postgres::{PgTypeInfo, PgValueRef};
 use sqlx::{Decode, Encode, Postgres, Type};
+
+use crate::core::StatusOpt;
 
 #[derive(Debug, Serialize, Deserialize, FromRow)]
 pub struct TipoChamado {
@@ -88,6 +94,47 @@ impl Type<Postgres> for StatusChamado {
         <i32 as Type<Postgres>>::type_info()
     }
 }
+
+impl std::fmt::Display for StatusChamado {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let str = match self {
+            StatusChamado::Aberto => "Aberto",
+            StatusChamado::EmAtendimento => "Em Atendimento",
+            StatusChamado::Pausado => "Pausado",
+            StatusChamado::Resolvido => "Resolvido",
+            StatusChamado::Fechado => "Fechado",
+        };
+        write!(f, "{}", str)
+    }
+}
+
+impl StatusChamado {
+    pub fn all() -> Vec<Self> {
+        vec![
+            StatusChamado::Aberto,
+            StatusChamado::EmAtendimento,
+            StatusChamado::Pausado,
+            StatusChamado::Resolvido,
+            StatusChamado::Fechado,
+        ]
+    }
+
+    /* 
+     para o select do html
+     */
+    pub fn status_options() -> Vec<StatusOpt> {
+        StatusChamado::all()
+            .into_iter()
+            .map(|s| StatusOpt {
+                value: s as i32,         // valor do <option>
+                label: s.to_string(),    // usa impl Display p/ rótulo
+            })
+            .collect()
+    }
+}
+
+
+
 
 #[derive(Debug)]
 pub struct ImagemChamado {

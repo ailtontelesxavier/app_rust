@@ -10,8 +10,63 @@
         {# Exibir mensagem flash se existir #}
         {% include 'parts/flash_message.html' %}
 
-        <form id="form_chamado" class="space-y-4" method="POST" action="{% if row %}/chamado/chamado-form/{{row.id}}{% else %}/chamado/chamado-form{% endif %}"
-        >
+        <form id="form_chamado" class="space-y-4" method="POST"
+            action="{% if row %}/chamado/chamado-atendimento/{{row.id}}{% endif %}">
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-2 w-full">
+                {% if row %}
+                <div class="col-span-2 md:col-span-1">
+                    <div class="flex flex-col min-w-full">
+                        <label for="id" class="label">ID</label>
+                        <input id="id" name="id" type="hidden" value="{{row.id}}" />
+                        <input type="text" value="{{row.id}}" class="input input-bordered" disabled />
+                        <input id="status" name="status" type="hidden" value="{{row.status}}" />
+                    </div>
+                </div>
+                {% endif %}
+                <div class="flex flex-col col-span-2 md:col-span-1">
+                    <label class="label">
+                        <span class="label-text">Status</span>
+                    </label>
+                    <select name="status" id="status" class="select">
+                        
+                        {% for status in status_options %}
+                            <option value="{{ status.value }}" 
+                                    {% if status.value == chamado.status %}selected{% endif %}>
+                                {{ status.label }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="flex flex-col col-span-2 md:col-span-1">
+                    <label class="label">
+                        <span class="label-text">Usuario</span>
+                    </label>
+                    <input type="text" id="usuario" value="{{user_atendimento.full_name}}" class="input input-bordered"
+                        disabled />
+                </div>
+                <div class="flex flex-col col-span-2 md:col-span-1">
+                    <label class="label">
+                        <span class="label-text">Categoria</span>
+                    </label>
+                    <input type="text" id="usuario" value="{{user_atendimento.full_name}}" class="input input-bordered"
+                        disabled />
+                </div>
+            </div>
+            <div class="flex flex-col mb-2 ">
+                <label class="label">
+                    <span class="label-text">Observação interna</span>
+                </label>
+                <textarea id="observacao" name="observacao" class="textarea min-w-full" rows="4"
+                    placeholder="Digite sua observação aqui..."></textarea>
+            </div>
+            <div class="flex flex-col mb-2">
+                <label class="label">
+                    <span class="label-text">Observação para Usuario</span>
+                </label>
+                <textarea id="observacao_usuario" name="observacao_usuario" class="textarea min-w-full" rows="4"
+                    placeholder="Digite sua observação aqui..."></textarea>
+            </div>
         </form>
     </div>
 </div>

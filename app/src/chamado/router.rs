@@ -87,12 +87,13 @@ fn router_chamado() -> Router<SharedState> {
 }
 
 fn router_chamado_atendimento() -> Router<SharedState> {
-    Router::new().route(
-        "/chamado-atender/{chamado_id}",
-        get(view::inicia_atendimento_chamado),
-    )
-    .route(
-        "/chamado-atendimento/{chamado_id}",
-        get(view::get_atendimento_chamado),
-    )
+    Router::new()
+        .route(
+            "/chamado-atender/{chamado_id}",
+            get(view::inicia_atendimento_chamado),
+        )
+        .route(
+            "/chamado-atendimento/{chamado_id}",
+            get(view::get_atendimento_chamado),
+        )
 }

@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 use anyhow::Error;
+use std::collections::HashMap;
 use tokio::fs;
 
 use axum::{
@@ -18,14 +18,20 @@ use uuid::Uuid;
 
 use crate::{
     chamado::{
-        model::{ServicoChamado, StatusChamado, TipoChamado},
+        model::{CategoriaChamado, ServicoChamado, StatusChamado, TipoChamado},
         schema::{
-            CreateCategoriaChamadoSchema, CreateChamado, CreateGerenciamentoChamado, CreateServicoChamadoSchema, CreateTipoChamadoSchema, UpdateCategoriaChamadoSchema, UpdateChamado, UpdateServicoChamadoSchema, UpdateTipoChamadoSchema
+            CreateCategoriaChamadoSchema, CreateChamado, CreateGerenciamentoChamado,
+            CreateServicoChamadoSchema, CreateTipoChamadoSchema, UpdateCategoriaChamadoSchema,
+            UpdateChamado, UpdateServicoChamadoSchema, UpdateTipoChamadoSchema,
         },
-        service::{CategoriaService, ChamadoService, GerenciamentoChamadoService, ServicoService, TipoChamadoService},
+        service::{
+            CategoriaService, ChamadoService, GerenciamentoChamadoService, ServicoService,
+            TipoChamadoService,
+        },
         status_filter,
     },
     middlewares::CurrentUser,
+    permissao::UserService,
 };
 
 pub async fn list_tipo_chamado(
@@ -1281,7 +1287,7 @@ pub async fn delete_chamado(
 
 */
 
-/* 
+/*
 verifica se usuario tem permissão para atendimento
 se o chamado estiver em aberto inicia atendimento
 
@@ -1292,24 +1298,25 @@ pub async fn inicia_atendimento_chamado(
     Query(params): Query<HashMap<String, String>>,
     Path(chamado_id): Path<i64>,
 ) -> impl IntoResponse {
-
     let service_chamado = ChamadoService::new();
     let service_atendimento = GerenciamentoChamadoService::new();
 
-
     let _chamado = if let Ok(chamado) = service_chamado.get_by_id(&state.db, chamado_id).await {
         chamado
-        } else {
-            let flash_url = helpers::create_flash_url(
-                "/chamado/chamado",
-                &format!("Chamado não encontrado: {}", chamado_id),
-                FlashStatus::Error,
-            );
-            return Redirect::to(&flash_url).into_response();
-        };
-    
+    } else {
+        let flash_url = helpers::create_flash_url(
+            "/chamado/chamado",
+            &format!("Chamado não encontrado: {}", chamado_id),
+            FlashStatus::Error,
+        );
+        return Redirect::to(&flash_url).into_response();
+    };
+
     // busca se ja em atendimento
-    let atendimento = if let Ok(atendimento) =  service_atendimento.get_by_chamado_id(&state.db, chamado_id).await {
+    let atendimento = if let Ok(atendimento) = service_atendimento
+        .get_by_chamado_id(&state.db, chamado_id)
+        .await
+    {
         atendimento
     } else {
         let gerenciamento = CreateGerenciamentoChamado {
@@ -1332,16 +1339,13 @@ pub async fn inicia_atendimento_chamado(
         }
     };
 
-
     let flash_url = helpers::create_flash_url(
         &format!("/chamado/chamado-atendimento/{}", atendimento.chamado_id),
         "Iniciado com sucesso",
         FlashStatus::Success,
     );
     Redirect::to(&flash_url).into_response()
-
 }
-
 
 pub async fn get_atendimento_chamado(
     State(state): State<SharedState>,
@@ -1349,6 +1353,11 @@ pub async fn get_atendimento_chamado(
     Path(chamado_id): Path<i64>,
 ) -> Result<Html<String>, impl IntoResponse> {
     let service_atendimento = GerenciamentoChamadoService::new();
+    let service_chamado = ChamadoService::new();
+    let service_user = UserService::new();
+    let service_categoria = CategoriaService::new();
+
+    let mut categoria: Option<CategoriaChamado> = None;
 
     // Extrair mensagens flash dos parâmetros da query
     let flash_message = params
@@ -1362,7 +1371,10 @@ pub async fn get_atendimento_chamado(
     });
 
     // Carregar o template
-    let template = match state.templates.get_template("chamado/atendimento_chamado.html") {
+    let template = match state
+        .templates
+        .get_template("chamado/atendimento_chamado.html")
+    {
         Ok(t) => t,
         Err(err) => {
             return Err((
@@ -1373,8 +1385,10 @@ pub async fn get_atendimento_chamado(
         }
     };
 
-    
-    let atendimento = match service_atendimento.get_by_chamado_id(&state.db, chamado_id).await {
+    let atendimento = match service_atendimento
+        .get_by_chamado_id(&state.db, chamado_id)
+        .await
+    {
         Ok(atendimento) => atendimento,
         Err(e) => {
             let flash_url = helpers::create_flash_url(
@@ -1385,14 +1399,38 @@ pub async fn get_atendimento_chamado(
             return Err(Redirect::to(&flash_url).into_response());
         }
     };
-     // Preparar o contexto
+
+    let chamado = service_chamado
+        .get_by_id(&state.db, chamado_id)
+        .await
+        .unwrap();
+
+    let user_atendimento = service_user
+        .get_by_id(&state.db, atendimento.user_atend_id)
+        .await
+        .unwrap();
+
+    if !atendimento.categoria_id.is_none() {
+        categoria = Some(
+            service_categoria
+                .get_by_id(&state.db, atendimento.categoria_id.unwrap())
+                .await
+                .unwrap(),
+        );
+    }
+
+    // Preparar o contexto
     let ctx = context! {
         row => atendimento,
+        chamado => chamado,
+        user_atendimento => user_atendimento,
+        categoria => categoria,
+        status_options => StatusChamado::status_options(),
         flash_message => flash_message,
         flash_status => flash_status,
     };
 
-     // Renderizar o template
+    // Renderizar o template
     match template.render(&ctx) {
         Ok(html) => Ok(Html(html)),
         Err(err) => Err((
@@ -1401,5 +1439,4 @@ pub async fn get_atendimento_chamado(
         )
             .into_response()),
     }
-
 }

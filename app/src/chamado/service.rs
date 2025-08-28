@@ -8,12 +8,12 @@ use sqlx::PgPool;
 use sqlx::Postgres;
 use sqlx::Transaction;
 
+use crate::chamado::StatusChamado;
 use crate::chamado::model::GerenciamentoChamado;
 use crate::chamado::model::ImagemChamado;
 use crate::chamado::repository::GerenciamentoChamadoRepository;
 use crate::chamado::schema::CreateGerenciamentoChamado;
 use crate::chamado::schema::UpdateGerenciamentoChamado;
-use crate::chamado::StatusChamado;
 use crate::{
     chamado::{
         model::{CategoriaChamado, Chamado, ServicoChamado, TipoChamado},
@@ -388,13 +388,9 @@ impl ChamadoService {
         })
     }
 
-    pub async fn update_status(
-        pool: &PgPool,
-        id: i64,
-        status: i32,
-    ) -> Result<Chamado> {
+    pub async fn update_status(pool: &PgPool, id: i64, status: i32) -> Result<Chamado> {
         // valida status
-        let _ = StatusChamado::try_from(status); 
+        let _ = StatusChamado::try_from(status);
 
         Ok(sqlx::query_as!(
             Chamado,
@@ -574,7 +570,6 @@ impl ChamadoService {
     }
 }
 
-
 pub struct GerenciamentoChamadoService {
     repo: GerenciamentoChamadoRepository,
 }
@@ -590,28 +585,37 @@ impl GerenciamentoChamadoService {
         Repository::<GerenciamentoChamado, i64>::get_by_id(&self.repo, pool, id).await
     }
 
-    pub async fn get_by_chamado_id(&self, pool: &PgPool, chamado_id: i64) -> Result<GerenciamentoChamado> {
+    /*
+       obtem o atendimento do chamado pelo id do chamado
+    */
+    pub async fn get_by_chamado_id(
+        &self,
+        pool: &PgPool,
+        chamado_id: i64,
+    ) -> Result<GerenciamentoChamado> {
         let query = format!(
             "SELECT {} FROM {} WHERE chamado_id = $1 LIMIT 1",
             self.repo.select_clause(),
             self.repo.from_clause(),
         );
 
-        Ok(sqlx::query_as(&query).bind(chamado_id).fetch_one(pool).await?)
+        Ok(sqlx::query_as(&query)
+            .bind(chamado_id)
+            .fetch_one(pool)
+            .await?)
     }
 
-    /* 
-        sempre que iniciar um atendimento
-        mudar o estatus do chamado para em atendimento
-    
-     */
+    /*
+       sempre que iniciar um atendimento
+       mudar o estatus do chamado para em atendimento
+
+    */
     pub async fn create(
         &self,
         pool: &PgPool,
         input: CreateGerenciamentoChamado,
     ) -> Result<GerenciamentoChamado> {
-
-        let status = StatusChamado::EmAtendimento.to_i32(); 
+        let status = StatusChamado::EmAtendimento.to_i32();
         // abre a transação
         let mut tx: Transaction<'_, Postgres> = pool.begin().await?;
 
@@ -661,7 +665,6 @@ impl GerenciamentoChamadoService {
         tx.commit().await?;
 
         Ok(gerenciamento)
-
     }
 
     pub async fn update(
@@ -684,8 +687,9 @@ impl GerenciamentoChamadoService {
         page: i32,
         page_size: i32,
     ) -> Result<PaginatedResponse<GerenciamentoChamado>> {
-        Repository::<GerenciamentoChamado, i64>::get_paginated(&self.repo, pool, find, page, page_size)
-            .await
+        Repository::<GerenciamentoChamado, i64>::get_paginated(
+            &self.repo, pool, find, page, page_size,
+        )
+        .await
     }
-
 }

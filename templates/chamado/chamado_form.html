@@ -12,8 +12,8 @@
     <div class="card-body">
         <h2 class="card-title">Formulario de Chamado</h2>
 
-        <form id="form_chamado" class="space-y-4" method="POST" action="{% if row %}/chamado/chamado-form/{{row.id}}{% else %}/chamado/chamado-form{% endif %}"
-        >
+        <form id="form_chamado" class="space-y-4" method="POST"
+            action="{% if row %}/chamado/chamado-form/{{row.id}}{% else %}/chamado/chamado-form{% endif %}">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
                 <div class="col-span-2 md:col-span-1 min-w-full">
                     {% if row %}
@@ -33,13 +33,13 @@
                         {% set value_tipo = tipo.id if tipo else '' %}
                         {% set nome_tipo = tipo.nome if tipo else '' %}
                         {{ combobox(
-                            field_name="tipo_id",
-                            field_label="nome", 
-                            placeholder="Selecione o tipo",
-                            endpoint="/chamado/tipo-api",
-                            attrs="required",
-                            search=nome_tipo,
-                            value=value_tipo,
+                        field_name="tipo_id",
+                        field_label="nome",
+                        placeholder="Selecione o tipo",
+                        endpoint="/chamado/tipo-api",
+                        attrs="required",
+                        search=nome_tipo,
+                        value=value_tipo,
                         ) }}
                     </div>
                     <div class="flex flex-col">
@@ -49,18 +49,19 @@
                         {% set value_servico = servico.id if servico else '' %}
                         {% set nome_servico = servico.nome if servico else '' %}
                         {{ combobox(
-                            field_name="servico_id",
-                            field_label="nome", 
-                            placeholder="Selecione o serviço",
-                            endpoint="/chamado/servico-api",
-                            attrs="required",
-                            search=nome_servico,
-                            value=value_servico,
+                        field_name="servico_id",
+                        field_label="nome",
+                        placeholder="Selecione o serviço",
+                        endpoint="/chamado/servico-api",
+                        attrs="required",
+                        search=nome_servico,
+                        value=value_servico,
                         ) }}
                     </div>
                     <div class="flex flex-col">
                         <label for="titulo" class="label">Título</label>
-                        <input id="titulo" name="titulo" type="text" value="{% if row %}{{row.titulo}}{% endif %}" class="input input-bordered" required />
+                        <input id="titulo" name="titulo" type="text" value="{% if row %}{{row.titulo}}{% endif %}"
+                            class="input input-bordered" required />
                     </div>
                 </div>
                 {% if row %}
@@ -83,7 +84,8 @@
         <!-- Footer com botões -->
         <div class="card-footer flex flex-col gap-2 p-4 md:flex-row md:justify-end">
             <button id="btnCancelar" type="button" class="btn btn-primary w-full md:w-auto">Cancelar</button>
-            <button id="btnSubmit" type="button"class="btn btn-success w-full md:w-auto">Salvar{% if not row %} e editar{% endif %}</button>
+            <button id="btnSubmit" type="button" class="btn btn-success w-full md:w-auto">Salvar{% if not row %} e
+                editar{% endif %}</button>
         </div>
         {% include 'parts/flash_message.html' %}
     </div>
@@ -109,7 +111,7 @@
 <!-- Plugins extras -->
 <script src="https://cdn.jsdelivr.net/npm/editorjs-style@latest"></script>
 
-<script src="https://cdn.jsdelivr.net/npm/editorjs-inline-template@latest"></script>    
+<script src="https://cdn.jsdelivr.net/npm/editorjs-inline-template@latest"></script>
 <script src="https://cdn.jsdelivr.net/npm/editorjs-inline@latest"></script>
 
 
@@ -126,7 +128,9 @@
     let initialData = null;
     {% if row and row.descricao %}
     try {
-        initialData = {{row.descricao|safe}}; //JSON.parse('row.descricao|safe');
+        // eslint-disable-next-line no-console, no-unused-vars, prettier-ignore
+        initialData = {{ row.descricao | safe }};
+        //JSON.parse('row.descricao|safe');
     } catch (e) {
         console.error('Erro ao parsear dados iniciais:', e);
         initialData = {
@@ -139,7 +143,7 @@
             }],
             version: "2.26.5"
         };
-    }
+    };
     {% endif %}
 
     // Verifique se as classes das tools estão disponíveis
@@ -163,7 +167,7 @@
                 inlineToolbar: true,
             },
             table: {
-            class: Table,
+                class: Table,
                 inlineToolbar: true,
                 config: {
                     rows: 2,
@@ -194,7 +198,7 @@
             console.log('Conteúdo alterado');
         }
     });
-    
+
     {% endif %}
     //editor.blocks.stretchBlock(blockIndex, true); // antigo
     //const block = editor.blocks.getBlockByIndex(blockIndex);
@@ -252,7 +256,7 @@
         if(el) container.appendChild(el);
     }); */
 
-  </script>
+</script>
 
 
 {# acao cancelar voltar para listagem #}
@@ -274,7 +278,7 @@
                 showMessage("Por favor, preencha todos os campos obrigatórios.", type = 'error');
                 return;
             }
-            
+
             // Se tiver EditorJS, salve os dados antes de submeter
             if (typeof editor !== 'undefined') {
                 try {
@@ -282,10 +286,10 @@
                     const editorData = await editor.save();
 
                     alert('aqui');
-                    
+
                     // Converte para JSON string e coloca no campo hidden
                     document.getElementById('descricao').value = JSON.stringify(editorData);
-                    
+
                     // Agora submete o formulário
                     form.submit();
                 } catch (error) {

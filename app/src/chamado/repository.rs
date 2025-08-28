@@ -298,7 +298,11 @@ impl Repository<GerenciamentoChamado, i64> for GerenciamentoChamadoRepository {
         "chamado_gerenciamento_chamado m"
     }
 
-    async fn create(&self, pool: &PgPool, input: Self::CreateInput) -> Result<GerenciamentoChamado> {
+    async fn create(
+        &self,
+        pool: &PgPool,
+        input: Self::CreateInput,
+    ) -> Result<GerenciamentoChamado> {
         let query = format!(
             "INSERT INTO {} 
             (
@@ -324,7 +328,12 @@ impl Repository<GerenciamentoChamado, i64> for GerenciamentoChamadoRepository {
             .await?)
     }
 
-    async fn update(&self, pool: &PgPool, id: i64, input: Self::UpdateInput) -> Result<GerenciamentoChamado> {
+    async fn update(
+        &self,
+        pool: &PgPool,
+        id: i64,
+        input: Self::UpdateInput,
+    ) -> Result<GerenciamentoChamado> {
         Ok(sqlx::query_as!(
             GerenciamentoChamado,
             r#"UPDATE chamado_gerenciamento_chamado SET descricao = $1, categoria_id = $2, chamado_id = $3, updated_at = NOW() WHERE id = $4 RETURNING *"#,
@@ -338,9 +347,12 @@ impl Repository<GerenciamentoChamado, i64> for GerenciamentoChamadoRepository {
     }
 
     async fn delete(&self, pool: &PgPool, id: i64) -> Result<()> {
-        sqlx::query!("DELETE FROM chamado_gerenciamento_chamado WHERE id = $1", id)
-            .execute(pool)
-            .await?;
+        sqlx::query!(
+            "DELETE FROM chamado_gerenciamento_chamado WHERE id = $1",
+            id
+        )
+        .execute(pool)
+        .await?;
         Ok(())
     }
 }
