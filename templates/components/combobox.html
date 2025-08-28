@@ -38,6 +38,11 @@
             currentPage = 1;
             await fetchOptions(searchTerm, currentPage);
         });
+        document.getElementById('search_' + fieldName).addEventListener('input', async function(e) {
+            const searchTerm = e.target.value;
+            currentPage = 1;
+            await fetchOptions(searchTerm, currentPage);
+        });
 
         document.getElementById('previous-page_' + fieldName).addEventListener('click', async function() {
             if (currentPage > 1) {
