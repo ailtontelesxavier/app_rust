@@ -78,6 +78,14 @@
                                     >
                                         {{play()}}
                                     </button>
+                                    {% if is_atender%}
+                                    <button type="button" class="btn btn-sm atenderRowButton text-primary-foreground shadow hover:bg-emerald-300" 
+                                        data-id="{{ row.id }}"
+                                        title="Atender"
+                                        onclick="iniciarAtendimento('{{ row.id }}')"
+                                    >
+                                        {{book_text()}}
+                                    </button>
                                     {% endif %}
                                     <button 
                                         class="btn btn-sm btn-primary updateRowButton" 
