@@ -47,6 +47,11 @@ fn router_categoria() -> Router<SharedState> {
             get(view::get_categoria).post(view::update_categoria),
         )
         .route("/categoria/{id}", delete(view::delete_categoria))
+        .merge(api_categoria_router())
+}
+
+fn api_categoria_router() -> Router<SharedState> {
+    Router::new().route("/categoria-api", get(view::categoria_list_api))
 }
 
 fn router_servico() -> Router<SharedState> {

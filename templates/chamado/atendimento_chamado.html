@@ -46,11 +46,22 @@
                         disabled />
                 </div>
                 <div class="flex flex-col col-span-2 md:col-span-1">
-                    <label class="label">
-                        <span class="label-text">Categoria</span>
-                    </label>
-                    <input type="text" id="usuario" value="{{user_atendimento.full_name}}" class="input input-bordered"
-                        disabled />
+                    <div class="flex flex-col">
+                        <label class="label">
+                            <span class="label-text">Categoria</span>
+                        </label>
+                        {% set value_categoria = categoria.id if categoria else '' %}
+                        {% set title_categoria = categoria.title if categoria else '' %}
+                        {{ combobox(
+                            field_name="categoria_id",
+                            field_label="nome", 
+                            placeholder="Selecione a categoria",
+                            endpoint="/chamado/categoria-api",
+                            attrs="required",
+                            search=title_categoria,
+                            value=value_categoria,
+                        ) }}
+                    </div>
                 </div>
             </div>
             <div class="flex flex-col mb-2 ">

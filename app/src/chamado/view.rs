@@ -568,6 +568,28 @@ pub async fn delete_categoria(
     }
 }
 
+
+pub async fn categoria_list_api(
+    Query(q): Query<PaginationQuery>,
+    State(state): State<SharedState>,
+) -> Result<Json<PaginatedResponse<CategoriaChamado>>, StatusCode> {
+    let service = CategoriaService::new();
+    let res = service
+        .get_paginated(
+            &state.db,
+            q.find.as_deref(),
+            q.page.unwrap_or(1) as i32,
+            q.page_size.unwrap_or(10) as i32,
+        )
+        .await
+        .map_err(|err| {
+            debug!("error:{}", err);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    Ok(Json(res))
+}
+
 /*
 ==========================================
 

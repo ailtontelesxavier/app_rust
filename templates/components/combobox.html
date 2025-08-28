@@ -33,7 +33,7 @@
         let currentPage = 1;
         let totalPages = 0;
         
-        document.getElementById('search_' + fieldName).addEventListener('input', async function(e) {
+        document.getElementById('search_' + fieldName).addEventListener('click', async function(e) {
             const searchTerm = e.target.value;
             currentPage = 1;
             await fetchOptions(searchTerm, currentPage);
@@ -66,7 +66,9 @@
 
         async function fetchOptions(searchTerm, page) {
             try {
+                showLoader();
                 const response = await axios.get(`{{ endpoint|safe }}?find=${searchTerm}&page=${page}`);
+                hideLoader();
                 const data = response.data;
                 const dropdown = document.getElementById('dropdown_' + fieldName);
                 const ul = dropdown.querySelector('ul');
@@ -98,6 +100,7 @@
                     dropdown.classList.add('hidden');
                 }
             } catch (error) {
+                hideLoader();
                 console.error("Erro ao buscar opções!", error);
             }
         }
