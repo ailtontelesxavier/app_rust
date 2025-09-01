@@ -7,10 +7,6 @@ use serde::*;
 use serde_json::Value;
 use serde_json;
 
-
-
-
-
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct Linha {
     pub id: i32,
@@ -18,6 +14,7 @@ pub struct Linha {
     pub permite_cnpj: bool,
     pub permite_cpf: bool,
     pub permite_avalista: bool,
+    pub valor_maximo: BigDecimal,
 }
 /* 
 
@@ -26,6 +23,7 @@ pub struct Linha {
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct Contato {
     pub id: Uuid,
+    pub linha_id: i32,
     pub protocolo: String,
     pub status_atendimento: bool,
     pub cpf_cnpj: String,
