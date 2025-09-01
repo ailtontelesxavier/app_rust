@@ -62,6 +62,9 @@ anyhow = "1.0"
 percent-encoding = "2.3"
 urlencoding = "2.1"
 
+# numeros
+bigdecimal = { version = "0.4", features = [ "serde-json" ] }
+
 # QR code and image processing
 qrcode = "0.14"
 image = "0.25"

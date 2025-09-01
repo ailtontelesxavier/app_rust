@@ -1,0 +1,168 @@
+///JavaScript
+//Código JavaScript para validação do CNPJ Alfanumérico
+class CNPJ {
+
+  static tamanhoCNPJSemDV = 12;
+  static regexCNPJSemDV = /^([A-Z\d]){12}$/;
+  static regexCNPJ = /^([A-Z\d]){12}(\d){2}$/;
+  static regexCaracteresMascara = /[./-]/g;
+  static regexCaracteresNaoPermitidos = /[^A-Z\d./-]/i;
+  static valorBase = "0".charCodeAt(0);
+  static pesosDV = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+  static cnpjZerado = "00000000000000";
+
+  static isValid(cnpj) {
+    if (!this.regexCaracteresNaoPermitidos.test(cnpj)) {
+      let cnpjSemMascara = this.removeMascaraCNPJ(cnpj);
+      if (this.regexCNPJ.test(cnpjSemMascara) && cnpjSemMascara !== this.cnpjZerado) {
+        const dvInformado = cnpjSemMascara.substring(this.tamanhoCNPJSemDV);
+        const dvCalculado = this.calculaDV(cnpjSemMascara.substring(0, this.tamanhoCNPJSemDV));
+        return dvInformado === dvCalculado;
+      }
+    }
+    return false;
+  }
+
+  static calculaDV(cnpj) {
+    if (!this.regexCaracteresNaoPermitidos.test(cnpj)) {
+      let cnpjSemMascara = this.removeMascaraCNPJ(cnpj);
+      if (this.regexCNPJSemDV.test(cnpjSemMascara) && cnpjSemMascara !== this.cnpjZerado.substring(0, this.tamanhoCNPJSemDV)) {
+        let somatorioDV1 = 0;
+        let somatorioDV2 = 0;
+        for (let i = 0; i < this.tamanhoCNPJSemDV; i++) {
+          const asciiDigito = cnpjSemMascara.charCodeAt(i) - this.valorBase;
+          somatorioDV1 += asciiDigito * this.pesosDV[i + 1];
+          somatorioDV2 += asciiDigito * this.pesosDV[i];
+        }
+        const dv1 = somatorioDV1 % 11 < 2 ? 0 : 11 - (somatorioDV1 % 11);
+        somatorioDV2 += dv1 * this.pesosDV[this.tamanhoCNPJSemDV];
+        const dv2 = somatorioDV2 % 11 < 2 ? 0 : 11 - (somatorioDV2 % 11);
+        return `${dv1}${dv2}`;
+      }
+    }
+    throw new Error("Não é possível calcular o DV pois o CNPJ fornecido é inválido");
+  }
+
+  static removeMascaraCNPJ(cnpj) {
+      return cnpj.replace(this.regexCaracteresMascara, "");
+  }
+
+}
+
+==============================================================
+use regex::Regex;
+
+pub struct CNPJ;
+
+impl CNPJ {
+    const TAMANHO_CNPJ_SEM_DV: usize = 12;
+    const CNPJ_ZERADO: &'static str = "00000000000000";
+    const VALOR_BASE: u32 = b'0' as u32;
+    const PESOS_DV: [u32; 13] = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+
+    fn regex_cnpj() -> &'static Regex {
+        static RE: once_cell::sync::Lazy<Regex> =
+            once_cell::sync::Lazy::new(|| Regex::new(r"^([A-Z\d]){12}(\d){2}$").unwrap());
+        &RE
+    }
+
+    fn regex_cnpj_sem_dv() -> &'static Regex {
+        static RE: once_cell::sync::Lazy<Regex> =
+            once_cell::sync::Lazy::new(|| Regex::new(r"^([A-Z\d]){12}$").unwrap());
+        &RE
+    }
+
+    fn regex_caracteres_mascara() -> &'static Regex {
+        static RE: once_cell::sync::Lazy<Regex> =
+            once_cell::sync::Lazy::new(|| Regex::new(r"[./-]").unwrap());
+        &RE
+    }
+
+    fn regex_caracteres_nao_permitidos() -> &'static Regex {
+        static RE: once_cell::sync::Lazy<Regex> =
+            once_cell::sync::Lazy::new(|| Regex::new(r"[^A-Z\d./-]").unwrap());
+        &RE
+    }
+
+    pub fn is_valid(cnpj: &str) -> bool {
+        if !Self::regex_caracteres_nao_permitidos().is_match(cnpj) {
+            let cnpj_sem_mascara = Self::remove_mascara_cnpj(cnpj);
+            if Self::regex_cnpj().is_match(&cnpj_sem_mascara)
+                && cnpj_sem_mascara != Self::CNPJ_ZERADO
+            {
+                let dv_informado = &cnpj_sem_mascara[Self::TAMANHO_CNPJ_SEM_DV..];
+                if let Ok(dv_calculado) =
+                    Self::calcula_dv(&cnpj_sem_mascara[..Self::TAMANHO_CNPJ_SEM_DV])
+                {
+                    return dv_informado == dv_calculado;
+                }
+            }
+        }
+        false
+    }
+
+    pub fn calcula_dv(cnpj: &str) -> Result<String, &'static str> {
+        if !Self::regex_caracteres_nao_permitidos().is_match(cnpj) {
+            let cnpj_sem_mascara = Self::remove_mascara_cnpj(cnpj);
+            if Self::regex_cnpj_sem_dv().is_match(&cnpj_sem_mascara)
+                && cnpj_sem_mascara
+                    != &Self::CNPJ_ZERADO[..Self::TAMANHO_CNPJ_SEM_DV]
+            {
+                let mut somatorio_dv1 = 0;
+                let mut somatorio_dv2 = 0;
+
+                for (i, ch) in cnpj_sem_mascara.chars().enumerate() {
+                    let ascii_digito = ch as u32 - Self::VALOR_BASE;
+                    somatorio_dv1 += ascii_digito * Self::PESOS_DV[i + 1];
+                    somatorio_dv2 += ascii_digito * Self::PESOS_DV[i];
+                }
+
+                let dv1 = if somatorio_dv1 % 11 < 2 {
+                    0
+                } else {
+                    11 - (somatorio_dv1 % 11)
+                };
+
+                somatorio_dv2 += dv1 * Self::PESOS_DV[Self::TAMANHO_CNPJ_SEM_DV];
+                let dv2 = if somatorio_dv2 % 11 < 2 {
+                    0
+                } else {
+                    11 - (somatorio_dv2 % 11)
+                };
+
+                return Ok(format!("{}{}", dv1, dv2));
+            }
+        }
+        Err("Não é possível calcular o DV pois o CNPJ fornecido é inválido")
+    }
+
+    fn remove_mascara_cnpj(cnpj: &str) -> String {
+        Self::regex_caracteres_mascara().replace_all(cnpj, "").to_string()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_valid_cnpjs() {
+        assert!(CNPJ::is_valid("04.252.011/0001-10"));
+        assert!(CNPJ::is_valid("04252011000110"));
+    }
+
+    #[test]
+    fn test_invalid_cnpjs() {
+        assert!(!CNPJ::is_valid("00000000000000"));
+        assert!(!CNPJ::is_valid("04.252.011/0001-11")); // dv errado
+        assert!(!CNPJ::is_valid("AB.252.011/0001-10")); // letra inválida
+    }
+}
+🔑 Observações:
+Usei once_cell::sync::Lazy para inicializar os regex de forma estática (sem recriar a cada chamada).
+
+O método is_valid retorna true/false.
+
+O método calcula_dv retorna Result<String, &str> para refletir o throw do JS.
+
+Os testes cobrem casos válidos e inválidos.
