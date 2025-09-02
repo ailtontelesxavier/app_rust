@@ -1,17 +1,18 @@
 {% include "components/icons_svg.html"%}
 <!DOCTYPE html>
 <html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>teste</title>
 
-    <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    
-    <link href="https://cdn.jsdelivr.net/npm/daisyui@5/themes.css" rel="stylesheet" type="text/css" />
-    
-    <!-- Load Tailwind CSS via CDN (production approach)
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>teste</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@5/themes.css" rel="stylesheet" type="text/css" />
+
+  <!-- Load Tailwind CSS via CDN (production approach)
     <script src="https://cdn.tailwindcss.com"></script>
     <script type="module">
         tailwind.config = {
@@ -23,31 +24,32 @@
     </script>
     -->
 
-    <!--
+  <!--
     <link rel="shortcut icon" href="/static/img/favicon.png" type="image/png" />
     -->
 
-    {# modal flowbite #}
-    <script src="https://cdn.jsdelivr.net/npm/flowbite@3.0.0/dist/flowbite.min.js"></script>
+  {# modal flowbite #}
+  <script src="https://cdn.jsdelivr.net/npm/flowbite@3.0.0/dist/flowbite.min.js"></script>
 
-    <!-- <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script> -->
-     <script src="/static/js/jquery-3.7.1.min.js"></script>
-    <script defer src="/static/js/jquery.blockUI.js"></script>
+  <!-- <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script> -->
+  <script src="/static/js/jquery-3.7.1.min.js"></script>
+  <script defer src="/static/js/jquery.blockUI.js"></script>
 
 
-    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
-    <title>{% block title %}{%endblock%}</title>
-    {% block extra_css %}{% endblock %}
+  <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+  <title>{% block title %}{%endblock%}</title>
+  {% block extra_css %}{% endblock %}
 
-    {% block head %}{% endblock %}
+  {% block head %}{% endblock %}
 
 </head>
+
 <body>
-<!--Load-->
+  <!--Load-->
   <div id="loader" class="hidden fixed inset-0 flex items-center justify-center bg-transparent z-50">
     <div class="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
   </div>
-  
+
   {% block body %}{% endblock %}
 
 
@@ -62,14 +64,16 @@
     //$.blockUI.defaults.baseZ = 9999;
     //$.blockUI.apply();
     function showLoader() {
-        //document.getElementById("loader").classList.remove("d-none");
-        //$.blockUI();
-        $.blockUI({ message: "<img style='max-width:350px; width: 100%;' src='/static/img/loading.gif' />",
-       style: "border: none;"});
+      //document.getElementById("loader").classList.remove("d-none");
+      //$.blockUI();
+      $.blockUI({
+        message: "<img style='max-width:350px; width: 100%;' src='/static/img/loading.gif' />",
+        style: "border: none;"
+      });
     }
     function hideLoader() {
-        //document.getElementById("loader").classList.add("d-none");
-        $.unblockUI();
+      //document.getElementById("loader").classList.add("d-none");
+      $.unblockUI();
     }
     /* function showLoader() {
         document.getElementById("loader").classList.remove("hidden");
@@ -103,23 +107,27 @@
     function showMessage(text, type = 'success') {
 
       if (type === "error") {
-        $.blockUI({ message: `
+        $.blockUI({
+          message: `
           <div class="">
             <span class="alert">
               <span class='text-red-800' style='max-width:350px; width: 100%;' >${text}</span>
               <span id="closeMessage" onclick="$.unblockUI()" class="ml-1 hover:cursor-pointer text-xs font-bold">✖</span>
             </span>
           </div>`,
-        style: "border: none;"});
+          style: "border: none;"
+        });
       } else {
-        $.blockUI({ message: `
+        $.blockUI({
+          message: `
           <div class="">
             <span class="alert">
               <span class='text-green-800' style='max-width:350px; width: 100%;' >${text}</span>
               <span id="closeMessage" onclick="$.unblockUI()" class="ml-1 hover:cursor-pointer text-xs font-bold">✖</span>
             </span>
           </div>`,
-        style: "border: none;"});
+          style: "border: none;"
+        });
       }
 
       // Ocultar automaticamente após 5 segundos
@@ -160,28 +168,87 @@
     }
   </script>
 
-    <!-- Axios -->
-    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-    
-    {% block extra_js %}{% endblock %}
-
-    <style>
-      .alert {
-          @apply rounded-lg p-4 mb-4;
+  {# aplicar mascar de dinheiro #}
+  <script>
+    function formatarMoedaBRL(valor) {
+      valor = valor.replace(/\D/g, ""); // remove tudo que não for número
+      if (valor === "") {
+        return "0,00";
       }
+      valor = (parseInt(valor, 10) / 100).toFixed(2); // divide por 100 e fixa 2 casas
+      return valor
+        .replace(".", ",") // troca ponto por vírgula (centavos)
+        .replace(/\B(?=(\d{3})+(?!\d))/g, "."); // separador de milhar
+    }
 
-      .alert-success {
-          @apply bg-green-100 border border-green-400 text-green-700;
-      }
+    // Aplica a máscara para todos os inputs com a classe "moeda-br"
+    document.querySelectorAll(".moeda-br").forEach(function (input) {
+      input.addEventListener("input", function (e) {
+        const cursor = e.target.selectionStart;
+        const antes = e.target.value.length;
+        e.target.value = formatarMoedaBRL(e.target.value);
+        const depois = e.target.value.length;
+        e.target.setSelectionRange(
+          cursor + (depois - antes),
+          cursor + (depois - antes)
+        );
+      });
+    });
 
-      .alert-error {
-          @apply bg-red-100 border border-red-400 text-red-700;
-      }
+    //{#aplica a máscara de moeda BRL quando o DOM estiver completamente carregado#}
+    function aplicarMascaraMoedaBRL() {
+      document.querySelectorAll(".moeda-br").forEach(function (input) {
+        if (input.dataset.masked === "true") return; // evita adicionar duplicado
 
-      .alert-info {
-          @apply bg-blue-100 border border-blue-400 text-blue-700;
-      }
-      </style>
-  
-  </body>
+        // Formata valor inicial se existir
+        if (input.value) {
+          input.value = formatarMoedaBRL(input.value);
+        }
+
+        input.addEventListener("input", function (e) {
+          const cursor = e.target.selectionStart;
+          const antes = e.target.value.length;
+
+          e.target.value = formatarMoedaBRL(e.target.value);
+
+          const depois = e.target.value.length;
+          e.target.setSelectionRange(
+            cursor + (depois - antes),
+            cursor + (depois - antes)
+          );
+        });
+
+        input.dataset.masked = "true"; // marca como já processado
+      });
+    }
+
+    // Executa a função quando o DOM estiver pronto
+    document.addEventListener("DOMContentLoaded", aplicarMascaraMoedaBRL);
+  </script>
+
+  <!-- Axios -->
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+  {% block extra_js %}{% endblock %}
+
+  <style>
+    .alert {
+      @apply rounded-lg p-4 mb-4;
+    }
+
+    .alert-success {
+      @apply bg-green-100 border border-green-400 text-green-700;
+    }
+
+    .alert-error {
+      @apply bg-red-100 border border-red-400 text-red-700;
+    }
+
+    .alert-info {
+      @apply bg-blue-100 border border-blue-400 text-blue-700;
+    }
+  </style>
+
+</body>
+
 </html>
