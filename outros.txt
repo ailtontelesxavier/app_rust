@@ -1,3 +1,25 @@
+Passo 2 – Ativar organização de imports
+
+No VS Code, abra o settings.json (Ctrl+Shift+P → "Preferences: Open Settings (JSON)") e adicione:
+
+{
+  // Format ao salvar
+  "[rust]": {
+    "editor.defaultFormatter": "rust-lang.rust-analyzer",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": true
+    }
+  },
+
+  // Configuração extra do rust-analyzer
+  "rust-analyzer.imports.granularity.group": "crate",
+  "rust-analyzer.imports.prefix": "crate",
+  "rust-analyzer.imports.group.enable": true
+}
+
+
+=======================================================
 ChatGPT said:
 
 Boa pergunta 👌.

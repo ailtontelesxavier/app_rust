@@ -18,9 +18,8 @@ use uuid::Uuid;
 
 use crate::{
     chamado::{
-        model::{
-            CategoriaChamado, GerenciamentoChamado, ServicoChamado, StatusChamado, TipoChamado,
-        },
+        StatusChamado,
+        model::{CategoriaChamado, ServicoChamado, TipoChamado},
         schema::{
             CreateCategoriaChamadoSchema, CreateChamado, CreateGerenciamentoChamado,
             CreateServicoChamadoSchema, CreateTipoChamadoSchema, UpdateCategoriaChamadoSchema,
@@ -31,7 +30,6 @@ use crate::{
             CategoriaService, ChamadoService, GerenciamentoChamadoService, ServicoService,
             TipoChamadoService,
         },
-        status_filter,
     },
     middlewares::CurrentUser,
     permissao::UserService,

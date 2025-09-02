@@ -73,8 +73,6 @@ pub struct Regiao {
     pub nome: String,
 }
 
-
-
 /*
  utilizado para gerar option para o html
 */

@@ -1,5 +1,6 @@
 mod chamado;
 mod core;
+mod externo;
 mod filters;
 mod middlewares;
 mod permissao;
@@ -35,6 +36,7 @@ use sqlx::postgres::PgPoolOptions;
 
 use chamado::router as router_chamado;
 use core::router as router_core;
+use externo::router as router_externo;
 use permissao::router as router_permissao;
 use shared::{AppState, FlashStatus, MessageResponse, SharedState, helpers};
 
@@ -119,6 +121,7 @@ async fn main() {
         .nest("/permissao", router_permissao())
         .nest("/chamado", router_chamado())
         .nest("/core", router_core())
+        .nest("/externo", router_externo())
         .layer(middleware::from_fn_with_state(
             state.clone(),
             middlewares::autenticar,

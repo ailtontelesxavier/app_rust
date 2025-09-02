@@ -1,0 +1,139 @@
+{% extends 'principal.html' %}
+{% include "components/icons_svg.html"%}
+
+{% block title %}Lista de linhas{% endblock %}
+
+{% block main %}
+<div class="container mx-auto p-4">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold">Lista de linhas</h1>
+        <button id="btnNovo" class="btn btn-primary">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+            </svg>
+            Nova Linha
+        </button>
+    </div>
+
+    {# Exibir mensagem flash se existir #}
+    {% include 'parts/flash_message.html' %}
+
+    <!-- Formulário de busca -->
+    <div class="card bg-base-100 shadow-xl mb-6">
+        <div class="card-body">
+            <form method="GET" class="flex gap-4 items-end">
+                <div class="form-control flex-1">
+                    <label class="label" for="find">
+                        <span class="label-text">Buscar linhas</span>
+                    </label>
+                    <div class="relative">
+                        <input 
+                            type="text" 
+                            name="find" 
+                            id="find" 
+                            placeholder="Digite o nome do tipo..." 
+                            class="input input-bordered w-full pr-10" 
+                            value="{{ find or '' }}"
+                        >
+                        <button type="submit" class="absolute inset-y-0 right-0 flex items-center pr-3">
+                            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <input type="hidden" name="page" value="1">
+                <button type="button" onclick="clearSearch()" class="btn btn-ghost">Limpar</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tabela -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body p-0">
+            {% if rows and rows|length > 0 %}
+            <!-- Tabela para telas grandes -->
+            <div class="hidden lg:block overflow-x-auto">
+                <table class="table table-zebra w-full">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nome</th>
+                            <th>Permite CNPJ</th>
+                            <th>Permite CPF</th>
+                            <th>Permite Avalista</th>
+                            <th>Valor Maximo</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in rows %}
+                        <tr class="hover">
+                            <td class="font-mono text-sm">{{ row.id }}</td>
+                            <td class="font-medium">{{ row.nome }}</td>
+                            <td class="font-medium">{{ row.permite_cnpj }}</td>
+                            <td class="font-medium">{{ row.permite_cpf }}</td>
+                            <td class="font-medium">{{ row.permite_avalista }}</td>
+                            <td class="font-medium">{{ row.valor_maximo }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Cards para telas pequenas -->
+            <div class="lg:hidden p-4">
+                {% for row in rows %}
+                <div class="card bg-base-200 shadow-sm mb-4">
+                    <div class="card-body p-4">
+                        <div class="flex justify-between items-start">
+                            <div class="flex-1">
+                                <h3 class="card-title text-lg">{{ row.nome }}</h3>
+                                <p class="text-sm text-gray-600">ID: {{ row.id }}</p>
+                                <p class="text-sm text-gray-600">Permite CNPJ: {{ row.permite_cnpj }}</p>
+                                <p class="text-sm text-gray-600">Permite CPF: {{ row.permite_cpf }}</p>
+                                <p class="text-sm text-gray-600">Permite Avalista: {{ row.permite_avalista }}</p>
+                                <p class="text-sm text-gray-600">Valor Maximo: {{ row.valor_maximo }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            {% else %}
+            <!-- Estado vazio -->
+            <div class="flex flex-col items-center justify-center py-12">
+                {{ heroicons() }}
+                <h3 class="text-lg font-medium text-gray-900 mb-2">Nenhuma cidade encontrada</h3>
+                <p class="text-gray-500 text-center mb-4">
+                    {% if find %}
+                        Não encontramos cidades que correspondam à sua busca por "{{ find }}".
+                    {% endif %}
+                </p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Paginação -->
+    {% include 'parts/paginacao.html' %}
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Auto-submit do formulário de busca quando Enter é pressionado
+    document.getElementById('find').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            this.form.submit();
+        }
+    });
+
+    // Adicionar novo 
+    document.getElementById('btnNovo').addEventListener('click', function() {
+        window.location.href = '/externo/linha-form';
+    });
+    
+</script>
+{% endblock %}

@@ -47,7 +47,7 @@ impl StatusCivil {
     }
 }
 
-/* 
+/*
     MEI = 1, "MEI"
     ME = 2, "ME"
     AUTONOMO_PROFISSIONAL_LIBERAL = 3, "Autônomo/Profissional Liberal"
@@ -73,14 +73,14 @@ impl std::fmt::Display for PorteEmpresaEnum {
     }
 }
 
-
 impl PorteEmpresaEnum {
     pub fn from_i32(value: i32) -> Self {
         match value {
             1 => PorteEmpresaEnum::MEI,
             2 => PorteEmpresaEnum::ME,
-            3 => PorteEmpresaEnum::AUTONOMO_PROFISSIONAL_LIBERAL,
+            //3 => PorteEmpresaEnum::AUTONOMO_PROFISSIONAL_LIBERAL,
             4 => PorteEmpresaEnum::OUTROS,
+            _ => PorteEmpresaEnum::OUTROS,
         }
     }
 
@@ -106,12 +106,12 @@ impl std::fmt::Display for TipoContaEnum {
     }
 }
 
-
 impl TipoContaEnum {
     pub fn from_i32(value: i32) -> Self {
         match value {
             1 => TipoContaEnum::Fisica,
             2 => TipoContaEnum::Juridica,
+            _ => TipoContaEnum::Fisica,
         }
     }
 
@@ -119,7 +119,6 @@ impl TipoContaEnum {
         *self as i32
     }
 }
-
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
 #[repr(i32)]
@@ -138,7 +137,9 @@ impl std::fmt::Display for StatusTramitacaoEnum {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let str = match self {
             StatusTramitacaoEnum::AGUARDANDO_ATENDIMENTO => "Aguardando Atendimento",
-            StatusTramitacaoEnum::VOCE_ESTA_QUASE_LA_ENVIO_DOCUMENTOS => "Você está quase lá, envie documentos",
+            StatusTramitacaoEnum::VOCE_ESTA_QUASE_LA_ENVIO_DOCUMENTOS => {
+                "Você está quase lá, envie documentos"
+            }
             StatusTramitacaoEnum::EM_CAMINHADO_P_PROSPECTOR => "Em caminhado para prospector",
             StatusTramitacaoEnum::FALTANDO_DOCUMENTO => "Faltando documento",
             StatusTramitacaoEnum::CADASTRO => "Cadastro",
@@ -149,7 +150,6 @@ impl std::fmt::Display for StatusTramitacaoEnum {
         write!(f, "{}", str)
     }
 }
-
 
 impl StatusTramitacaoEnum {
     pub fn from_i32(value: i32) -> Self {
@@ -170,7 +170,6 @@ impl StatusTramitacaoEnum {
         *self as i32
     }
 }
-
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
 #[repr(i32)]
@@ -197,7 +196,6 @@ impl std::fmt::Display for StatusAtendimentoEnum {
     }
 }
 
-
 impl StatusAtendimentoEnum {
     pub fn from_i32(value: i32) -> Self {
         match value {
@@ -215,7 +213,7 @@ impl StatusAtendimentoEnum {
     }
 }
 
-/* 
+/*
 utilizando nos documentos enviados
 na solicitação de crédito
 
@@ -256,8 +254,6 @@ impl StatusDocumentoEnum {
     }
 }
 
-
-/* 
- tipo documentos 
+/*
+ tipo documentos
 */
-
