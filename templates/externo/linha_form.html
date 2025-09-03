@@ -30,27 +30,27 @@
                     <fieldset class="fieldset">
                         <legend class="fieldset-legend">Valor Maximo</legend>
                         <input id="valor_maximo" name="valor_maximo" type="text" 
-                            value="{% if row %}{{row.valor_maximo}}{% endif %}" class="input input-bordered moeda-br"
+                            value="{% if row %}{{row.valor_maximo|format_decimal}}{% endif %}" class="input input-bordered moeda-br"
                             required />
                     </fieldset>
                     <fieldset class="fieldset bg-base-100 border-base-300 rounded-box w-64 border p-4">
                         <legend class="fieldset-legend">Permite CNPJ</legend>
                         <label class="label">
-                            <input type="checkbox" {% if row and row.permite_cnpj %}checked{% endif %} class="checkbox" />
+                            <input type="checkbox" name="permite_cnpj" {% if row and row.permite_cnpj %}checked{% endif %} class="checkbox" />
                             Permite CNPJ
                         </label>
                     </fieldset>
                     <fieldset class="fieldset bg-base-100 border-base-300 rounded-box w-64 border p-4">
                         <legend class="fieldset-legend">Permite CPF</legend>
                         <label class="label">
-                            <input type="checkbox" {% if row and row.permite_cpf %}checked{% endif %} class="checkbox" />
+                            <input type="checkbox" name="permite_cpf" {% if row and row.permite_cpf %}checked{% endif %} class="checkbox" />
                             Permite CPF
                         </label>
                     </fieldset>
                     <fieldset class="fieldset bg-base-100 border-base-300 rounded-box w-64 border p-4">
                         <legend class="fieldset-legend">Permite Avalista</legend>
                         <label class="label">
-                            <input type="checkbox" {% if row and row.permite_avalista %}checked{% endif %} class="checkbox" />
+                            <input type="checkbox" name="permite_avalista" {% if row and row.permite_avalista %}checked{% endif %} class="checkbox" />
                             Permite Avalista
                         </label>
                     </fieldset>

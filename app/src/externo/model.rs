@@ -16,6 +16,7 @@ pub struct Linha {
     pub permite_cnpj: bool,
     pub permite_cpf: bool,
     pub permite_avalista: bool,
+    //#[serde(with = "bigdecimal::serde::json_num")]
     pub valor_maximo: BigDecimal,
 }
 /*

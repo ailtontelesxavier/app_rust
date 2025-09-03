@@ -9,7 +9,8 @@
         <h1 class="text-3xl font-bold">Lista de linhas</h1>
         <button id="btnNovo" class="btn btn-primary">
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6">
+                </path>
             </svg>
             Nova Linha
         </button>
@@ -27,17 +28,12 @@
                         <span class="label-text">Buscar linhas</span>
                     </label>
                     <div class="relative">
-                        <input 
-                            type="text" 
-                            name="find" 
-                            id="find" 
-                            placeholder="Digite o nome do tipo..." 
-                            class="input input-bordered w-full pr-10" 
-                            value="{{ find or '' }}"
-                        >
+                        <input type="text" name="find" id="find" placeholder="Digite o nome do tipo..."
+                            class="input input-bordered w-full pr-10" value="{{ find or '' }}">
                         <button type="submit" class="absolute inset-y-0 right-0 flex items-center pr-3">
                             <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                             </svg>
                         </button>
                     </div>
@@ -63,6 +59,7 @@
                             <th>Permite CPF</th>
                             <th>Permite Avalista</th>
                             <th>Valor Maximo</th>
+                            <th class="text-center">Ações</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -70,10 +67,40 @@
                         <tr class="hover">
                             <td class="font-mono text-sm">{{ row.id }}</td>
                             <td class="font-medium">{{ row.nome }}</td>
-                            <td class="font-medium">{{ row.permite_cnpj }}</td>
-                            <td class="font-medium">{{ row.permite_cpf }}</td>
-                            <td class="font-medium">{{ row.permite_avalista }}</td>
-                            <td class="font-medium">{{ row.valor_maximo }}</td>
+                            <td class="font-medium">
+                                {% if row.permite_cnpj %}
+                                    {{check_circle()}}
+                                {% else %}
+                                    {{circle_dashed()}}
+                                {% endif %}
+                            </td>
+                            <td class="font-medium">
+                                {% if row.permite_cpf %}
+                                    {{check_circle()}}
+                                {% else %}
+                                    {{circle_dashed()}}
+                                {% endif %}
+                            </td>
+                            <td class="font-medium">
+                                {% if row.permite_avalista %}
+                                    {{check_circle()}}
+                                {% else %}
+                                    {{circle_dashed()}}
+                                {% endif %}
+                            </td>
+                            <td class="font-medium">{{ row.valor_maximo|format_decimal }}</td>
+                            <td class="text-center">
+                                <div class="flex justify-center gap-2">
+                                    <button class="btn btn-sm btn-primary updateRowButton" data-id="{{ row.id }}"
+                                        title="Editar">
+                                        {{pencil_line()}}
+                                    </button>
+                                    <button class="btn btn-sm btn-error deleteRowButton" data-id="{{ row.id }}"
+                                        title="Excluir" onclick="openDeleteModal({{ row.id }}, '{{ row.nome }}')">
+                                        {{trash_2()}}
+                                    </button>
+                                </div>
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -93,6 +120,15 @@
                                 <p class="text-sm text-gray-600">Permite CPF: {{ row.permite_cpf }}</p>
                                 <p class="text-sm text-gray-600">Permite Avalista: {{ row.permite_avalista }}</p>
                                 <p class="text-sm text-gray-600">Valor Maximo: {{ row.valor_maximo }}</p>
+                                <div class="flex gap-2">
+                                    <button class="btn btn-sm btn-primary updateRowButton" data-id="{{ row.id }}">
+                                        {{pencil_line()}}
+                                    </button>
+                                    <button class="btn btn-sm btn-error deleteRowButton" data-id="{{ row.id }}"
+                                        onclick="openDeleteModal({{ row.id }}, '{{ row.nome }}')">
+                                        {{trash_2()}}
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -107,7 +143,7 @@
                 <h3 class="text-lg font-medium text-gray-900 mb-2">Nenhuma cidade encontrada</h3>
                 <p class="text-gray-500 text-center mb-4">
                     {% if find %}
-                        Não encontramos cidades que correspondam à sua busca por "{{ find }}".
+                    Não encontramos cidades que correspondam à sua busca por "{{ find }}".
                     {% endif %}
                 </p>
             </div>
@@ -119,21 +155,89 @@
     {% include 'parts/paginacao.html' %}
 </div>
 
+<!-- Modal de confirmação de exclusão -->
+<dialog id="delete_modal" class="modal">
+    <div class="modal-box">
+        <h3 class="font-bold text-lg">Confirmar Exclusão</h3>
+        <p class="py-4">Tem certeza que deseja excluir o tipo "<span id="module_name_to_delete"></span>"?</p>
+        <p class="text-sm text-gray-500 mb-4">Esta ação não pode ser desfeita.</p>
+        <div class="modal-action">
+            <form method="dialog">
+                <button class="btn">Cancelar</button>
+            </form>
+            <button id="confirm_delete" class="btn btn-error">Excluir</button>
+        </div>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+        <button>close</button>
+    </form>
+</dialog>
+
 {% endblock %}
 
 {% block extra_js %}
 <script>
     // Auto-submit do formulário de busca quando Enter é pressionado
-    document.getElementById('find').addEventListener('keypress', function(e) {
+    document.getElementById('find').addEventListener('keypress', function (e) {
         if (e.key === 'Enter') {
             this.form.submit();
         }
     });
 
+    // Função para limpar busca
+    function clearSearch() {
+        document.getElementById('find').value = '';
+        window.location.href = '/externo/linha';
+    }
+
     // Adicionar novo 
-    document.getElementById('btnNovo').addEventListener('click', function() {
+    document.getElementById('btnNovo').addEventListener('click', function () {
         window.location.href = '/externo/linha-form';
     });
-    
+
+    let moduleToDelete = null;
+
+    // Função para abrir modal de exclusão
+    function openDeleteModal(id, name) {
+        moduleToDelete = id;
+        document.getElementById('module_name_to_delete').textContent = name;
+        document.getElementById('delete_modal').showModal();
+    }
+
+    // Confirmar exclusão
+    document.getElementById('confirm_delete').addEventListener('click', function() {
+        if (moduleToDelete) {
+            // Implementar lógica de exclusão aqui
+            // Por exemplo, fazer uma requisição DELETE ou POST para excluir
+            fetch(`/externo/linha/${moduleToDelete}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    // Recarregar a página ou remover o item da lista
+                    window.location.reload();
+                } else {
+                    alert('Erro ao excluir módulo');
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                alert('Erro ao excluir módulo');
+            });
+        }
+        document.getElementById('delete_modal').close();
+    });
+
+    // Função para editar módulo
+    document.querySelectorAll('.updateRowButton').forEach(function(button) {
+        button.addEventListener('click', function() {
+            const itemId = this.getAttribute('data-id');
+            window.location.href = `/externo/linha-form/${itemId}`;
+        });
+    });
+
 </script>
 {% endblock %}

@@ -1,12 +1,22 @@
 use std::collections::HashMap;
 
 use axum::{
-    Extension, Form, extract::{Query, State}, http::StatusCode, response::{Html, IntoResponse, Redirect}
+    Extension, Form,
+    extract::{Path, Query, State},
+    http::StatusCode,
+    response::{Html, IntoResponse, Redirect},
 };
+use minijinja::context;
 use shared::{FlashStatus, ListParams, SharedState, helpers};
 use tracing::debug;
 
-use crate::{externo::{LinhaService, schema::CreateLinhaSchema}, middlewares::CurrentUser};
+use crate::{
+    externo::{
+        LinhaService,
+        schema::{CreateLinhaSchema, UpdateLinhaSchema},
+    },
+    middlewares::CurrentUser,
+};
 
 pub async fn list_linha(
     State(state): State<SharedState>,
@@ -110,7 +120,6 @@ pub async fn linha_form(
     }
 }
 
-
 pub async fn create_linha(
     State(state): State<SharedState>,
     Extension(current_user): Extension<CurrentUser>,
@@ -147,3 +156,118 @@ pub async fn create_linha(
     }
 }
 
+pub async fn get_linha(
+    State(state): State<SharedState>,
+    Path(id): Path<i32>,
+    Query(params): Query<HashMap<String, String>>,
+) -> Result<Html<String>, impl IntoResponse> {
+    let service = LinhaService::new();
+
+    // Extrair mensagens flash dos parâmetros da query
+    let flash_message = params
+        .get("msg")
+        .map(|msg| urlencoding::decode(msg).unwrap_or_default().to_string());
+
+    let flash_status = params.get("status").and_then(|s| match s.as_str() {
+        "success" => Some("success"),
+        "error" => Some("error"),
+        _ => None,
+    });
+
+    // Carregar o template
+    let template = match state.templates.get_template("externo/linha_form.html") {
+        Ok(t) => t,
+        Err(err) => {
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Falha ao carregar template: {}", err),
+            )
+                .into_response());
+        }
+    };
+
+    let linha = match service.get_by_id(&state.db, id).await {
+        Ok(p) => p,
+        Err(e) => {
+            debug!("Erro ao buscar linha: {}", e);
+            let flash_url = helpers::create_flash_url(
+                "/externo/linha-form",
+                &format!("linha não encontrada: {}", e),
+                FlashStatus::Error,
+            );
+            return Err(Redirect::to(&flash_url).into_response());
+        }
+    };
+
+    // Preparar o contexto
+    let ctx = context! {
+        row => linha,
+        flash_message => flash_message,
+        flash_status => flash_status,
+    };
+
+    // Renderizar o template
+    match template.render(&ctx) {
+        Ok(html) => Ok(Html(html)),
+        Err(err) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Falha ao renderizar template: {}", err),
+        )
+            .into_response()),
+    }
+}
+
+pub async fn update_linha(
+    State(state): State<SharedState>,
+    Extension(current_user): Extension<CurrentUser>,
+    Path(id): Path<i32>,
+    Form(input): Form<UpdateLinhaSchema>,
+) -> impl IntoResponse {
+    let service = LinhaService::new();
+
+    match service.update(&*state.db, id, input).await {
+        Ok(_) => {
+            let flash_url = helpers::create_flash_url(
+                &format!("/externo/linha"),
+                &format!("Linha atualizada com sucesso!"),
+                FlashStatus::Success,
+            );
+            Redirect::to(&flash_url).into_response()
+        }
+        Err(err) => {
+            let flash_url = helpers::create_flash_url(
+                &format!("/externo/linha-form/{}", id),
+                &format!("Erro ao atualizar linha: {}", err),
+                FlashStatus::Error,
+            );
+            Redirect::to(&flash_url).into_response()
+        }
+    }
+}
+
+pub async fn delete_linha(
+    State(state): State<SharedState>,
+    Extension(current_user): Extension<CurrentUser>,
+    Path(id): Path<i32>,
+) -> impl IntoResponse {
+    let service = LinhaService::new();
+
+    match service.delete(&*state.db, id).await {
+        Ok(()) => {
+            let flash_url = helpers::create_flash_url(
+                "/externo/linha",
+                "Linha excluída com sucesso!",
+                FlashStatus::Success,
+            );
+            Redirect::to(&flash_url).into_response()
+        }
+        Err(err) => {
+            let flash_url = helpers::create_flash_url(
+                "/externo/linha",
+                &format!("Erro ao excluir linha: {}", err),
+                FlashStatus::Error,
+            );
+            Redirect::to(&flash_url).into_response()
+        }
+    }
+}

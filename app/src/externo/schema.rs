@@ -12,6 +12,7 @@ pub struct CreateLinhaSchema {
     pub permite_cpf: bool,
     #[serde(default, deserialize_with = "bool_from_str")]
     pub permite_avalista: bool,
+    #[serde(deserialize_with = "crate::utils::serde_utils::brl_to_bigdecimal")]
     pub valor_maximo: BigDecimal,
 }
 
@@ -25,5 +26,6 @@ pub struct UpdateLinhaSchema {
     pub permite_cpf: bool,
     #[serde(default, deserialize_with = "bool_from_str")]
     pub permite_avalista: bool,
+    #[serde(deserialize_with = "crate::utils::serde_utils::brl_to_bigdecimal")]
     pub valor_maximo: BigDecimal,
 }
