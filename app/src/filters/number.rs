@@ -8,11 +8,13 @@ use minijinja::{Error, ErrorKind, Value};
 pub fn format_decimal(value: Value) -> Result<Value, Error> {
     if let Some(s) = value.as_str() {
         // caso venha string
-        let bd = BigDecimal::from_str(s).map_err(|_| {
-            Error::new(ErrorKind::InvalidOperation, "valor inválido para decimal")
-        })?;
+        let bd = BigDecimal::from_str(s)
+            .map_err(|_| Error::new(ErrorKind::InvalidOperation, "valor inválido para decimal"))?;
         let f = bd.to_f64().ok_or_else(|| {
-            Error::new(ErrorKind::InvalidOperation, "não foi possível converter para f64")
+            Error::new(
+                ErrorKind::InvalidOperation,
+                "não foi possível converter para f64",
+            )
         })?;
         return Ok(Value::from(format!("{:.2}", f)));
     }

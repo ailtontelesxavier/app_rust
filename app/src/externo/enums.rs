@@ -123,10 +123,10 @@ impl TipoContaEnum {
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
 #[repr(i32)]
 pub enum StatusTramitacaoEnum {
-    AGUARDANDO_ATENDIMENTO = 1 as i32,
-    VOCE_ESTA_QUASE_LA_ENVIO_DOCUMENTOS = 2 as i32,
-    EM_CAMINHADO_P_PROSPECTOR = 3 as i32,
-    FALTANDO_DOCUMENTO = 4 as i32,
+    AguardandoAtendimento = 1 as i32,
+    VoceEstaQuaseLaEnvioDocumentos = 2 as i32,
+    EmCaminhadoPProspector = 3 as i32,
+    FaltandoDocumento = 4 as i32,
     CADASTRO = 5 as i32,
     APROVADO = 6 as i32,
     CONTRATACAO = 7 as i32,
@@ -136,12 +136,12 @@ pub enum StatusTramitacaoEnum {
 impl std::fmt::Display for StatusTramitacaoEnum {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let str = match self {
-            StatusTramitacaoEnum::AGUARDANDO_ATENDIMENTO => "Aguardando Atendimento",
-            StatusTramitacaoEnum::VOCE_ESTA_QUASE_LA_ENVIO_DOCUMENTOS => {
+            StatusTramitacaoEnum::AguardandoAtendimento => "Aguardando Atendimento",
+            StatusTramitacaoEnum::VoceEstaQuaseLaEnvioDocumentos => {
                 "Você está quase lá, envie documentos"
             }
-            StatusTramitacaoEnum::EM_CAMINHADO_P_PROSPECTOR => "Em caminhado para prospector",
-            StatusTramitacaoEnum::FALTANDO_DOCUMENTO => "Faltando documento",
+            StatusTramitacaoEnum::EmCaminhadoPProspector => "Em caminhado para prospector",
+            StatusTramitacaoEnum::FaltandoDocumento => "Faltando documento",
             StatusTramitacaoEnum::CADASTRO => "Cadastro",
             StatusTramitacaoEnum::APROVADO => "Aprovado",
             StatusTramitacaoEnum::CONTRATACAO => "Contratação",
@@ -154,15 +154,15 @@ impl std::fmt::Display for StatusTramitacaoEnum {
 impl StatusTramitacaoEnum {
     pub fn from_i32(value: i32) -> Self {
         match value {
-            1 => StatusTramitacaoEnum::AGUARDANDO_ATENDIMENTO,
-            2 => StatusTramitacaoEnum::VOCE_ESTA_QUASE_LA_ENVIO_DOCUMENTOS,
-            3 => StatusTramitacaoEnum::EM_CAMINHADO_P_PROSPECTOR,
-            4 => StatusTramitacaoEnum::FALTANDO_DOCUMENTO,
+            1 => StatusTramitacaoEnum::AguardandoAtendimento,
+            2 => StatusTramitacaoEnum::VoceEstaQuaseLaEnvioDocumentos,
+            3 => StatusTramitacaoEnum::EmCaminhadoPProspector,
+            4 => StatusTramitacaoEnum::FaltandoDocumento,
             5 => StatusTramitacaoEnum::CADASTRO,
             6 => StatusTramitacaoEnum::APROVADO,
             7 => StatusTramitacaoEnum::CONTRATACAO,
             8 => StatusTramitacaoEnum::REPROVADO,
-            _ => StatusTramitacaoEnum::AGUARDANDO_ATENDIMENTO,
+            _ => StatusTramitacaoEnum::AguardandoAtendimento,
         }
     }
 
@@ -175,8 +175,8 @@ impl StatusTramitacaoEnum {
 #[repr(i32)]
 pub enum StatusAtendimentoEnum {
     PENDENTE = 0 as i32,
-    EM_ATENDIMENTO = 1 as i32,
-    AGUARDANDO_DOCUMENTO = 2 as i32,
+    EmAtendimento = 1 as i32,
+    AguardandoDocumento = 2 as i32,
     APROVADO = 3 as i32,
     CONCLUIDO = 4 as i32,
     CANCELADO = 5 as i32,
@@ -186,8 +186,8 @@ impl std::fmt::Display for StatusAtendimentoEnum {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let str = match self {
             StatusAtendimentoEnum::PENDENTE => "Pendente",
-            StatusAtendimentoEnum::EM_ATENDIMENTO => "Em Atendimento",
-            StatusAtendimentoEnum::AGUARDANDO_DOCUMENTO => "Aguardando Documento",
+            StatusAtendimentoEnum::EmAtendimento => "Em Atendimento",
+            StatusAtendimentoEnum::AguardandoDocumento => "Aguardando Documento",
             StatusAtendimentoEnum::APROVADO => "Aprovado",
             StatusAtendimentoEnum::CONCLUIDO => "Concluído",
             StatusAtendimentoEnum::CANCELADO => "Cancelado",
@@ -200,8 +200,8 @@ impl StatusAtendimentoEnum {
     pub fn from_i32(value: i32) -> Self {
         match value {
             0 => StatusAtendimentoEnum::PENDENTE,
-            1 => StatusAtendimentoEnum::EM_ATENDIMENTO,
-            2 => StatusAtendimentoEnum::AGUARDANDO_DOCUMENTO,
+            1 => StatusAtendimentoEnum::EmAtendimento,
+            2 => StatusAtendimentoEnum::AguardandoDocumento,
             3 => StatusAtendimentoEnum::APROVADO,
             4 => StatusAtendimentoEnum::CONCLUIDO,
             5 => StatusAtendimentoEnum::CANCELADO,
@@ -222,7 +222,7 @@ na solicitação de crédito
 #[repr(i32)]
 pub enum StatusDocumentoEnum {
     PENDENTE = 0 as i32,
-    EM_ANALISE = 1 as i32,
+    EmAnalise = 1 as i32,
     APROVADO = 2 as i32,
     REPROVADO = 3 as i32,
 }
@@ -231,7 +231,7 @@ impl std::fmt::Display for StatusDocumentoEnum {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let str = match self {
             StatusDocumentoEnum::PENDENTE => "Pendente",
-            StatusDocumentoEnum::EM_ANALISE => "Em Análise",
+            StatusDocumentoEnum::EmAnalise => "Em Análise",
             StatusDocumentoEnum::APROVADO => "Aprovado",
             StatusDocumentoEnum::REPROVADO => "Reprovado",
         };
@@ -243,7 +243,7 @@ impl StatusDocumentoEnum {
     pub fn from_i32(value: i32) -> Self {
         match value {
             0 => StatusDocumentoEnum::PENDENTE,
-            1 => StatusDocumentoEnum::EM_ANALISE,
+            1 => StatusDocumentoEnum::EmAnalise,
             2 => StatusDocumentoEnum::APROVADO,
             3 => StatusDocumentoEnum::REPROVADO,
             _ => StatusDocumentoEnum::PENDENTE,

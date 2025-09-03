@@ -1,6 +1,5 @@
 use bigdecimal::BigDecimal;
 use chrono::{DateTime, Utc};
-use serde::*;
 use serde::{Deserialize, Serialize};
 use serde_json;
 use serde_json::Value;
@@ -34,10 +33,10 @@ pub struct Contato {
     pub telefone: String,
     pub email: String,
     pub cidade_id: i64,
-    #[serde(with = "bigdecimal::serde::json_num")]
     pub val_solicitado: BigDecimal,
     pub status_tramitacao: i32,
     pub campos: Value,
+    pub dados_imports: Option<Value>,
     #[serde(rename = "createdAt")]
     pub created_at: Option<DateTime<Utc>>,
     #[serde(rename = "updatedAt")]
@@ -114,17 +113,20 @@ pub enum Campos {
         nome_tecnico: String,
         orgao_associacao_tecnico: String,
         telefone_whatsapp_tecnico: String,
-        apelido: String, //do solicitante
-        cep: String,     //len 9
+        apelido: Option<String>, //do solicitante
+        cep: String,             //len 9
         endereco: String,
         prev_aumento_fat: BigDecimal,
-        nome_conj: String,
-        telefone_conj: String,
-        email_conj: String,
-        valor_estimado_imovel: BigDecimal,
+        nome_conj: Option<String>,
+        telefone_conj: Option<String>,
+        email_conj: Option<String>,
+        email: Option<String>,
+        valor_estimado_imovel: Option<BigDecimal>,
         desc_atividade: String,
         finalidade_credito: String,
     },
+    //#[serde(other)]
+    //Outro(Value), // pega qualquer coisa não mapeada
 }
 
 /*

@@ -1,8 +1,7 @@
 use std::str::FromStr;
 
-use serde::{Deserialize, Deserializer};
 use bigdecimal::BigDecimal;
-
+use serde::{Deserialize, Deserializer};
 /*
 utilizado nos shemas para converter checkbox em booleano
 */
@@ -26,7 +25,7 @@ where
     Ok(opt.map(|s| matches!(s.as_str(), "true" | "on" | "1" | "yes")))
 }
 
-/* 
+/*
 utilizado no formulario html com formato que trata.
 20.000,00 → 20000.00.
 */
@@ -39,4 +38,3 @@ where
     let normalized = s.replace(".", "").replace(",", ".");
     BigDecimal::from_str(&normalized).map_err(serde::de::Error::custom)
 }
-

@@ -45,3 +45,11 @@ impl LinhaService {
         Ok(self.repo.get_paginated(pool, find, page, page_size).await?)
     }
 }
+
+/*
+==========================================
+
+----------------- Contato ---------------
+==========================================
+
+*/
