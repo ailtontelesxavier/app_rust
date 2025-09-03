@@ -107,7 +107,7 @@ impl Repository<Contato, Uuid> for ContatoRepository {
     }
 
     fn from_clause(&self) -> &str {
-        "linha m"
+        "contato m"
     }
 
     async fn create(&self, pool: &PgPool, input: Self::CreateInput) -> Result<Contato> {
@@ -118,7 +118,7 @@ impl Repository<Contato, Uuid> for ContatoRepository {
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), NOW()) RETURNING *",
             input.linha_id,
             input.protocolo,
-            input.status_atendimento.unwrap_or(false),
+            input.status_atendimento,
             input.cpf_cnpj,
             input.nome,
             input.telefone,
@@ -154,7 +154,7 @@ impl Repository<Contato, Uuid> for ContatoRepository {
             WHERE id = $12
             RETURNING *"#,
             input.linha_id,
-            input.status_atendimento.unwrap_or(false),
+            input.status_atendimento,
             input.cpf_cnpj,
             input.nome,
             input.telefone,

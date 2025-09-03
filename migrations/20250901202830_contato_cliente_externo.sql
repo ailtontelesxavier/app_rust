@@ -15,7 +15,7 @@ CREATE TABLE contato (
     id UUID PRIMARY KEY NOT NULL DEFAULT (uuid_generate_v4()),
     linha_id INT NOT NULL REFERENCES linha(id),
     protocolo VARCHAR(100) NOT NULL,
-    status_atendimento BOOLEAN DEFAULT false,
+    status_atendimento BOOLEAN NOT NULL DEFAULT false,
     cpf_cnpj VARCHAR(14) NOT NULL,
     nome VARCHAR(255) NOT NULL,
     telefone VARCHAR(50) NOT NULL,

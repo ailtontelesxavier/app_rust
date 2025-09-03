@@ -6,8 +6,8 @@ use bigdecimal::BigDecimal;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use validator::Validate;
 use uuid::Uuid;
+use validator::Validate;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CreateLinhaSchema {
@@ -56,7 +56,7 @@ pub struct CreateContato {
     pub val_solicitado: BigDecimal,
     pub status_tramitacao: i32,
     pub campos: Value,
-    pub dados_imports: Option<Value>
+    pub dados_imports: Option<Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
