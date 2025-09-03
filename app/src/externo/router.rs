@@ -24,12 +24,12 @@ fn router_tipo() -> Router<SharedState> {
 
 fn router_contato() -> Router<SharedState> {
     Router::new()
-     .route("/contato", get(view::list_contato))
-    /*.route("/contato-form", get(view::contato_form))
-    .route("/contato-form", post(view::create_contato))
-    .route(
-        "/contato-form/{id}",
-        get(view::get_contato).post(view::update_contato),
-    )
-    .route("/contato/{id}", delete(view::delete_contato)) */
+        .route("/contato", get(view::list_contato))
+        .route("/contato-form", get(view::contato_form))
+        .route("/contato-form", post(view::create_contato))
+        .route(
+            "/contato-form/{id}",
+            get(view::get_contato).post(view::update_contato),
+        )
+        .route("/contato/{id}", delete(view::delete_contato))
 }
