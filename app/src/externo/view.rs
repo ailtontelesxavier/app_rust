@@ -13,8 +13,7 @@ use uuid::Uuid;
 
 use crate::{
     externo::{
-        LinhaService,
-        schema::{CreateContato, CreateLinhaSchema, UpdateContato, UpdateLinhaSchema}, service::ContatoService,
+        LinhaService, StatusCivil, TypeContato, schema::{CreateContato, CreateLinhaSchema, UpdateContato, UpdateLinhaSchema}, service::ContatoService
     },
     middlewares::CurrentUser,
 };
@@ -316,6 +315,7 @@ pub async fn list_contato(
                 page_size => paginated_response.page_size,
                 total_records => paginated_response.total_records,
                 find => params.find.unwrap_or_default(),
+                tipo_contato => TypeContato::tipo_contato_options(),
                 flash_message => flash_message,
                 flash_status => flash_status,
             };
@@ -346,13 +346,29 @@ pub async fn list_contato(
     }
 }
 
-/* 
+/*
  formulario para contato
 */
 pub async fn contato_form(
     State(state): State<SharedState>,
     Query(params): Query<HashMap<String, String>>,
 ) -> Result<Html<String>, impl IntoResponse> {
+    let type_contato = params.get("type_contato");
+
+    if let Some(tipo) = type_contato
+        .and_then(|s| s.parse::<i32>().ok())
+        .and_then(TypeContato::from_i32)
+    {
+    } else {
+        eprintln!("Tipo contato inválido");
+        let flash_url = helpers::create_flash_url(
+            "http://fomento.to.gov.br",
+            &format!("Tipo de Contato não permitido"),
+            FlashStatus::Error,
+        );
+        return Err(Redirect::to(&flash_url).into_response());
+    }
+
     // Extrair mensagens flash dos parâmetros da query
     let flash_message = params
         .get("msg")
@@ -366,6 +382,9 @@ pub async fn contato_form(
     let context = minijinja::context! {
         flash_message => flash_message,
         flash_status => flash_status,
+        type_contato => type_contato.unwrap().parse::<i32>().ok(),
+        estado_civil => StatusCivil::estado_civil_options(),
+        tipo_contato => TypeContato::tipo_contato_options(),
     };
 
     match state.templates.get_template("externo/contato_form.html") {
@@ -385,7 +404,7 @@ pub async fn contato_form(
     }
 }
 
-/* 
+/*
  cria contato interno
 */
 pub async fn create_contato(
@@ -393,7 +412,6 @@ pub async fn create_contato(
     Extension(current_user): Extension<CurrentUser>,
     Form(mut body): Form<CreateContato>,
 ) -> impl IntoResponse {
-
     let service = ContatoService::new();
 
     match service.create(&*state.db, body).await {
@@ -477,7 +495,6 @@ pub async fn get_contato(
     }
 }
 
-
 pub async fn update_contato(
     State(state): State<SharedState>,
     Extension(current_user): Extension<CurrentUser>,
@@ -532,5 +549,3 @@ pub async fn delete_contato(
         }
     }
 }
-
-

@@ -100,3 +100,39 @@ categoria
     ) }}
 </div>
 ===============================================================
+cidade to
+<div class="flex flex-col">
+    <label class="label">
+        <span class="label-text font-semibold">Cidade</span>
+    </label>
+    {% set value_cidade = cidade.id if cidade else '' %}
+    {% set title_cidade = cidade.title if cidade else '' %}
+    {{ combobox(
+        field_name="cidade_id",
+        field_label="nome", 
+        placeholder="Selecione a cidade do Tocantins",
+        endpoint="/core/cidades-to-api",
+        attrs="required",
+        search=title_cidade,
+        value=value_cidade,
+    ) }}
+</div>
+===============================================================
+cidade br
+<div class="flex flex-col">
+    <label class="label">
+        <span class="label-text font-semibold">Cidade</span>
+    </label>
+    {% set value_cidade = cidade.id if cidade else '' %}
+    {% set title_cidade = cidade.title if cidade else '' %}
+    {{ combobox(
+        field_name="cidade_id",
+        field_label="nome", 
+        placeholder="Selecione a cidade",
+        endpoint="/core/cidades-br-api",
+        attrs="required",
+        search=title_cidade,
+        value=value_cidade,
+    ) }}
+</div>
+===============================================================

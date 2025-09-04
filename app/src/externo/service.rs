@@ -4,7 +4,10 @@ use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::externo::{
-    LinhaRepository, model::{Contato, Linha}, repository::ContatoRepository, schema::{CreateContato, CreateLinhaSchema, UpdateContato, UpdateLinhaSchema}
+    LinhaRepository,
+    model::{Contato, Linha},
+    repository::ContatoRepository,
+    schema::{CreateContato, CreateLinhaSchema, UpdateContato, UpdateLinhaSchema},
 };
 
 pub struct LinhaService {
@@ -89,5 +92,3 @@ impl ContatoService {
         Ok(self.repo.get_paginated(pool, find, page, page_size).await?)
     }
 }
-
-

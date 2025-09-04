@@ -1,7 +1,4 @@
-use crate::{
-    externo::enums,
-    utils::{serde_utils::bool_from_str, validator::EMAIL_RX},
-};
+use crate::utils::{serde_utils::bool_from_str, validator::EMAIL_RX};
 use bigdecimal::BigDecimal;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};

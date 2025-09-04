@@ -3,12 +3,16 @@ use axum::{
     extract::{Query, State},
     response::{Html, IntoResponse, Redirect},
 };
+use regex::Regex;
 use reqwest::StatusCode;
-use shared::{FlashStatus, ListParams, SharedState, helpers};
+use serde_json::{Value, json};
+use shared::{FlashStatus, ListParams, PaginatedResponse, PaginationQuery, SharedState, helpers};
 use tracing::debug;
 
 use crate::core::{
+    model::Municipio,
     repository::{fetch_municipios, fetch_ufs, upsert_municipios, upsert_ufs},
+    schema::{CepQuery, CidadeParams, MunicipioWithUf},
     service::MunicipioService,
 };
 
@@ -115,4 +119,135 @@ pub async fn list_municipio(
             Redirect::to(&redirect_url).into_response()
         }
     }
+}
+
+/* APIS */
+pub async fn buscar_cep(Query(params): Query<CepQuery>) -> impl IntoResponse {
+    // Remove caracteres não numéricos
+    let re = Regex::new(r"\D").unwrap();
+    let cep = re.replace_all(&params.cep, "").to_string();
+
+    // Valida se tem exatamente 8 dígitos
+    if !Regex::new(r"^\d{8}$").unwrap().is_match(&cep) {
+        return (
+            axum::http::StatusCode::BAD_REQUEST,
+            "CEP inválido. Deve conter 8 dígitos numéricos.".to_string(),
+        )
+            .into_response();
+    }
+
+    let url_api = format!("https://viacep.com.br/ws/{}/json/", cep);
+
+    let resp = match reqwest::get(&url_api).await {
+        Ok(r) => r,
+        Err(_) => {
+            return (
+                axum::http::StatusCode::BAD_GATEWAY,
+                "Erro ao acessar serviço de CEP".to_string(),
+            )
+                .into_response();
+        }
+    };
+
+    if !resp.status().is_success() {
+        return (
+            axum::http::StatusCode::BAD_GATEWAY,
+            format!("Erro ao buscar CEP: {}", resp.status()),
+        )
+            .into_response();
+    }
+
+    let dados_json: Value = match resp.json().await {
+        Ok(v) => v,
+        Err(_) => {
+            return (
+                axum::http::StatusCode::BAD_GATEWAY,
+                "Erro ao processar resposta do ViaCEP".to_string(),
+            )
+                .into_response();
+        }
+    };
+
+    Json(dados_json).into_response()
+}
+
+/*
+utilizado no cadastro externo API de acesso publico
+não precisa ser usuario do sistema para consulta
+*/
+pub async fn read_cidade_por_ibge(
+    State(state): State<SharedState>,
+    Query(params): Query<CidadeParams>,
+) -> impl IntoResponse {
+    let service = MunicipioService::new();
+    let row = service
+        .find_municipio_with_uf_by_id(&state.db, params.ibge_id as i64)
+        .await;
+
+    match row {
+        Ok(Some(cidade)) => Json(json!({
+            "id": cidade.id,
+            "nome": cidade.nome,
+            "uf": cidade.uf_sigla,
+            "uf_id": cidade.uf_id,
+        }))
+        .into_response(),
+
+        Ok(None) => (axum::http::StatusCode::NOT_FOUND, "Cidade não encontrada").into_response(),
+
+        Err(_) => (
+            axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+            "Erro ao buscar cidade",
+        )
+            .into_response(),
+    }
+}
+
+/*
+api publica retorna cidades do brasil
+*/
+pub async fn cidade_br_list_api(
+    Query(q): Query<PaginationQuery>,
+    State(state): State<SharedState>,
+) -> Result<Json<PaginatedResponse<MunicipioWithUf>>, StatusCode> {
+    let service = MunicipioService::new();
+    let res = service
+        .get_paginated(
+            &state.db,
+            q.find.as_deref(),
+            q.page.unwrap_or(1) as i32,
+            q.page_size.unwrap_or(10) as i32,
+        )
+        .await
+        .map_err(|err| {
+            debug!("error:{}", err);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    Ok(Json(res))
+}
+
+/*
+api publica retorna cidades to tocantins
+
+*/
+pub async fn cidades_to_api(
+    Query(q): Query<PaginationQuery>,
+    State(state): State<SharedState>,
+) -> Result<Json<PaginatedResponse<MunicipioWithUf>>, StatusCode> {
+    let service = MunicipioService::new();
+    let res = service
+        .get_paginated_cidades_to(
+            &state.db,
+            q.find.as_deref(),
+            q.page.unwrap_or(1) as i32,
+            q.page_size.unwrap_or(10) as i32,
+        )
+        .await
+        .map_err(|err| {
+            debug!("error:{}", err);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    Ok(Json(res))
 }

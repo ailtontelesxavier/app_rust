@@ -127,6 +127,26 @@ impl MunicipioService {
         Ok(municipio)
     }
 
+    pub async fn find_municipio_with_uf_by_id(
+        &self,
+        db: &PgPool,
+        ibge_id: i64,
+    ) -> Result<Option<MunicipioWithUf>, sqlx::Error> {
+        let municipio = sqlx::query_as!(
+            MunicipioWithUf,
+            r#"
+            SELECT m.id, m.nome, m.uf_id, u.sigla as uf_sigla, u.nome as uf_nome
+            FROM municipio m
+            JOIN uf u ON u.id = m.uf_id
+            WHERE m.id = $1"#,
+            ibge_id
+        )
+        .fetch_optional(db)
+        .await?;
+
+        Ok(municipio)
+    }
+
     /*
        retorna lista de Municipios
     */
@@ -249,5 +269,70 @@ impl MunicipioService {
         .await?;
 
         Ok(row)
+    }
+
+    /*
+       retorna lista de Municipios
+    */
+    pub async fn get_paginated_cidades_to(
+        &self,
+        pool: &PgPool,
+        find: Option<&str>,
+        page: i32,
+        page_size: i32,
+    ) -> Result<PaginatedResponse<MunicipioWithUf>> {
+        let page = page.max(1) as i32;
+        let page_size = page_size.min(100) as i32;
+        let offset = (page - 1) * page_size;
+
+        let like_term = match find {
+            Some(search_term) => format!("%{search_term}%"),
+            None => "%".to_string(),
+        };
+
+        // Busca total de registros para paginação
+        let total: (i64,) = sqlx::query_as::<_, (i64,)>(
+            r#"
+            SELECT COUNT(m) FROM municipio m
+            INNER JOIN uf u ON m.uf_id = u.id
+            WHERE u.id = 17 AND m.nome ILIKE $1
+            "#,
+        )
+        .bind(&like_term)
+        .fetch_one(pool)
+        .await?;
+
+        let total_records = total.0;
+        let total_pages = if total_records == 0 {
+            1
+        } else {
+            ((total_records as f64) / (page_size as f64)).ceil() as i32
+        };
+
+        // Busca os registros paginados
+        let items: Vec<MunicipioWithUf> = sqlx::query_as!(
+            MunicipioWithUf,
+            r#"
+            SELECT m.id, m.nome, m.uf_id, u.sigla AS uf_sigla, u.nome AS uf_nome
+            FROM municipio m
+            INNER JOIN uf u ON m.uf_id = u.id
+            WHERE m.nome ILIKE $1 and u.id = 17
+            ORDER BY m.nome, u.sigla DESC
+            LIMIT $2 OFFSET $3
+            "#,
+            like_term,
+            page_size as i64,
+            offset as i64
+        )
+        .fetch_all(pool)
+        .await?;
+
+        Ok(PaginatedResponse {
+            data: items,
+            total_records,
+            page,
+            page_size,
+            total_pages,
+        })
     }
 }

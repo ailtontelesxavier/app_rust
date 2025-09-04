@@ -35,7 +35,7 @@ use dotenv::dotenv;
 use sqlx::postgres::PgPoolOptions;
 
 use chamado::router as router_chamado;
-use core::router as router_core;
+use core::{router as router_core, router_public as router_public_core};
 use externo::router as router_externo;
 use permissao::router as router_permissao;
 use shared::{AppState, FlashStatus, MessageResponse, SharedState, helpers};
@@ -130,6 +130,7 @@ async fn main() {
     let app = Router::new()
         .route("/hello", get(hello_world))
         .route("/login", get(get_login).post(login))
+        .nest("/core", router_public_core()) //apis publicas
         .nest_service("/static", server_dir)
         .layer(session_layer) // Sessões devem vir antes do CORS
         .layer(cors)

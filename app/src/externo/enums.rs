@@ -47,6 +47,33 @@ impl StatusCivil {
     }
 }
 
+impl StatusCivil {
+    pub fn all() -> Vec<Self> {
+        vec![
+            StatusCivil::Solteiro,
+            StatusCivil::Casado,
+            StatusCivil::Divorciado,
+            StatusCivil::Viuvo,
+            StatusCivil::Separado,
+            StatusCivil::UniaoEstavel,
+        ]
+    }
+
+    /*
+    para o select do html
+    */
+    pub fn estado_civil_options() -> Vec<StatusOpt> {
+        StatusCivil::all()
+            .into_iter()
+            .map(|s| StatusOpt {
+                value: s as i32,      // valor do <option>
+                label: s.to_string(), // usa impl Display p/ rótulo
+            })
+            .collect()
+    }
+}
+
+
 /*
     MEI = 1, "MEI"
     ME = 2, "ME"
@@ -255,5 +282,82 @@ impl StatusDocumentoEnum {
 }
 
 /*
- tipo documentos
+ tipo Contato
+ 1 = Micro Crédito Online
+    2 = Capital de Giro Turismo
+    3 = Crédito Popular
+    4 = Agricultura Familiar
+    5 = Emergencial
+    6 = Mãos que Criam
+    7 = Crédito Online
 */
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
+#[repr(i32)]
+pub enum TypeContato {
+    MicroCreditoOnline = 1 as i32,
+    CapitalDeGiroTurismo = 2 as i32,
+    CreditoPopular = 3 as i32,
+    AgriculturaFamiliar = 4 as i32,
+    Emergencial = 5 as i32,
+    MMaosQueCriam = 6 as i32,
+    CreditoOnline = 7 as i32,
+}
+
+impl std::fmt::Display for TypeContato {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let str = match self {
+            TypeContato::MicroCreditoOnline => "Micro Crédito Online",
+            TypeContato::CapitalDeGiroTurismo => "Capital de Giro Turismo",
+            TypeContato::CreditoPopular => "Crédito Popular",
+            TypeContato::AgriculturaFamiliar => "Agricultura Familiar",
+            TypeContato::Emergencial => "Emergencial",
+            TypeContato::MMaosQueCriam => "Mãos que Criam",
+            TypeContato::CreditoOnline => "Crédito Online",
+        };
+        write!(f, "{}", str)
+    }
+}
+
+impl TypeContato {
+    pub fn from_i32(value: i32) -> Option<Self> {
+        match value {
+            1 => Some(TypeContato::MicroCreditoOnline),
+            2 => Some(TypeContato::CapitalDeGiroTurismo),
+            3 => Some(TypeContato::CreditoPopular),
+            4 => Some(TypeContato::AgriculturaFamiliar),
+            5 => Some(TypeContato::Emergencial),
+            6 => Some(TypeContato::MMaosQueCriam),
+            7 => Some(TypeContato::CreditoOnline),
+            _ => None,
+        }
+    }
+    pub fn to_i32(&self) -> i32 {
+        *self as i32
+    }
+}
+
+impl TypeContato {
+    pub fn all() -> Vec<Self> {
+        vec![
+            TypeContato::MicroCreditoOnline,
+            TypeContato::CapitalDeGiroTurismo,
+            TypeContato::CreditoPopular,
+            TypeContato::AgriculturaFamiliar,
+            TypeContato::Emergencial,
+            TypeContato::MMaosQueCriam,
+            TypeContato::CreditoOnline,
+        ]
+    }
+    /*
+    para o select do html
+    */
+    pub fn tipo_contato_options() -> Vec<StatusOpt> {
+        TypeContato::all()
+            .into_iter()
+            .map(|s| StatusOpt {
+                value: s as i32,      // valor do <option>
+                label: s.to_string(), // usa impl Display p/ rótulo
+            })
+            .collect()
+    }
+}
