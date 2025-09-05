@@ -27,6 +27,7 @@ fn router_contato() -> Router<SharedState> {
         .route("/contato", get(view::list_contato))
         .route("/contato-form", get(view::contato_form))
         .route("/contato-form", post(view::create_contato))
+        .route("/contato-form-pronaf", post(view::create_contato_pronaf))
         .route(
             "/contato-form/{id}",
             get(view::get_contato).post(view::update_contato),

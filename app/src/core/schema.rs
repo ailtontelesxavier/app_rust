@@ -82,16 +82,15 @@ pub struct StatusOpt {
     pub label: String,
 }
 
-
-/* 
+/*
 utilizado na API busca CEP
 */
 #[derive(Debug, Deserialize)]
 pub struct CepQuery {
-    pub   cep: String,
+    pub cep: String,
 }
 
-/* 
+/*
 utilizado na API busca cidades por IBGE
 */
 #[derive(Debug, Deserialize)]

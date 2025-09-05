@@ -74,23 +74,23 @@
                             <td class="font-medium">{{ row.nome }}</td>
                             <td class="font-medium">
                                 {% if row.permite_cnpj %}
-                                    {{check_circle()}}
+                                {{check_circle()}}
                                 {% else %}
-                                    {{circle_dashed()}}
+                                {{circle_dashed()}}
                                 {% endif %}
                             </td>
                             <td class="font-medium">
                                 {% if row.permite_cpf %}
-                                    {{check_circle()}}
+                                {{check_circle()}}
                                 {% else %}
-                                    {{circle_dashed()}}
+                                {{circle_dashed()}}
                                 {% endif %}
                             </td>
                             <td class="font-medium">
                                 {% if row.permite_avalista %}
-                                    {{check_circle()}}
+                                {{check_circle()}}
                                 {% else %}
-                                    {{circle_dashed()}}
+                                {{circle_dashed()}}
                                 {% endif %}
                             </td>
                             <td class="font-medium">{{ row.valor_maximo|format_decimal }}</td>
@@ -196,8 +196,29 @@
     }
 
     // Adicionar novo 
-    document.getElementById('btnNovo').addEventListener('click', function () {
-        window.location.href = '/externo/contato-form';
+    // Pega o select pelo ID
+    // direcionar formulario
+    const tipoContatoSelect = document.getElementById('tipo_contato');
+
+    // Adiciona o listener para mudança
+    tipoContatoSelect.addEventListener('change', function (event) {
+        const valorSelecionado = event.target.value;
+
+        // Aqui você decide a ação de acordo com o valor
+        switch (valorSelecionado) {
+            case "1":
+                console.log("Micro Crédito Online selecionado");
+                // executar ação específica
+                break;
+            case "2":
+                console.log("Capital de Giro Turismo selecionado");
+                break;
+            case "8":
+                window.location.href = "/externo/contato-form?type_contato=8";
+                break;
+            default:
+                console.log("Outro tipo de contato selecionado");
+        }
     });
 
     let moduleToDelete = null;
@@ -210,7 +231,7 @@
     }
 
     // Confirmar exclusão
-    document.getElementById('confirm_delete').addEventListener('click', function() {
+    document.getElementById('confirm_delete').addEventListener('click', function () {
         if (moduleToDelete) {
             // Implementar lógica de exclusão aqui
             // Por exemplo, fazer uma requisição DELETE ou POST para excluir
@@ -220,25 +241,25 @@
                     'Content-Type': 'application/json',
                 }
             })
-            .then(response => {
-                if (response.ok) {
-                    // Recarregar a página ou remover o item da lista
-                    window.location.reload();
-                } else {
+                .then(response => {
+                    if (response.ok) {
+                        // Recarregar a página ou remover o item da lista
+                        window.location.reload();
+                    } else {
+                        alert('Erro ao excluir módulo');
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro:', error);
                     alert('Erro ao excluir módulo');
-                }
-            })
-            .catch(error => {
-                console.error('Erro:', error);
-                alert('Erro ao excluir módulo');
-            });
+                });
         }
         document.getElementById('delete_modal').close();
     });
 
     // Função para editar módulo
-    document.querySelectorAll('.updateRowButton').forEach(function(button) {
-        button.addEventListener('click', function() {
+    document.querySelectorAll('.updateRowButton').forEach(function (button) {
+        button.addEventListener('click', function () {
             const itemId = this.getAttribute('data-id');
             window.location.href = `/externo/contato-form/${itemId}`;
         });

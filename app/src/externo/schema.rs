@@ -39,6 +39,165 @@ pub struct UpdateLinhaSchema {
 ----------------- Contato ---------------
 ==========================================
 */
+/*
+utilizado para saber os documento utilizados pelo tipo de contato se obrigatorio ou nao
+
+*/
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DocumentoRequerido {
+    pub id: &'static str,
+    pub nome: &'static str,
+    pub obrigatorio: bool,
+}
+
+/*
+Documento para pronaf
+*/
+pub static DOC_PRONAF: &[DocumentoRequerido; 14] = &[
+    DocumentoRequerido {
+        id: "rg_frente_solicitante",
+        nome: "RG FRENTE SOLICITANTE",
+        obrigatorio: true,
+    },
+    DocumentoRequerido {
+        id: "cpf_frente_solicitante",
+        nome: "CPF FRENTE DO SOLICITANTE",
+        obrigatorio: true,
+    },
+    DocumentoRequerido {
+        id: "rg_verso_solicitante",
+        nome: "RG VERSO DO SOLICITANTE",
+        obrigatorio: true,
+    },
+    DocumentoRequerido {
+        id: "cpf_verso_solicitante",
+        nome: "CPF VERSO DO SOLICITANTE",
+        obrigatorio: true,
+    },
+    DocumentoRequerido {
+        id: "rg_frente_conjuge",
+        nome: "RG FRENTE DO CÔNJUGE",
+        obrigatorio: false,
+    },
+    DocumentoRequerido {
+        id: "cpf_frente_conjuge",
+        nome: "CPF FRENTE DO CÔNJUGE",
+        obrigatorio: false,
+    },
+    DocumentoRequerido {
+        id: "rg_verso_conjuge",
+        nome: "RG VERSO DO CÔNJUGE",
+        obrigatorio: false,
+    },
+    DocumentoRequerido {
+        id: "cpf_verso_conjuge",
+        nome: "CPF VERSO DO CÔNJUGE",
+        obrigatorio: false,
+    },
+    DocumentoRequerido {
+        id: "caf",
+        nome: "CAF - CADASTRO DA AGRICULTURA FAMILIAR",
+        obrigatorio: true,
+    },
+    DocumentoRequerido {
+        id: "comprovante_endereco",
+        nome: "COMPROVANTE DE ENDEREÇO",
+        obrigatorio: true,
+    },
+    DocumentoRequerido {
+        id: "foto_agricultor",
+        nome: "FOTO DO AGRICULTOR NO EMPREENDIMENTO",
+        obrigatorio: true,
+    },
+    DocumentoRequerido {
+        id: "selfie_documento",
+        nome: "SELFIE COM O DOCUMENTO DE IDENTIFICAÇÃO (RG OU CNH)",
+        obrigatorio: true,
+    },
+    DocumentoRequerido {
+        id: "certidao_nascimento_casamento_divorcio",
+        nome: "CERTIDÃO DE NASCIMENTO/CASAMENTO/DIVÓRCIO",
+        obrigatorio: true,
+    },
+    DocumentoRequerido {
+        id: "outros",
+        nome: "OUTROS DOCUMENTOS",
+        obrigatorio: false,
+    },
+];
+
+/*
+documentos para micro credito online
+*/
+pub static DOC_MICRO_CREDITO: &[DocumentoRequerido; 1] = &[DocumentoRequerido {
+    id: "rg_frente_solicitante",
+    nome: "RG FRENTE SOLICITANTE",
+    obrigatorio: true,
+}];
+/*
+documento capital de giro turismo
+*/
+pub static DOC_CAPITAL: &[DocumentoRequerido; 1] = &[DocumentoRequerido {
+    id: "rg_frente_solicitante",
+    nome: "RG FRENTE SOLICITANTE",
+    obrigatorio: true,
+}];
+/*
+documento para credito popular
+*/
+pub static DOC_POPULAR: &[DocumentoRequerido; 2] = &[
+    DocumentoRequerido {
+        id: "rg_frente_solicitante",
+        nome: "RG FRENTE SOLICITANTE",
+        obrigatorio: true,
+    },
+    DocumentoRequerido {
+        id: "cpf_frente_solicitante",
+        nome: "CPF FRENTE DO SOLICITANTE",
+        obrigatorio: true,
+    },
+];
+
+/*
+documento para agricultura familiar
+*/
+pub static DOC_AGRICULTURA: &[DocumentoRequerido; 2] = &[
+    DocumentoRequerido {
+        id: "rg_frente_solicitante",
+        nome: "RG FRENTE SOLICITANTE",
+        obrigatorio: true,
+    },
+    DocumentoRequerido {
+        id: "cpf_frente_solicitante",
+        nome: "CPF FRENTE DO SOLICITANTE",
+        obrigatorio: true,
+    },
+];
+
+/*
+documentos para emergencial
+*/
+pub static DOC_EMERGINCIAL: &[DocumentoRequerido; 1] = &[DocumentoRequerido {
+    id: "foto_agricultor",
+    nome: "FOTO DO AGRICULTOR NO EMPREENDIMENTO",
+    obrigatorio: true,
+}];
+/*
+documento para maos que criam
+*/
+pub static DOC_MAOS_QUE: &[DocumentoRequerido; 1] = &[DocumentoRequerido {
+    id: "comprovante_endereco",
+    nome: "COMPROVANTE DE ENDEREÇO",
+    obrigatorio: true,
+}];
+/*
+documentos credito online
+*/
+pub static DOC_ONLINE: &[DocumentoRequerido; 1] = &[DocumentoRequerido {
+    id: "rg_frente_solicitante",
+    nome: "RG FRENTE SOLICITANTE",
+    obrigatorio: true,
+}];
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateContato {
@@ -77,16 +236,39 @@ pub struct UpdateContato {
     pub updated_at: Option<DateTime<Utc>>,
 }
 
+
 #[derive(Debug, Clone, Validate, Serialize, Deserialize)]
-pub struct Contato {
+pub struct CreateContatoSchema {
     pub cpf_cnpj: String,
     pub nome: String,
     pub telefone: String,
     pub email: String,
     pub cidade_id: i64,
     pub val_solicitado: BigDecimal,
-    pub campos: Value,
-    pub dados_imports: Option<Value>,
+}
+
+#[derive(Debug, Clone, Validate, Serialize, Deserialize)]
+pub struct ContatoSchema {
+    pub cpf_cnpj: String,
+    pub nome: String,
+    pub telefone: String,
+    pub email: String,
+    pub cidade_id: i64,
+    pub val_solicitado: BigDecimal,
+
+    #[serde(flatten)]
+    pub tipo: TipoContatoExtra,
+    //pub documentos: Vec<DocumentoRequerido>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "type_contato", rename_all = "snake_case")]
+pub enum TipoContatoExtra {
+    PronafB(PronafB),
+    MicroCreditoOnline(MicroCreditoOnline),
+    CreditoPopular(CreditoPopular),
+    MaosQueCriam(MaosQueCriam),
+    CreditoOnline(CreditoOnline),
 }
 
 #[derive(Debug, Validate, Default, Clone, Serialize, Deserialize)]
@@ -95,10 +277,13 @@ pub struct PronafB {
     pub orgao_associacao_tecnico: String,
     pub telefone_whatsapp_tecnico: String,
     pub apelido: Option<String>, //do solicitante
+    pub estado_civil: i32,
     #[validate(length(min = 9, max = 9, message = "Cep invalido"))]
     pub cep: String, //len 9
+    pub cidade_id: i32,
     pub endereco: String,
     pub prev_aumento_fat: BigDecimal,
+    pub cpf_conj: Option<String>,
     pub nome_conj: Option<String>,
     pub telefone_conj: Option<String>,
     pub email_conj: Option<String>,

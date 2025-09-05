@@ -114,6 +114,8 @@ pub enum Campos {
         orgao_associacao_tecnico: String,
         telefone_whatsapp_tecnico: String,
         apelido: Option<String>, //do solicitante
+        estado_civil: i32,
+        cidade_id: i32,
         cep: String,             //len 9
         endereco: String,
         prev_aumento_fat: BigDecimal,

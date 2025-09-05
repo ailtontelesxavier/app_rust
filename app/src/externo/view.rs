@@ -1,11 +1,13 @@
 use std::collections::HashMap;
+use std::str::FromStr;
 
 use axum::{
     Extension, Form,
-    extract::{Path, Query, State},
+    extract::{Multipart, Path, Query, State},
     http::StatusCode,
     response::{Html, IntoResponse, Redirect},
 };
+use bigdecimal::BigDecimal;
 use minijinja::context;
 use shared::{FlashStatus, ListParams, SharedState, helpers};
 use tracing::debug;
@@ -13,7 +15,13 @@ use uuid::Uuid;
 
 use crate::{
     externo::{
-        LinhaService, StatusCivil, TypeContato, schema::{CreateContato, CreateLinhaSchema, UpdateContato, UpdateLinhaSchema}, service::ContatoService
+        LinhaService, StatusCivil, TypeContato,
+        schema::{
+            ContatoSchema, CreateContatoSchema, CreateLinhaSchema, DOC_AGRICULTURA, DOC_CAPITAL,
+            DOC_EMERGINCIAL, DOC_MAOS_QUE, DOC_MICRO_CREDITO, DOC_ONLINE, DOC_POPULAR, DOC_PRONAF,
+            DocumentoRequerido, PronafB, UpdateContato, UpdateLinhaSchema,
+        },
+        service::ContatoService,
     },
     middlewares::CurrentUser,
 };
@@ -355,10 +363,15 @@ pub async fn contato_form(
 ) -> Result<Html<String>, impl IntoResponse> {
     let type_contato = params.get("type_contato");
 
+    let template;
+    let documentos;
+
     if let Some(tipo) = type_contato
         .and_then(|s| s.parse::<i32>().ok())
         .and_then(TypeContato::from_i32)
     {
+        template = template_contato(tipo as i32);
+        documentos = get_list_documento(tipo as i32);
     } else {
         eprintln!("Tipo contato inválido");
         let flash_url = helpers::create_flash_url(
@@ -385,9 +398,10 @@ pub async fn contato_form(
         type_contato => type_contato.unwrap().parse::<i32>().ok(),
         estado_civil => StatusCivil::estado_civil_options(),
         tipo_contato => TypeContato::tipo_contato_options(),
+        documentos => documentos,
     };
 
-    match state.templates.get_template("externo/contato_form.html") {
+    match state.templates.get_template(template) {
         Ok(template) => match template.render(context) {
             Ok(html) => Ok(Html(html)),
             Err(err) => Err((
@@ -404,17 +418,93 @@ pub async fn contato_form(
     }
 }
 
+fn template_contato(type_contato: i32) -> &'static str {
+    match TypeContato::from_i32(type_contato) {
+        Some(TypeContato::PronafB) => "externo/contato_form_pronaf_b.html",
+        Some(TypeContato::AgriculturaFamiliar) => "externo/contato_form_agricultura.html",
+        Some(TypeContato::CapitalDeGiroTurismo) => "externo/contato_form_capital.html",
+        Some(TypeContato::CreditoOnline) => "externo/contato_form_credito.html",
+        Some(TypeContato::CreditoPopular) => "externo/contato_form_credito_popular.html",
+        Some(TypeContato::Emergencial) => "externo/contato_form_emergencial.html",
+        Some(TypeContato::MaosQueCriam) => "externo/contato_form_maos_que_criam.html",
+        Some(TypeContato::MicroCreditoOnline) => "externo/contato_form_micro_credito.html",
+        _ => "externo/contato_form.html", // Template padrão ou de erro
+    }
+}
+
 /*
- cria contato interno
+Retorna lista de documentos para cada linha de contato
 */
-pub async fn create_contato(
+fn get_list_documento(type_contato: i32) -> Option<&'static [DocumentoRequerido]> {
+    match TypeContato::from_i32(type_contato) {
+        Some(TypeContato::PronafB) => Some(DOC_PRONAF),
+        Some(TypeContato::AgriculturaFamiliar) => Some(DOC_AGRICULTURA),
+        Some(TypeContato::CapitalDeGiroTurismo) => Some(DOC_CAPITAL),
+        Some(TypeContato::CreditoOnline) => Some(DOC_ONLINE),
+        Some(TypeContato::CreditoPopular) => Some(DOC_POPULAR),
+        Some(TypeContato::Emergencial) => Some(DOC_EMERGINCIAL),
+        Some(TypeContato::MaosQueCriam) => Some(DOC_MAOS_QUE),
+        Some(TypeContato::MicroCreditoOnline) => Some(DOC_MICRO_CREDITO),
+        _ => None,
+    }
+}
+
+/*
+ cria contato interno pronaf
+*/
+pub async fn create_contato_pronaf(
     State(state): State<SharedState>,
     Extension(current_user): Extension<CurrentUser>,
-    Form(mut body): Form<CreateContato>,
+    mut multipart: Multipart,
 ) -> impl IntoResponse {
     let service = ContatoService::new();
+    // Estruturas para armazenar os dados do form
+    let mut form_data = CreateContatoSchema {
+        cpf_cnpj: "".to_string(),
+        nome: "".to_string(),
+        telefone: "".to_string(),
+        email: "".to_string(),
+        cidade_id: 0,
+        val_solicitado: BigDecimal::from(0),
+    };
 
-    match service.create(&*state.db, body).await {
+    // Vetor para armazenar arquivos
+    let mut arquivos: Vec<(String, Vec<u8>)> = vec![];
+
+    // Itera pelos campos do multipart
+    while let Some(mut field) = multipart.next_field().await.unwrap() {
+        let name = field.name().unwrap_or("").to_string();
+
+        if let Some(file_name) = field.file_name().map(|s| s.to_string()) {
+            // lê os bytes do arquivo
+            let data = field.bytes().await.unwrap().to_vec();
+            arquivos.push((file_name, data));
+        } else {
+            // campo de texto
+            let text = field.text().await.unwrap_or_default();
+            match name.as_str() {
+                "cpf_cnpj" => form_data.cpf_cnpj = text,
+                "nome" => form_data.nome = text,
+                "telefone" => form_data.telefone = text,
+                "email" => form_data.email = text,
+                "cidade_id" => form_data.cidade_id = text.parse().unwrap_or(0),
+                "val_solicitado" => {
+                    form_data.val_solicitado =
+                        BigDecimal::from_str(&text).unwrap_or(BigDecimal::from(0))
+                }
+                _ => {}
+            }
+        }
+    }
+
+    let flash_url = helpers::create_flash_url(
+        &format!("/externo/contato-form/"),
+        "Contato criado com sucesso!",
+        FlashStatus::Success,
+    );
+    Redirect::to(&flash_url).into_response()
+
+    /* match service.create(&*state.db, body).await {
         Ok(contato) => {
             let flash_url = helpers::create_flash_url(
                 &format!("/externo/contato-form/{}", contato.id),
@@ -431,7 +521,44 @@ pub async fn create_contato(
             );
             Redirect::to(&flash_url).into_response()
         }
-    }
+    } */
+}
+
+/*
+ cria contato interno
+*/
+pub async fn create_contato(
+    State(state): State<SharedState>,
+    Extension(current_user): Extension<CurrentUser>,
+    Form(mut body): Form<ContatoSchema>,
+) -> impl IntoResponse {
+    let service = ContatoService::new();
+
+    let flash_url = helpers::create_flash_url(
+        &format!("/externo/contato-form/"),
+        "Contato criado com sucesso!",
+        FlashStatus::Success,
+    );
+    Redirect::to(&flash_url).into_response()
+
+    /* match service.create(&*state.db, body).await {
+        Ok(contato) => {
+            let flash_url = helpers::create_flash_url(
+                &format!("/externo/contato-form/{}", contato.id),
+                "Contato criado com sucesso!",
+                FlashStatus::Success,
+            );
+            Redirect::to(&flash_url).into_response()
+        }
+        Err(err) => {
+            let flash_url = helpers::create_flash_url(
+                "/externo/contato-form",
+                &format!("Erro ao criar contato: {}", err),
+                FlashStatus::Error,
+            );
+            Redirect::to(&flash_url).into_response()
+        }
+    } */
 }
 
 pub async fn get_contato(

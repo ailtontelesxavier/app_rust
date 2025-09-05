@@ -73,7 +73,6 @@ impl StatusCivil {
     }
 }
 
-
 /*
     MEI = 1, "MEI"
     ME = 2, "ME"
@@ -299,8 +298,9 @@ pub enum TypeContato {
     CreditoPopular = 3 as i32,
     AgriculturaFamiliar = 4 as i32,
     Emergencial = 5 as i32,
-    MMaosQueCriam = 6 as i32,
+    MaosQueCriam = 6 as i32,
     CreditoOnline = 7 as i32,
+    PronafB = 8 as i32,
 }
 
 impl std::fmt::Display for TypeContato {
@@ -311,8 +311,9 @@ impl std::fmt::Display for TypeContato {
             TypeContato::CreditoPopular => "Crédito Popular",
             TypeContato::AgriculturaFamiliar => "Agricultura Familiar",
             TypeContato::Emergencial => "Emergencial",
-            TypeContato::MMaosQueCriam => "Mãos que Criam",
+            TypeContato::MaosQueCriam => "Mãos que Criam",
             TypeContato::CreditoOnline => "Crédito Online",
+            TypeContato::PronafB => "Pronaf B",
         };
         write!(f, "{}", str)
     }
@@ -326,8 +327,9 @@ impl TypeContato {
             3 => Some(TypeContato::CreditoPopular),
             4 => Some(TypeContato::AgriculturaFamiliar),
             5 => Some(TypeContato::Emergencial),
-            6 => Some(TypeContato::MMaosQueCriam),
+            6 => Some(TypeContato::MaosQueCriam),
             7 => Some(TypeContato::CreditoOnline),
+            8 => Some(TypeContato::PronafB),
             _ => None,
         }
     }
@@ -344,8 +346,9 @@ impl TypeContato {
             TypeContato::CreditoPopular,
             TypeContato::AgriculturaFamiliar,
             TypeContato::Emergencial,
-            TypeContato::MMaosQueCriam,
+            TypeContato::MaosQueCriam,
             TypeContato::CreditoOnline,
+            TypeContato::PronafB,
         ]
     }
     /*
