@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::str::FromStr;
 
 use axum::{
@@ -9,6 +9,8 @@ use axum::{
 };
 use bigdecimal::BigDecimal;
 use minijinja::context;
+use regex::Regex;
+use serde_json::{Map, Value};
 use shared::{FlashStatus, ListParams, SharedState, helpers};
 use tracing::debug;
 use uuid::Uuid;
@@ -497,6 +499,11 @@ pub async fn create_contato_pronaf(
         }
     }
 
+    /* 
+    let resultado = agrupa_items(itens);
+    println!("{}", serde_json::to_string_pretty(&resultado).unwrap());
+     */
+
     let flash_url = helpers::create_flash_url(
         &format!("/externo/contato-form/"),
         "Contato criado com sucesso!",
@@ -522,6 +529,38 @@ pub async fn create_contato_pronaf(
             Redirect::to(&flash_url).into_response()
         }
     } */
+}
+
+/* 
+para pronaf b juntar os arquivos
+*/
+/// Agrupa itens no formato `"descricao_0": "carro", "quantidade_0": "1", ...`
+pub fn agrupa_items(itens: &str) -> Vec<Map<String, Value>> {
+    // Parse do JSON
+    let raw_itens: Value = match serde_json::from_str(itens) {
+        Ok(val) => val,
+        Err(_) => return vec![],
+    };
+
+    let raw_map = match raw_itens.as_object() {
+        Some(map) => map,
+        None => return vec![],
+    };
+
+    let re = Regex::new(r"(\w+)_([0-9]+)").unwrap();
+    let mut grouped: BTreeMap<usize, Map<String, Value>> = BTreeMap::new();
+
+    for (key, value) in raw_map.iter() {
+        if let Some(caps) = re.captures(key) {
+            let field = caps.get(1).unwrap().as_str();
+            let idx: usize = caps.get(2).unwrap().as_str().parse().unwrap_or(0);
+
+            let entry = grouped.entry(idx).or_insert_with(Map::new);
+            entry.insert(field.to_string(), value.clone());
+        }
+    }
+
+    grouped.into_values().collect()
 }
 
 /*
