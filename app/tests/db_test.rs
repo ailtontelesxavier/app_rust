@@ -60,7 +60,7 @@ async fn test_select_1(#[future] postgres_pool: Pool<Postgres>) {
         .execute(&pool)
         .await;
 
-    println!("query teste");
+    println!("query teste:{}", result.is_ok());
     
     assert!(result.is_ok(), "Basic query failed: {:?}", result.err());
     
