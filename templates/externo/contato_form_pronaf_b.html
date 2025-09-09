@@ -31,7 +31,7 @@
                             <legend class="fieldset-legend">TELEFONE/WHATSAPP</legend>
                             <input id="telefone_whatsapp_tecnico" name="telefone_whatsapp_tecnico" type="text"
                                 value="{% if row %}{{row.telefone_whatsapp_tecnico}}{% endif %}"
-                                class="input input-bordered" />
+                                class="input input-bordered telefone" />
                         </fieldset>
                     </div>
                 </div>
@@ -47,7 +47,7 @@
                 <fieldset class="fieldset">
                     <legend class="fieldset-legend">CPF</legend>
                     <input id="cpf_cnpj" name="cpf_cnpj" type="text" value="{% if row %}{{row.cpf_cnpj}}{% endif %}"
-                        class="input input-bordered" required />
+                        class="input input-bordered cpf" required />
                 </fieldset>
                 <fieldset class="fieldset">
                     <legend class="fieldset-legend">Nome</legend>
@@ -74,7 +74,7 @@
                 <fieldset class="fieldset">
                     <legend class="fieldset-legend">CEP</legend>
                     <input id="cep" name="cep" type="text" value="{% if row %}{{row.cep}}{% endif %}"
-                        class="input input-bordered" required />
+                        class="input input-bordered cep" required />
                 </fieldset>
                 <fieldset class="fieldset">
                     <legend class="fieldset-legend">Cidade</legend>
@@ -102,7 +102,7 @@
                 <fieldset class="fieldset">
                     <legend class="fieldset-legend">Telefone</legend>
                     <input id="telefone" name="telefone" type="text" value="{% if row %}{{row.telefone}}{% endif %}"
-                        class="input input-bordered" required />
+                        class="input input-bordered telefone" required />
                 </fieldset>
                 <fieldset class="fieldset">
                     <legend class="fieldset-legend">Email</legend>
