@@ -174,7 +174,7 @@
                     placeholder="Descrever detalhadamente..."
                     required>{% if row %}{{row.finalidade_credito}}{% endif %}</textarea>
             </div>
-            <fieldset class="bg-white shadow-lg rounded-lg px-4 space-y-2 ">
+            <fieldset class="shadow-lg rounded-lg px-4 space-y-2 ">
                 <legend class="block text-sm font-medium text-gray-700">
                     Reencher Planilha da aplicação do recurso
                 </legend>
@@ -182,7 +182,7 @@
                 <input id="contato_id" name="contato_id" type="hidden" value="{{row.id}}" />
                 {% endif %}
                 <div class="col-span-2 mt-10">
-                    <fieldset class="bg-white shadow-lg rounded-lg px-4 space-y-2 ">
+                    <fieldset class="shadow-lg rounded-lg px-4 space-y-2 ">
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                             <div class="space-y-2">
                                 <label class="block text-sm font-medium text-gray-700 " label="title"
@@ -192,7 +192,7 @@
                                 </label>
                                 <input type="text" placeholder="descrição do item" id="id_descricao" name="descricao"
                                     value=""
-                                    class="mt-1 block w-full px-3 py-2 border border-gray-300 text-gray-900 bg-gray-50 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm ">
+                                    class="mt-1 block w-full px-3 py-2 border border-gray-300 text-gray-900 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm ">
                             </div>
                             <div class="space-y-2">
                                 <label class="block text-sm font-medium text-gray-700 " label="title"
@@ -200,7 +200,7 @@
                                     Quantidade
                                 </label>
                                 <input type="number" placeholder="" id="id_quantidade" name="quantidade" value="1"
-                                    class="mt-1 block w-full px-3 py-2 border border-gray-300 text-gray-900 bg-gray-50 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm "
+                                    class="mt-1 block w-full px-3 py-2 border border-gray-300 text-gray-900 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm "
                                     min="1," step="1">
                             </div>
                             <div class="space-y-2">
@@ -209,7 +209,7 @@
                                     Valor Unitário
                                 </label>
                                 <input type="text" placeholder="" id="id_valor_unitario" name="valor_unitario" value="0"
-                                    class="mt-1 block w-full px-3 py-2 border border-gray-300 text-gray-900 bg-gray-50 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm moeda-br"
+                                    class="mt-1 block w-full px-3 py-2 border border-gray-300 text-gray-900 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm moeda-br"
                                     data-masked="true">
                             </div>
                             <div class="space-y-2">
@@ -218,7 +218,7 @@
                                     Valor Total
                                 </label>
                                 <input type="text" placeholder="" id="id_valor_total" name="valor_total" value="0"
-                                    class="mt-1 block w-full px-3 py-2 border border-gray-300 text-gray-900 bg-gray-50 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm moeda-br"
+                                    class="mt-1 block w-full px-3 py-2 border border-gray-300 text-gray-900 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm moeda-br"
                                     data-masked="true">
                             </div>
                         </div>
@@ -232,19 +232,19 @@
                     </fieldset>
                 </div>
             </fieldset>
-            <div class="bg-white p-6 rounded-xl shadow mt-5">
+            <div class="p-6 rounded-xl shadow mt-5">
                 <h2 class="text-xl font-semibold mb-2">Documentação Necessária</h2>
                 <p class="text-sm text-gray-500 mb-4">Anexe todos os documentos obrigatórios listados abaixo</p>
                 <p class="text-sm text-gray-500 mb-4">TODOS DOCUMENTOS DEVERÃO ESTÁ LEGÍVEIS PARA QUE POSSAM SER
                     VALIDADOS.</p>
                 <p class="text-sm text-gray-500 mb-4">AS FOTOS DOS DOCUMENTOS PESSOAIS DEVERÃO DE ENVIADA FRENTE E
                     VERSO.</p>
-                <div class="bg-blue-50 p-4 rounded-xl border border-blue-200">
+                <div class="p-4 rounded-xl border border-blue-200">
                     <h4 class="font-medium text-blue-900 mb-1">Formatos aceitos:</h4>
                     <p class="text-sm text-blue-700">PDF, JPG, JPEG, PNG (máximo 10MB por arquivo)</p>
                 </div>
                 {% for doc in documentos %}
-                <div data-doc class="p-4 mt-5 border rounded-lg mb-3 bg-white shadow-sm">
+                <div data-doc class="p-4 mt-5 border rounded-lg mb-3 shadow-sm">
                     <div class="flex justify-between items-start">
                         <div>
                             <div class="font-medium text-sm mb-1">
@@ -274,7 +274,7 @@
                     </div>
                 </div>
                 {% endfor %}
-                <div class="bg-white p-6 rounded-xl shadow flex items-center justify-between">
+                <div class="p-6 rounded-xl shadow flex items-center justify-between">
                     <div class="flex items-center gap-2 text-sm text-gray-700">
                         <span id="btnCancelar"
                             class=" inline-flex items-center justify-center bg-primary text-primary-foreground shadow hover:bg-emerald-300 h-9 px-4 py-2 cursor-pointer text-black hover:text-white rounded">
@@ -347,7 +347,7 @@
 
             itens.forEach((item, index) => {
                 const itensDiv = document.createElement("div");
-                itensDiv.className = "space-y-4 p-4 rounded bg-white shadow-lg rounded-lg";
+                itensDiv.className = "space-y-4 p-4 rounded shadow-lg rounded-lg";
 
                 const hiddenIdInput = item.id
                     ? `<input type="hidden" id="id_item_id${index}" name="id_${index}" value="${item.id}"/>`
@@ -362,19 +362,19 @@
               
               <div class="space-y-2">
                  <label for='id_desp_mensal_atividade${index}' class="fieldset-legend">Descriçao do que vai adquirir</label>
-                 <input type="text" placeholder="descrição do item" id="id_descricao${index}" name="descricao_${index}" value="${item.descricao}" class="mt-1 block w-full px-3 py-2 border border-gray-300 text-gray-900 bg-gray-50 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm ">
+                 <input type="text" placeholder="descrição do item" id="id_descricao${index}" name="descricao_${index}" value="${item.descricao}" class="mt-1 block w-full px-3 py-2 border border-gray-300 text-gray-900 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm ">
             </div>
             <div class="space-y-2">
                  <label for='id_quantidade${index}' class="fieldset-legend">Quantidade</label>
-                <input type="number" placeholder="" id="id_quantidade${index}" name="quantidade_${index}" value="${item.quantidade}" class="mt-1 block w-full px-3 py-2 border border-gray-300 text-gray-900 bg-gray-50 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm " min="1," step="1">
+                <input type="number" placeholder="" id="id_quantidade${index}" name="quantidade_${index}" value="${item.quantidade}" class="mt-1 block w-full px-3 py-2 border border-gray-300 text-gray-900 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm " min="1," step="1">
             </div>
             <div class="space-y-2">
                 <label for='id_valor_unitario${index}' class="fieldset-legend">Valor Unitário</label>
-               <input type="text" placeholder="" id="id_valor_unitario${index}" name="valor_unitario_${index}" value="${Number.parseFloat(item.valor_unitario).toFixed(2)}" class="moeda-br mt-1 block w-full px-3 py-2 border border-gray-300 text-gray-900 bg-gray-50 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm " min="0," step="0.01">
+               <input type="text" placeholder="" id="id_valor_unitario${index}" name="valor_unitario_${index}" value="${Number.parseFloat(item.valor_unitario).toFixed(2)}" class="moeda-br mt-1 block w-full px-3 py-2 border border-gray-300 text-gray-900 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm " min="0," step="0.01">
             </div>
             <div class="space-y-2">
                 <label for='id_valor_total${index}' class="fieldset-legend">Valor Total</label>
-                <input type="text" placeholder="" id="id_valor_total${index}" name="valor_total_${index}" value="${Number.parseFloat(item.valor_total).toFixed(2)}" class="moeda-br mt-1 block w-full px-3 py-2 border border-gray-300 text-gray-900 bg-gray-50 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm " min="0," step="0.01">
+                <input type="text" placeholder="" id="id_valor_total${index}" name="valor_total_${index}" value="${Number.parseFloat(item.valor_total).toFixed(2)}" class="moeda-br mt-1 block w-full px-3 py-2 border border-gray-300 text-gray-900 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm " min="0," step="0.01">
             </div>
 
           `;
