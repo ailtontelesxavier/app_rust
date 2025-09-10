@@ -146,7 +146,7 @@
                 <fieldset class="fieldset">
                     <legend class="fieldset-legend">Email</legend>
                     <input id="email_conj" name="email_conj" type="text" value="{% if row %}{{row.email_conj}}{% endif %}"
-                        class="input input-bordered" required />
+                        class="input input-bordered" />
                 </fieldset>
             </div>
             <legend class="block text-sm font-medium text-gray-700">
@@ -296,7 +296,7 @@
 {% block extra_js %}
 
 <script>
-    {% include '/externo/parts/contato_form.js' %}
+    {% include '/externo/parts/contato_form_pronaf_b.js' %}
     //adicionar itens
     {% if itens %}
     let itens = {{ itens | safe }};

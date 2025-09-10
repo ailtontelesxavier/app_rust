@@ -1,6 +1,8 @@
 use std::collections::{BTreeMap, HashMap};
 use std::str::FromStr;
 
+use axum::Json;
+use axum::http::response;
 use axum::{
     Extension, Form,
     extract::{Multipart, Path, Query, State},
@@ -10,11 +12,13 @@ use axum::{
 use bigdecimal::BigDecimal;
 use minijinja::context;
 use regex::Regex;
-use serde_json::{Map, Value};
+use serde_json::{Map, Value, json};
 use shared::{FlashStatus, ListParams, SharedState, helpers};
 use tracing::debug;
 use uuid::Uuid;
+use validator::Validate;
 
+use crate::externo::schema::AplicacaoRecursos;
 use crate::{
     externo::{
         LinhaService, StatusCivil, TypeContato,
@@ -461,14 +465,34 @@ pub async fn create_contato_pronaf(
 ) -> impl IntoResponse {
     let service = ContatoService::new();
     // Estruturas para armazenar os dados do form
-    let mut form_data = CreateContatoSchema {
-        cpf_cnpj: "".to_string(),
-        nome: "".to_string(),
-        telefone: "".to_string(),
-        email: "".to_string(),
+    let mut form_data = PronafB {
+        nome_tecnico: "".to_string(),
+        orgao_associacao_tecnico: "".to_string(),
+        telefone_whatsapp_tecnico: "".to_string(),
+        apelido: None,
+        estado_civil: 0,
+        cep: "".to_string(),
         cidade_id: 0,
-        val_solicitado: BigDecimal::from(0),
+        endereco: "".to_string(),
+        prev_aumento_fat: BigDecimal::from(0),
+        cpf_conj: None,
+        nome_conj: None,
+        telefone_conj: None,
+        email_conj: None,
+        email: None,
+        valor_estimado_imovel: None,
+        desc_atividade: "".to_string(),
+        finalidade_credito: "".to_string(),
     };
+
+    let mut item_recurso = AplicacaoRecursos {
+        descricao: "".to_string(),
+        quantidade: 0,
+        valor_unitario: BigDecimal::from(0),
+        valor_total: BigDecimal::from(0),
+    };
+
+    let mut list_item_recurso = vec![];
 
     // Vetor para armazenar arquivos
     let mut arquivos: Vec<(String, Vec<u8>)> = vec![];
@@ -484,22 +508,117 @@ pub async fn create_contato_pronaf(
         } else {
             // campo de texto
             let text = field.text().await.unwrap_or_default();
-            match name.as_str() {
-                "cpf_cnpj" => form_data.cpf_cnpj = text,
-                "nome" => form_data.nome = text,
-                "telefone" => form_data.telefone = text,
-                "email" => form_data.email = text,
-                "cidade_id" => form_data.cidade_id = text.parse().unwrap_or(0),
-                "val_solicitado" => {
-                    form_data.val_solicitado =
-                        BigDecimal::from_str(&text).unwrap_or(BigDecimal::from(0))
+
+            // Preencher os campos específicos de AplicacaoRecursos lista
+            if name.starts_with("descricao_") {
+                /* let idx = name
+                    .trim_start_matches("descricao_")
+                    .parse::<usize>()
+                    .unwrap_or(0);
+                println!("descricao {} => {}", idx, text);
+                // aqui você pode inserir em um vetor de itens, ex:
+                // itens[idx].descricao = text; */
+                item_recurso.descricao = text
+            } else if name.starts_with("quantidade_") {
+                item_recurso.quantidade = text.parse().unwrap_or(0);
+            } else if name.starts_with("valor_unitario_") {
+                item_recurso.valor_unitario =
+                    BigDecimal::from_str(&text.replace(".", "").replace(",", "."))
+                        .unwrap_or(BigDecimal::from(0));
+            } else if name.starts_with("valor_total_") {
+                item_recurso.valor_total =
+                    BigDecimal::from_str(&text.replace(".", "").replace(",", "."))
+                        .unwrap_or(BigDecimal::from(0));
+
+                list_item_recurso.push(item_recurso.clone());
+                item_recurso = AplicacaoRecursos {
+                    descricao: "".to_string(),
+                    quantidade: 0,
+                    valor_unitario: BigDecimal::from(0),
+                    valor_total: BigDecimal::from(0),
+                };
+            } else {
+                // Preencher os campos específicos de PronafB
+                match name.as_str() {
+                    "nome_tecnico" => form_data.nome_tecnico = text,
+                    "orgao_associacao_tecnico" => form_data.orgao_associacao_tecnico = text,
+                    "telefone_whatsapp_tecnico" => form_data.telefone_whatsapp_tecnico = text,
+                    "apelido" => {
+                        form_data.apelido = if text.is_empty() { None } else { Some(text) }
+                    }
+                    "estado_civil" => form_data.estado_civil = text.parse().unwrap_or(0),
+                    "cep" => form_data.cep = text,
+                    "cidade_id" => form_data.cidade_id = text.parse().unwrap_or(0),
+                    "endereco" => form_data.endereco = text,
+                    "prev_aumento_fat" => {
+                        form_data.prev_aumento_fat =
+                            BigDecimal::from_str(&text.replace(".", "").replace(",", "."))
+                                .unwrap_or(BigDecimal::from(0))
+                    }
+                    "cpf_conj" => {
+                        form_data.cpf_conj = if text.is_empty() { None } else { Some(text) }
+                    }
+                    "nome_conj" => {
+                        form_data.nome_conj = if text.is_empty() { None } else { Some(text) }
+                    }
+                    "telefone_conj" => {
+                        form_data.telefone_conj = if text.is_empty() { None } else { Some(text) }
+                    }
+                    "email_conj" => {
+                        form_data.email_conj = if text.is_empty() { None } else { Some(text) }
+                    }
+                    "email" => form_data.email = if text.is_empty() { None } else { Some(text) },
+                    "valor_estimado_imovel" => {
+                        form_data.valor_estimado_imovel = if text.is_empty() {
+                            None
+                        } else {
+                            Some(
+                                BigDecimal::from_str(&text.replace(".", "").replace(",", "."))
+                                    .unwrap_or(BigDecimal::from(0)),
+                            )
+                        }
+                    }
+                    "desc_atividade" => form_data.desc_atividade = text,
+                    "finalidade_credito" => form_data.finalidade_credito = text,
+
+                    // Preencher os campos específicos de AplicacaoRecursos
+                    "descricao" => item_recurso.descricao = text,
+                    "quantidade" => item_recurso.quantidade = text.parse().unwrap_or(0),
+                    "valor_unitario" => {
+                        item_recurso.valor_unitario =
+                            BigDecimal::from_str(&text.replace(".", "").replace(",", "."))
+                                .unwrap_or(BigDecimal::from(0));
+                    }
+                    "valor_total" => {
+                        item_recurso.valor_total =
+                            BigDecimal::from_str(&text.replace(".", "").replace(",", "."))
+                                .unwrap_or(BigDecimal::from(0));
+                        list_item_recurso.push(item_recurso.clone());
+                    }
+
+                    _ => {}
                 }
-                _ => {}
             }
         }
     }
 
-    /* 
+    match form_data.validate() {
+        Ok(_) => {}
+        Err(errors) => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({
+                    "status": "error",
+                    "errors": errors
+                })),
+            );
+        }
+    }
+
+    println!("valor: {:?}", Some(&form_data.valor_estimado_imovel));
+    println!("Form Data: {:?}", form_data);
+
+    /*
     let resultado = agrupa_items(itens);
     println!("{}", serde_json::to_string_pretty(&resultado).unwrap());
      */
@@ -509,7 +628,14 @@ pub async fn create_contato_pronaf(
         "Contato criado com sucesso!",
         FlashStatus::Success,
     );
-    Redirect::to(&flash_url).into_response()
+
+    return (
+        StatusCode::BAD_REQUEST,
+        Json(serde_json::json!({
+            "status": "success",
+            "location": flash_url,
+        })),
+    );
 
     /* match service.create(&*state.db, body).await {
         Ok(contato) => {
@@ -531,7 +657,7 @@ pub async fn create_contato_pronaf(
     } */
 }
 
-/* 
+/*
 para pronaf b juntar os arquivos
 */
 /// Agrupa itens no formato `"descricao_0": "carro", "quantidade_0": "1", ...`

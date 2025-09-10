@@ -38,7 +38,7 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-        if (!form.checkValidity()) {
+        /* if (!form.checkValidity()) {
             const invalidFields = Array.from(form.elements).filter(
                 (el) => el instanceof HTMLInputElement || el instanceof HTMLSelectElement || el instanceof HTMLTextAreaElement
             ).filter((el) => !el.validity.valid);
@@ -47,7 +47,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             showMessage(`Por favor, preencha os seguintes campos obrigatórios: ${fieldNames.join(", ")}`);
             return;
-        }
+        } */
 
         showLoader();
         //form.submit();

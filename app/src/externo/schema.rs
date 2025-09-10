@@ -349,3 +349,14 @@ pub struct CreditoOnline {
     atividade: String,
     descricao_despesa: String,
 }
+
+/* 
+Aplicacao de recursos
+*/
+#[derive(Debug, Validate, Clone, Serialize, Deserialize)]
+pub struct AplicacaoRecursos {
+    pub descricao: String,
+    pub quantidade: i32,
+    pub valor_unitario: BigDecimal,
+    pub valor_total: BigDecimal,
+}
