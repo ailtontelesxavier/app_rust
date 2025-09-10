@@ -495,7 +495,7 @@ pub async fn create_contato_pronaf(
     let mut list_item_recurso = vec![];
 
     // Vetor para armazenar arquivos
-    let mut arquivos: Vec<(String, Vec<u8>)> = vec![];
+    let mut arquivos: Vec<(String,(String, Vec<u8>))> = vec![];
 
     // Itera pelos campos do multipart
     while let Some(mut field) = multipart.next_field().await.unwrap() {
@@ -504,7 +504,7 @@ pub async fn create_contato_pronaf(
         if let Some(file_name) = field.file_name().map(|s| s.to_string()) {
             // lê os bytes do arquivo
             let data = field.bytes().await.unwrap().to_vec();
-            arquivos.push((file_name, data));
+            arquivos.push((name, (file_name, data)));
         } else {
             // campo de texto
             let text = field.text().await.unwrap_or_default();
@@ -612,6 +612,23 @@ pub async fn create_contato_pronaf(
                     "errors": errors
                 })),
             );
+        }
+    }
+
+    //validar documentos importante enviados
+    for (name, (file_name, data)) in arquivos {
+        if let Some(doc) = DOC_PRONAF.iter().find(|d| d.id == name) {
+            if doc.obrigatorio {
+                if data.is_empty() {
+                    return (
+                        StatusCode::BAD_REQUEST,
+                        Json(serde_json::json!({
+                            "status": "error",
+                            "errors": format!("Documento {} é obrigatório", doc.id)
+                        })),
+                    );
+                }
+            }
         }
     }
 
