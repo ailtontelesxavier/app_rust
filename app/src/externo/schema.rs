@@ -239,10 +239,15 @@ pub struct UpdateContato {
 
 #[derive(Debug, Clone, Validate, Serialize, Deserialize)]
 pub struct CreateContatoSchema {
+    #[validate(length(min = 1, message = " não pode ser vazio"))]
     pub cpf_cnpj: String,
+    #[validate(length(min = 1, message = "nome não pode ser vazio"))]
     pub nome: String,
+    #[validate(length(min = 1, message = "telefone não pode ser vazio"))]
     pub telefone: String,
+    #[validate(regex(path=*EMAIL_RX, message = "Invalid email"))]
     pub email: String,
+    #[validate(range(min = 1, message = "cidade_id não localizada"))]
     pub cidade_id: i64,
     pub val_solicitado: BigDecimal,
 }
@@ -280,7 +285,6 @@ pub struct PronafB {
     pub estado_civil: i32,
     #[validate(length(min = 9, max = 9, message = "Cep invalido"))]
     pub cep: String, //len 9
-    pub cidade_id: i32,
     pub endereco: String,
     pub prev_aumento_fat: BigDecimal,
     pub cpf_conj: Option<String>,

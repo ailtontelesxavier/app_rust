@@ -72,23 +72,32 @@ document.addEventListener('DOMContentLoaded', function () {
                 //showMessage("Erro ao processar requisição: " +error.response?.data?.detail);
                 var msg = '';
                 if (axios.isAxiosError(error)) {
-                    if (Array.isArray(error.response?.data?.detail)) {
-                        error.response?.data?.detail.map((detail) => {
-                            console.log("Erro inesperado:", detail?.msg);
-                            msg += detail?.msg + '\n';
+                    const detail = error.response?.data?.detail;
+                    if (Array.isArray(detail)) {
+                        // Caso seja um array de erros
+                        detail.forEach((d) => {
+                            msg += (d?.msg || JSON.stringify(d)) + '\n';
+                        });
+                    } else if (typeof detail === "object" && detail !== null) {
+                        // Caso seja objeto {campo: [erros]}
+                        Object.entries(detail).forEach(([field, errors]) => {
+                            if (Array.isArray(errors)) {
+                                errors.forEach((err) => {
+                                    msg += `${field}: ${err.message}\n`;
+                                });
+                            }
                         });
                     } else {
-                        console.log("Erro inesperado:", error.message);
-                        msg += error.response.data.detail + '\n';
+                        // Caso seja uma string simples
+                        msg += detail + '\n';
                     }
-                    showMessage("Erro ao processar requisição: " + msg);
+
+                    console.log("Erros capturados:", msg);
+                    showMessage("Erro ao processar requisição:\n" + msg);
                 } else {
                     console.error("Erro inesperado:", error);
-                    //throw error;
                 }
             });
-
-        hideLoader();
     });
 
 });

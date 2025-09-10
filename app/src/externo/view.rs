@@ -464,6 +464,16 @@ pub async fn create_contato_pronaf(
     mut multipart: Multipart,
 ) -> impl IntoResponse {
     let service = ContatoService::new();
+
+    let mut data_contato = CreateContatoSchema {
+        cpf_cnpj: String::new(),
+        nome: String::new(),
+        telefone: String::new(),
+        email: String::new(),
+        cidade_id: 0,
+        val_solicitado: BigDecimal::from(0),
+    };
+
     // Estruturas para armazenar os dados do form
     let mut form_data = PronafB {
         nome_tecnico: "".to_string(),
@@ -472,7 +482,6 @@ pub async fn create_contato_pronaf(
         apelido: None,
         estado_civil: 0,
         cep: "".to_string(),
-        cidade_id: 0,
         endereco: "".to_string(),
         prev_aumento_fat: BigDecimal::from(0),
         cpf_conj: None,
@@ -495,7 +504,7 @@ pub async fn create_contato_pronaf(
     let mut list_item_recurso = vec![];
 
     // Vetor para armazenar arquivos
-    let mut arquivos: Vec<(String,(String, Vec<u8>))> = vec![];
+    let mut arquivos: Vec<(String, (String, Vec<u8>))> = vec![];
 
     // Itera pelos campos do multipart
     while let Some(mut field) = multipart.next_field().await.unwrap() {
@@ -540,6 +549,19 @@ pub async fn create_contato_pronaf(
             } else {
                 // Preencher os campos específicos de PronafB
                 match name.as_str() {
+                    //dados contato
+                    "cpf_cnpj" => data_contato.cpf_cnpj = text,
+                    "nome" => data_contato.nome = text,
+                    "telefone" => data_contato.telefone = text,
+                    "email" => data_contato.email = text,
+                    "cidade_id" => data_contato.cidade_id = text.parse().unwrap_or(0),
+                    "val_solicitado" => {
+                        data_contato.val_solicitado =
+                            BigDecimal::from_str(&text.replace(".", "").replace(",", "."))
+                                .unwrap_or(BigDecimal::from(0))
+                    }
+
+                    //dados pronaf_b
                     "nome_tecnico" => form_data.nome_tecnico = text,
                     "orgao_associacao_tecnico" => form_data.orgao_associacao_tecnico = text,
                     "telefone_whatsapp_tecnico" => form_data.telefone_whatsapp_tecnico = text,
@@ -548,7 +570,6 @@ pub async fn create_contato_pronaf(
                     }
                     "estado_civil" => form_data.estado_civil = text.parse().unwrap_or(0),
                     "cep" => form_data.cep = text,
-                    "cidade_id" => form_data.cidade_id = text.parse().unwrap_or(0),
                     "endereco" => form_data.endereco = text,
                     "prev_aumento_fat" => {
                         form_data.prev_aumento_fat =
@@ -602,6 +623,20 @@ pub async fn create_contato_pronaf(
         }
     }
 
+
+    match data_contato.validate() {
+        Ok(_) => {}
+        Err(errors) => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({
+                    "status": "error",
+                    "detail": errors
+                })),
+            );
+        }
+    }
+
     match form_data.validate() {
         Ok(_) => {}
         Err(errors) => {
@@ -609,7 +644,7 @@ pub async fn create_contato_pronaf(
                 StatusCode::BAD_REQUEST,
                 Json(serde_json::json!({
                     "status": "error",
-                    "errors": errors
+                    "detail": errors
                 })),
             );
         }
