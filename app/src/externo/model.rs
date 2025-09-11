@@ -1,5 +1,3 @@
-use std::fs;
-
 use bigdecimal::BigDecimal;
 use chrono::Datelike;
 use chrono::{DateTime, Local, Utc};
@@ -7,7 +5,6 @@ use serde::{Deserialize, Serialize};
 use serde_json;
 use serde_json::Value;
 use sqlx::FromRow;
-use testcontainers::bollard::moby::upload;
 use uuid::Uuid;
 
 use crate::externo::enums;
@@ -48,45 +45,10 @@ pub struct Contato {
 }
 
 impl Contato {
-    /*
-    (nome, arquivo bytes)
-    (String, Vec<u8>)
-     */
-    pub async fn upload_arquivo(contato_id: Uuid, arquivo: (String, Vec<u8>)) -> String {
-        let mut file_url = String::new();
-
-        let name = arquivo.0;
-        let data = arquivo.1;
-
-        let agora = Local::now();
-        let ano = agora.year();
-        let mes = agora.month();
-
-        // Inclui o ID do contato no path para organização
-        let path_file = format!("uploads/contato/{}/{}/{}", ano, mes, contato_id.to_string());
-
-        // Cria o diretório se não existir
-        if let Err(e) = fs::create_dir_all(&path_file) {
-            eprintln!("Erro ao criar diretório {}: {}", path_file, e);
-        }
-
-        // Obtém o nome do arquivo e extensão
-        let ext = name.rsplit('.').next().unwrap_or("png").to_lowercase();
-
-        // Gera nome único para o arquivo
-        let filename = format!("{}/{}.{}", path_file, Uuid::new_v4(), ext);
-
-        // Salva o arquivo
-        match fs::write(&filename, &data).await {
-            Ok(_) => {
-                file_url = format!("/{}", filename);
-            }
-            Err(e) => {
-                eprintln!("Erro ao salvar arquivo {}: {}", filename, e);
-            }
-        }
-
-        file_url
+    pub fn gerar_codigo_protocolo() -> String {
+        let ano_atual = Local::now().year();
+        let numero_protocolo = format!("{}{:06}", ano_atual, rand::random::<u32>() % 1_000_000);
+        numero_protocolo
     }
 }
 

@@ -2,7 +2,6 @@ use std::collections::{BTreeMap, HashMap};
 use std::str::FromStr;
 
 use axum::Json;
-use axum::http::response;
 use axum::{
     Extension, Form,
     extract::{Multipart, Path, Query, State},
@@ -12,7 +11,7 @@ use axum::{
 use bigdecimal::BigDecimal;
 use minijinja::context;
 use regex::Regex;
-use serde_json::{Map, Value, json};
+use serde_json::{Map, Value};
 use shared::{FlashStatus, ListParams, SharedState, helpers};
 use tracing::debug;
 use uuid::Uuid;
@@ -623,7 +622,6 @@ pub async fn create_contato_pronaf(
         }
     }
 
-
     match data_contato.validate() {
         Ok(_) => {}
         Err(errors) => {
@@ -635,6 +633,16 @@ pub async fn create_contato_pronaf(
                 })),
             );
         }
+    }
+
+    if data_contato.val_solicitado > BigDecimal::from_str("15000").unwrap() {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({
+                "status": "error",
+                "detail": "Valor solicitado não pode ser superior a R$ 15.000,00"
+            })),
+        );
     }
 
     match form_data.validate() {
@@ -650,7 +658,7 @@ pub async fn create_contato_pronaf(
         }
     }
 
-    //validar documentos importante enviados
+    //validar documentos importante enviados obrigatorios foram enviados
     for (name, (file_name, data)) in arquivos {
         if let Some(doc) = DOC_PRONAF.iter().find(|d| d.id == name) {
             if doc.obrigatorio {
@@ -667,46 +675,44 @@ pub async fn create_contato_pronaf(
         }
     }
 
-    println!("valor: {:?}", Some(&form_data.valor_estimado_imovel));
-    println!("Form Data: {:?}", form_data);
+    /* println!("valor: {:?}", Some(&form_data.valor_estimado_imovel));
+    println!("Form Data: {:?}", form_data); */
+
+    match service
+        .create(
+            &*state.db,
+            data_contato,
+            form_data,
+            list_item_recurso,
+            arquivos,
+        )
+        .await
+    {
+        Ok(contato) => {
+            return (
+                StatusCode::CREATED,
+                Json(serde_json::json!({
+                    "code": 200,
+                    "status": "success",
+                    "data": contato
+                })),
+            );
+        }
+        Err(err) => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({
+                    "status": "error",
+                    "detail": err.to_string()
+                })),
+            );
+        }
+    }
 
     /*
     let resultado = agrupa_items(itens);
     println!("{}", serde_json::to_string_pretty(&resultado).unwrap());
      */
-
-    let flash_url = helpers::create_flash_url(
-        &format!("/externo/contato-form/"),
-        "Contato criado com sucesso!",
-        FlashStatus::Success,
-    );
-
-    return (
-        StatusCode::BAD_REQUEST,
-        Json(serde_json::json!({
-            "status": "success",
-            "location": flash_url,
-        })),
-    );
-
-    /* match service.create(&*state.db, body).await {
-        Ok(contato) => {
-            let flash_url = helpers::create_flash_url(
-                &format!("/externo/contato-form/{}", contato.id),
-                "Contato criado com sucesso!",
-                FlashStatus::Success,
-            );
-            Redirect::to(&flash_url).into_response()
-        }
-        Err(err) => {
-            let flash_url = helpers::create_flash_url(
-                "/externo/contato-form",
-                &format!("Erro ao criar contato: {}", err),
-                FlashStatus::Error,
-            );
-            Redirect::to(&flash_url).into_response()
-        }
-    } */
 }
 
 /*

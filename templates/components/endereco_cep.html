@@ -1,6 +1,4 @@
-{% from 'core/components/cidades_br.html' import cidades_br_combobox %}
-{% from "core/components/macros.html" import legend, input, Button_blue, Button %}
-{% macro endereco_cep(cep, name, value='', name_cidade='name_cidade', value_cidade='', name_endereco='name_endereco', value_endereco='', value_id_cidade='' ) %}
+{% macro endereco_cep(name, value='', name_cidade='name_cidade', value_cidade='', name_endereco='name_endereco', value_endereco='', value_id_cidade='' ) %}
 
 {% set id_name_cep = 'id_'+name|string %}
 {% set name_cidade = name_cidade %}
@@ -13,18 +11,32 @@
 
 <div class="relative w-full mb-4 mx-auto">
     <div class="flex flex-col sm:grid sm:grid-cols-2 gap-4">
-        <div class="flex flex-col">
-        {{ legend(attrs="", text="CEP") }}
-        {{ input(id=id_name_cep, name=name, placeholder="cep", type='number', value=value, attrs='required minlength=8 maxlength=8') }}
-        </div>
-        <div class="flex flex-col">
-        {{ legend(attrs="", text="Cidade") }}
-        {{ cidades_br_combobox(name_cidade, nome=value_cidade, value=value_id_cidade) }}
-        </div>
+        <fieldset class="fieldset">
+            <legend class="fieldset-legend">CEP</legend>
+            <input id="{{id_name_cep}}" name="{{name}}" type='text' value="{{value}}"
+                class="input input-bordered cep" placeholder="CEP" minlength="9" maxlength="9" />
+        </fieldset>
+        <fieldset class="fieldset">
+            <legend class="fieldset-legend">Cidade</legend>
+            {% set value_cidade = value_cidade %}
+            {% set title_cidade = value_cidade %}
+            {{ combobox(
+            field_name="cidade_id",
+            field_label="nome",
+            placeholder="Selecione a cidade do Tocantins",
+            endpoint="/core/cidades-to-api",
+            attrs="required",
+            search=title_cidade,
+            value=value_cidade,
+            ) }}
+        </fieldset>
     </div>
-    <div class="flex flex-col">
-    {{ legend(attrs="", text="Endereço") }}
-    {{ input(id=id_name_endereco, name=name_endereco, placeholder="endereço", value=value_endereco, attrs='required') }}
+    <div class="col-span-2 md:col-span-2">
+        <fieldset class="fieldset">
+            <legend class="fieldset-legend">Endereço</legend>
+            <input id="{{id_name_endereco}}" name="{{name_endereco}}" type="text" value="{{value_endereco}}"
+                class="input input-bordered min-w-full" placeholder="endereço"/>
+        </fieldset>
     </div>
 </div>
 <script>
@@ -32,7 +44,7 @@ document.addEventListener("DOMContentLoaded", function () {
     var cep{{id_name_cep}} = document.getElementById('{{id_name_cep}}').value;
     document.getElementById('{{id_name_cep}}').addEventListener('input', async function(e) {
         cep{{id_name_cep}} = e.target.value;
-        if(cep{{id_name_cep}}.length === 8) fetchCEP{{id_name_cep}}(cep{{id_name_cep}});
+        if(cep{{id_name_cep}}.length === 9) fetchCEP{{id_name_cep}}(cep{{id_name_cep}});
     });
 
 
@@ -75,7 +87,7 @@ document.addEventListener("DOMContentLoaded", function () {
             console.log("Dados da cidade:", response.data);
 
             //preencher dados cidadedocument.querySelector('select[name="type"]');
-            document.querySelector('input[id="{{name_cidade}}"]').value = response.data.nome+'-'+response.data.uf;
+            document.querySelector('input[id="search_{{name_cidade}}"]').value = response.data.nome+'-'+response.data.uf;
             document.querySelector('input[name="{{name_cidade|string}}"]').value = response.data.id;
         } catch (error) {
             console.error("Erro ao buscar cidade:", error);

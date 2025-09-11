@@ -1,12 +1,12 @@
 use rstest::fixture;
-use tracing::info;
 use rstest::rstest;
-use sqlx::{Pool, Postgres};
 use sqlx::postgres::PgPoolOptions;
-use testcontainers::runners::AsyncRunner;
+use sqlx::{Pool, Postgres};
+use std::time::Duration;
 use testcontainers::GenericImage;
 use testcontainers::ImageExt;
-use std::time::Duration;
+use testcontainers::runners::AsyncRunner;
+use tracing::info;
 
 #[fixture]
 pub async fn postgres_pool() -> Pool<Postgres> {
@@ -20,10 +20,7 @@ pub async fn postgres_pool() -> Pool<Postgres> {
     let container = image.start().await.unwrap();
 
     let port = container.get_host_port_ipv4(5432).await.unwrap();
-    let connection_string = format!(
-        "postgres://postgres:password@localhost:{}/test_db",
-        port
-    );
+    let connection_string = format!("postgres://postgres:password@localhost:{}/test_db", port);
 
     // Aguarda um pouco mais
     tokio::time::sleep(Duration::from_secs(3)).await;
@@ -40,9 +37,7 @@ pub async fn postgres_pool() -> Pool<Postgres> {
     println!("Successfully connected to PostgreSQL on port {}", port);
 
     // Testa uma conexão simples antes de aplicar migrations
-    let test_result: Result<(i32,), _> = sqlx::query_as("SELECT 1")
-        .fetch_one(&pool)
-        .await;
+    let test_result: Result<(i32,), _> = sqlx::query_as("SELECT 1").fetch_one(&pool).await;
 
     if let Err(e) = test_result {
         eprintln!("Initial test query failed: {}", e);
@@ -70,7 +65,7 @@ async fn test_select_1(#[future] postgres_pool: Pool<Postgres>) {
 
     // Abordagem direta - obtém uma conexão do pool explicitamente
     let mut connection = pool.acquire().await.expect("Failed to acquire connection");
-    
+
     let row: (i32,) = sqlx::query_as("SELECT 1")
         .fetch_one(&mut *connection)
         .await
@@ -78,7 +73,7 @@ async fn test_select_1(#[future] postgres_pool: Pool<Postgres>) {
 
     // Libera a conexão explicitamente
     drop(connection);
-    
+
     assert_eq!(row.0, 1);
     println!("Test completed successfully");
 }

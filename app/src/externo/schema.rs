@@ -236,7 +236,6 @@ pub struct UpdateContato {
     pub updated_at: Option<DateTime<Utc>>,
 }
 
-
 #[derive(Debug, Clone, Validate, Serialize, Deserialize)]
 pub struct CreateContatoSchema {
     #[validate(length(min = 1, message = " não pode ser vazio"))]
@@ -354,7 +353,7 @@ pub struct CreditoOnline {
     descricao_despesa: String,
 }
 
-/* 
+/*
 Aplicacao de recursos
 */
 #[derive(Debug, Validate, Clone, Serialize, Deserialize)]

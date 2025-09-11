@@ -1,5 +1,6 @@
 {% extends 'principal.html'%}
 {% include "components/combobox.html"%}
+{% include "components/endereco_cep.html"%}
 
 {% block title %}Formulario de Solicitação de Contato{%endblock%}
 
@@ -71,32 +72,11 @@
                         {% endfor %}
                     </select>
                 </fieldset>
-                <fieldset class="fieldset">
-                    <legend class="fieldset-legend">CEP</legend>
-                    <input id="cep" name="cep" type="text" value="{% if row %}{{row.cep}}{% endif %}"
-                        class="input input-bordered cep" required />
-                </fieldset>
-                <fieldset class="fieldset">
-                    <legend class="fieldset-legend">Cidade</legend>
-                    {% set value_cidade = cidade.id if cidade else '' %}
-                    {% set title_cidade = cidade.title if cidade else '' %}
-                    {{ combobox(
-                    field_name="cidade_id",
-                    field_label="nome",
-                    placeholder="Selecione a cidade do Tocantins",
-                    endpoint="/core/cidades-to-api",
-                    attrs="required",
-                    search=title_cidade,
-                    value=value_cidade,
-                    ) }}
-                </fieldset>
             </div>
             <div class="col-span-2 md:col-span-2">
-                <fieldset class="fieldset">
-                    <legend class="fieldset-legend">Endereço</legend>
-                    <input id="endereco" name="endereco" type="text" value="{% if row %}{{row.endereco}}{% endif %}"
-                        class="input input-bordered min-w-full" required />
-                </fieldset>
+                {% set value_cidade = cidade.id if cidade else '' %}
+                {% set title_cidade = cidade.title if cidade else '' %}
+                {{endereco_cep('cep', name_cidade='cidade_id', name_endereco='endereco')}}
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
                 <fieldset class="fieldset">
@@ -131,7 +111,7 @@
                 <fieldset class="fieldset">
                     <legend class="fieldset-legend">CPF</legend>
                     <input id="cpf_conj" name="cpf_conj" type="text" value="{% if row %}{{row.cpf_conj}}{% endif %}"
-                        class="input input-bordered" />
+                        class="input input-bordered cpf" />
                 </fieldset>
                 <fieldset class="fieldset">
                     <legend class="fieldset-legend">Nome</legend>
@@ -141,7 +121,7 @@
                 <fieldset class="fieldset">
                     <legend class="fieldset-legend">Telefone</legend>
                     <input id="telefone_conj" name="telefone_conj" type="text" value="{% if row %}{{row.telefone_conj}}{% endif %}"
-                        class="input input-bordered" />
+                        class="input input-bordered telefone" />
                 </fieldset>
                 <fieldset class="fieldset">
                     <legend class="fieldset-legend">Email</legend>
@@ -192,7 +172,7 @@
                                 </label>
                                 <input type="text" placeholder="descrição do item" id="id_descricao" name="descricao"
                                     value=""
-                                    class="mt-1 block w-full px-3 py-2 border border-gray-300 text-gray-900 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm ">
+                                    class="input">
                             </div>
                             <div class="space-y-2">
                                 <label class="block text-sm font-medium text-gray-700 " label="title"
@@ -200,7 +180,7 @@
                                     Quantidade
                                 </label>
                                 <input type="number" placeholder="" id="id_quantidade" name="quantidade" value="1"
-                                    class="mt-1 block w-full px-3 py-2 border border-gray-300 text-gray-900 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm "
+                                    class="input"
                                     min="1," step="1">
                             </div>
                             <div class="space-y-2">
@@ -209,7 +189,7 @@
                                     Valor Unitário
                                 </label>
                                 <input type="text" placeholder="" id="id_valor_unitario" name="valor_unitario" value="0"
-                                    class="mt-1 block w-full px-3 py-2 border border-gray-300 text-gray-900 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm moeda-br"
+                                    class="moeda-br input"
                                     data-masked="true">
                             </div>
                             <div class="space-y-2">
@@ -218,7 +198,7 @@
                                     Valor Total
                                 </label>
                                 <input type="text" placeholder="" id="id_valor_total" name="valor_total" value="0"
-                                    class="mt-1 block w-full px-3 py-2 border border-gray-300 text-gray-900 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm moeda-br"
+                                    class="moeda-br input"
                                     data-masked="true">
                             </div>
                         </div>
@@ -362,19 +342,19 @@
               
               <div class="space-y-2">
                  <label for='id_desp_mensal_atividade${index}' class="fieldset-legend">Descriçao do que vai adquirir</label>
-                 <input type="text" placeholder="descrição do item" id="id_descricao${index}" name="descricao_${index}" value="${item.descricao}" class="mt-1 block w-full px-3 py-2 border border-gray-300 text-gray-900 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm ">
+                 <input type="text" placeholder="descrição do item" id="id_descricao${index}" name="descricao_${index}" value="${item.descricao}" class="input">
             </div>
             <div class="space-y-2">
                  <label for='id_quantidade${index}' class="fieldset-legend">Quantidade</label>
-                <input type="number" placeholder="" id="id_quantidade${index}" name="quantidade_${index}" value="${item.quantidade}" class="mt-1 block w-full px-3 py-2 border border-gray-300 text-gray-900 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm " min="1," step="1">
+                <input type="number" placeholder="" id="id_quantidade${index}" name="quantidade_${index}" value="${item.quantidade}" class="input" min="1," step="1">
             </div>
             <div class="space-y-2">
                 <label for='id_valor_unitario${index}' class="fieldset-legend">Valor Unitário</label>
-               <input type="text" placeholder="" id="id_valor_unitario${index}" name="valor_unitario_${index}" value="${Number.parseFloat(item.valor_unitario).toFixed(2)}" class="moeda-br mt-1 block w-full px-3 py-2 border border-gray-300 text-gray-900 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm " min="0," step="0.01">
+               <input type="text" placeholder="" id="id_valor_unitario${index}" name="valor_unitario_${index}" value="${Number.parseFloat(item.valor_unitario).toFixed(2)}" class="moeda-br input" min="0," step="0.01">
             </div>
             <div class="space-y-2">
                 <label for='id_valor_total${index}' class="fieldset-legend">Valor Total</label>
-                <input type="text" placeholder="" id="id_valor_total${index}" name="valor_total_${index}" value="${Number.parseFloat(item.valor_total).toFixed(2)}" class="moeda-br mt-1 block w-full px-3 py-2 border border-gray-300 text-gray-900 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm " min="0," step="0.01">
+                <input type="text" placeholder="" id="id_valor_total${index}" name="valor_total_${index}" value="${Number.parseFloat(item.valor_total).toFixed(2)}" class="moeda-br input" min="0," step="0.01">
             </div>
 
           `;

@@ -76,7 +76,6 @@ reqwest = { version = "0.12", features = ["json"] }
 tokio-util = { version = "0.7", features = ["io"] }
 tower = "0.5.2"
 
-
 # Para gerar schemas
 #schemars = "0.8"      # gera JSON Schema
 #utoipa = "4"          # gera OpenAPI/Swagger
