@@ -44,7 +44,7 @@ CREATE TABLE doc_solicitante (
     id BIGSERIAL PRIMARY KEY,
     contato_id UUID NOT NULL REFERENCES contato(id) ON DELETE CASCADE,
     arquivo TEXT NOT NULL, -- caminho ou hash do arquivo
-    status_arquivo VARCHAR(50) NOT NULL,
+    status_arquivo INT NOT NULL,
     observacao TEXT,
     tipo VARCHAR(100) NOT NULL
 );

@@ -7,7 +7,6 @@ use shared::{PaginatedResponse, Repository};
 use sqlx::{PgPool, Transaction};
 use uuid::Uuid;
 
-use crate::externo::{StatusDocumentoEnum, StatusTramitacaoEnum};
 use crate::externo::schema::{AplicacaoRecursos, PronafB, TipoContatoExtra};
 use crate::externo::{
     LinhaRepository,
@@ -15,6 +14,7 @@ use crate::externo::{
     repository::ContatoRepository,
     schema::{CreateContato, CreateLinhaSchema, UpdateContato, UpdateLinhaSchema},
 };
+use crate::externo::{StatusDocumentoEnum, StatusTramitacaoEnum};
 
 pub struct LinhaService {
     repo: LinhaRepository,
@@ -166,7 +166,7 @@ impl ContatoService {
                     "#,
                     contato.id,
                     end_arquivo,
-                    StatusDocumentoEnum::Pendente.to_i32(),
+                    StatusDocumentoEnum::PENDENTE.to_i32(),
                     "",
                     tipo_arquivo
                 )
