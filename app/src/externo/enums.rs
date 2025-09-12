@@ -153,10 +153,11 @@ pub enum StatusTramitacaoEnum {
     VoceEstaQuaseLaEnvioDocumentos = 2 as i32,
     EmCaminhadoPProspector = 3 as i32,
     FaltandoDocumento = 4 as i32,
-    CADASTRO = 5 as i32,
-    APROVADO = 6 as i32,
-    CONTRATACAO = 7 as i32,
-    REPROVADO = 8 as i32,
+    Cadastro = 5 as i32,
+    Aprovado = 6 as i32,
+    Contratacao = 7 as i32,
+    Reprovado = 8 as i32,
+    EmAtendimento = 9 as i32,
 }
 
 impl std::fmt::Display for StatusTramitacaoEnum {
@@ -168,10 +169,11 @@ impl std::fmt::Display for StatusTramitacaoEnum {
             }
             StatusTramitacaoEnum::EmCaminhadoPProspector => "Em caminhado para prospector",
             StatusTramitacaoEnum::FaltandoDocumento => "Faltando documento",
-            StatusTramitacaoEnum::CADASTRO => "Cadastro",
-            StatusTramitacaoEnum::APROVADO => "Aprovado",
-            StatusTramitacaoEnum::CONTRATACAO => "Contratação",
-            StatusTramitacaoEnum::REPROVADO => "Reprovado",
+            StatusTramitacaoEnum::Cadastro => "Cadastro",
+            StatusTramitacaoEnum::Aprovado => "Aprovado",
+            StatusTramitacaoEnum::Contratacao => "Contratação",
+            StatusTramitacaoEnum::Reprovado => "Reprovado",
+            StatusTramitacaoEnum::EmAtendimento => "Em Atendimento",
         };
         write!(f, "{}", str)
     }
@@ -184,10 +186,11 @@ impl StatusTramitacaoEnum {
             2 => StatusTramitacaoEnum::VoceEstaQuaseLaEnvioDocumentos,
             3 => StatusTramitacaoEnum::EmCaminhadoPProspector,
             4 => StatusTramitacaoEnum::FaltandoDocumento,
-            5 => StatusTramitacaoEnum::CADASTRO,
-            6 => StatusTramitacaoEnum::APROVADO,
-            7 => StatusTramitacaoEnum::CONTRATACAO,
-            8 => StatusTramitacaoEnum::REPROVADO,
+            5 => StatusTramitacaoEnum::Cadastro,
+            6 => StatusTramitacaoEnum::Aprovado,
+            7 => StatusTramitacaoEnum::Contratacao,
+            8 => StatusTramitacaoEnum::Reprovado,
+            9 => StatusTramitacaoEnum::EmAtendimento,
             _ => StatusTramitacaoEnum::AguardandoAtendimento,
         }
     }
@@ -195,28 +198,39 @@ impl StatusTramitacaoEnum {
     pub fn to_i32(&self) -> i32 {
         *self as i32
     }
+
+    pub fn color(&self) -> &'static str {
+        match self {
+            StatusTramitacaoEnum::AguardandoAtendimento => "bg-orange-300",
+            StatusTramitacaoEnum::Cadastro => "bg-green-300",
+            StatusTramitacaoEnum::Contratacao => "bg-blue-500",
+            StatusTramitacaoEnum::FaltandoDocumento => "bg-red-300",
+            StatusTramitacaoEnum::VoceEstaQuaseLaEnvioDocumentos => "bg-blue-400",
+            _ => "",
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
 #[repr(i32)]
 pub enum StatusAtendimentoEnum {
-    PENDENTE = 0 as i32,
+    Pendente = 0 as i32,
     EmAtendimento = 1 as i32,
     AguardandoDocumento = 2 as i32,
-    APROVADO = 3 as i32,
-    CONCLUIDO = 4 as i32,
-    CANCELADO = 5 as i32,
+    Aprovado = 3 as i32,
+    Concluido = 4 as i32,
+    Cancelado = 5 as i32,
 }
 
 impl std::fmt::Display for StatusAtendimentoEnum {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let str = match self {
-            StatusAtendimentoEnum::PENDENTE => "Pendente",
+            StatusAtendimentoEnum::Pendente => "Pendente",
             StatusAtendimentoEnum::EmAtendimento => "Em Atendimento",
             StatusAtendimentoEnum::AguardandoDocumento => "Aguardando Documento",
-            StatusAtendimentoEnum::APROVADO => "Aprovado",
-            StatusAtendimentoEnum::CONCLUIDO => "Concluído",
-            StatusAtendimentoEnum::CANCELADO => "Cancelado",
+            StatusAtendimentoEnum::Aprovado => "Aprovado",
+            StatusAtendimentoEnum::Concluido => "Concluído",
+            StatusAtendimentoEnum::Cancelado => "Cancelado",
         };
         write!(f, "{}", str)
     }
@@ -225,13 +239,13 @@ impl std::fmt::Display for StatusAtendimentoEnum {
 impl StatusAtendimentoEnum {
     pub fn from_i32(value: i32) -> Self {
         match value {
-            0 => StatusAtendimentoEnum::PENDENTE,
+            0 => StatusAtendimentoEnum::Pendente,
             1 => StatusAtendimentoEnum::EmAtendimento,
             2 => StatusAtendimentoEnum::AguardandoDocumento,
-            3 => StatusAtendimentoEnum::APROVADO,
-            4 => StatusAtendimentoEnum::CONCLUIDO,
-            5 => StatusAtendimentoEnum::CANCELADO,
-            _ => StatusAtendimentoEnum::PENDENTE,
+            3 => StatusAtendimentoEnum::Aprovado,
+            4 => StatusAtendimentoEnum::Concluido,
+            5 => StatusAtendimentoEnum::Cancelado,
+            _ => StatusAtendimentoEnum::Pendente,
         }
     }
     pub fn to_i32(&self) -> i32 {
@@ -247,19 +261,19 @@ na solicitação de crédito
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
 #[repr(i32)]
 pub enum StatusDocumentoEnum {
-    PENDENTE = 0 as i32,
+    Pendente = 0 as i32,
     EmAnalise = 1 as i32,
-    APROVADO = 2 as i32,
-    REPROVADO = 3 as i32,
+    Aprovado = 2 as i32,
+    Reprovado = 3 as i32,
 }
 
 impl std::fmt::Display for StatusDocumentoEnum {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let str = match self {
-            StatusDocumentoEnum::PENDENTE => "Pendente",
+            StatusDocumentoEnum::Pendente => "Pendente",
             StatusDocumentoEnum::EmAnalise => "Em Análise",
-            StatusDocumentoEnum::APROVADO => "Aprovado",
-            StatusDocumentoEnum::REPROVADO => "Reprovado",
+            StatusDocumentoEnum::Aprovado => "Aprovado",
+            StatusDocumentoEnum::Reprovado => "Reprovado",
         };
         write!(f, "{}", str)
     }
@@ -268,11 +282,11 @@ impl std::fmt::Display for StatusDocumentoEnum {
 impl StatusDocumentoEnum {
     pub fn from_i32(value: i32) -> Self {
         match value {
-            0 => StatusDocumentoEnum::PENDENTE,
+            0 => StatusDocumentoEnum::Pendente,
             1 => StatusDocumentoEnum::EmAnalise,
-            2 => StatusDocumentoEnum::APROVADO,
-            3 => StatusDocumentoEnum::REPROVADO,
-            _ => StatusDocumentoEnum::PENDENTE,
+            2 => StatusDocumentoEnum::Aprovado,
+            3 => StatusDocumentoEnum::Reprovado,
+            _ => StatusDocumentoEnum::Pendente,
         }
     }
     pub fn to_i32(&self) -> i32 {
@@ -282,13 +296,14 @@ impl StatusDocumentoEnum {
 
 /*
  tipo Contato
- 1 = Micro Crédito Online
+    1 = Micro Crédito Online
     2 = Capital de Giro Turismo
     3 = Crédito Popular
     4 = Agricultura Familiar
     5 = Emergencial
     6 = Mãos que Criam
     7 = Crédito Online
+    8 = Pronaf B
 */
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
 #[repr(i32)]

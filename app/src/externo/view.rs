@@ -680,7 +680,20 @@ pub async fn create_contato_pronaf(
     println!("Form Data: {:?}", form_data); */
 
     //obten linha
-    let linha = service_linha.get_by_id(&*state.db, 8).await.unwrap();
+    let linha;
+
+    match service_linha.get_by_id(&*state.db, 8).await{
+        Ok(l) => linha = l,
+        Err(err) => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({
+                    "status": "error",
+                    "detail": format!("Linha Pronaf não encontrada: {}", err)
+                })),
+            );
+        }
+    }
 
     match service
         .create(

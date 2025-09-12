@@ -11,8 +11,7 @@ pub use string::*;
 use minijinja::Environment;
 
 use crate::{
-    chamado::status_filter,
-    filters::number::{currency_brl, format_decimal},
+    chamado::status_filter, externo::filters::{contato_color_filter, contato_status_filter}, filters::number::{currency_brl, format_decimal}
 };
 
 /// Registra todos os filtros no ambiente MiniJinja
@@ -39,6 +38,10 @@ pub fn register_filters(env: &mut Environment) {
 
     // Chamado filters
     env.add_filter("status_label", status_filter);
+
+    //modulos
+    env.add_filter("contato_color_filter", contato_color_filter);
+    env.add_filter("contato_status_filter", contato_status_filter);
 }
 
 #[cfg(test)]

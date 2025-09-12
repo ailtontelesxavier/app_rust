@@ -1,5 +1,7 @@
 use chrono::{DateTime, Utc};
 use minijinja::{Error, ErrorKind, value::Value};
+use serde::de;
+use tracing::debug;
 //use tracing::debug;
 
 // Converte para string formatada: 07/08/2025 00:37
@@ -9,6 +11,7 @@ fn format_datetime_utc(dt: DateTime<Utc>) -> String {
 
 // Filtro customizado para MiniJinja
 pub fn format_datetime_filter(value: Value) -> Result<Value, Error> {
+    //debug!("valor recebido: {}", value);
     // Se for timestamp inteiro
     if let Some(timestamp) = value.as_i64() {
         return DateTime::<Utc>::from_timestamp(timestamp, 0)

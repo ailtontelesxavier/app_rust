@@ -5,6 +5,7 @@ mod router;
 mod schema;
 mod service;
 mod view;
+pub mod filters;
 
 pub use enums::*;
 pub use repository::LinhaRepository;

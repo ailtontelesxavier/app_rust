@@ -165,7 +165,7 @@ impl ContatoService {
                     "#,
                     contato.id,
                     end_arquivo,
-                    StatusDocumentoEnum::PENDENTE.to_i32(),
+                    StatusDocumentoEnum::Pendente.to_i32(),
                     "",
                     tipo_arquivo
                 )

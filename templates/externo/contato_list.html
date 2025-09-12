@@ -58,20 +58,36 @@
                 <table class="table table-zebra w-full">
                     <thead>
                         <tr>
-                            <th>ID</th>
+                            <th></th>
                             <th>Nome</th>
-                            <th>Permite CNPJ</th>
-                            <th>Permite CPF</th>
-                            <th>Permite Avalista</th>
-                            <th>Valor Maximo</th>
+                            <th>Região</th>
+                            <th>Funcionario</th>
+                            <th>Situação</th>
                             <th class="text-center">Ações</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for row in rows %}
                         <tr class="hover">
-                            <td class="font-mono text-sm">{{ row.id }}</td>
-                            <td class="font-medium">{{ row.nome }}</td>
+                            <td class="font-mono text-sm">
+                                {% if row.status_atendimento %}
+                                {{check_circle()}}
+                                {% else %}
+                                {{circle_dashed()}}
+                                {% endif %}
+                            </td>
+                            <td class="font-medium">
+                                <div class="flex justify-between items-start">
+                                    <div class="flex-1">
+                                        <h3 class="card-title text-lg">{{ row.nome }}</h3>
+                                        <p class="">ID: <span class="text-sm text-gray-600">{{ row.id }}</span></p>
+                                        <p class="">CPF/CNPJ: <span class="text-sm text-gray-600">{{ row.cpf_cnpj }}</span></p>
+                                        <p class="">Protocolo: <span class="text-sm text-gray-600">{{ row.protocolo }}</span></p>
+                                        <p class="">Data: <span class="text-sm text-gray-600">{{ row.createdAt|format_datetime }}</span></p>
+                                        <p class="">Valor Solicitado: <span class="text-sm text-gray-600">{{ row.val_solicitado|format_decimal }}</span></p>
+                                    </div>
+                                </div>
+                            </td>
                             <td class="font-medium">
                                 {% if row.permite_cnpj %}
                                 {{check_circle()}}
@@ -86,14 +102,11 @@
                                 {{circle_dashed()}}
                                 {% endif %}
                             </td>
-                            <td class="font-medium">
-                                {% if row.permite_avalista %}
-                                {{check_circle()}}
-                                {% else %}
-                                {{circle_dashed()}}
-                                {% endif %}
+                            <td class="font-medium ">
+                                <span class="p-2 rounded-sm {{ row.status_tramitacao|contato_color_filter }}">
+                                    {{ row.status_tramitacao|contato_status_filter }}
+                                </span>
                             </td>
-                            <td class="font-medium">{{ row.valor_maximo|format_decimal }}</td>
                             <td class="text-center">
                                 <div class="flex justify-center gap-2">
                                     <button class="btn btn-sm btn-primary updateRowButton" data-id="{{ row.id }}"
@@ -124,7 +137,7 @@
                                 <p class="text-sm text-gray-600">Permite CNPJ: {{ row.permite_cnpj }}</p>
                                 <p class="text-sm text-gray-600">Permite CPF: {{ row.permite_cpf }}</p>
                                 <p class="text-sm text-gray-600">Permite Avalista: {{ row.permite_avalista }}</p>
-                                <p class="text-sm text-gray-600">Valor Maximo: {{ row.valor_maximo }}</p>
+                                <p class="text-sm text-gray-600">Valor Maximo: {{ row.val_solicitado }}</p>
                                 <div class="flex gap-2">
                                     <button class="btn btn-sm btn-primary updateRowButton" data-id="{{ row.id }}">
                                         {{pencil_line()}}
