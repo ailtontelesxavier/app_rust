@@ -17,7 +17,7 @@ use tracing::debug;
 use uuid::Uuid;
 use validator::Validate;
 
-use crate::externo::schema::AplicacaoRecursos;
+use crate::externo::schema::{AplicacaoRecursos, TipoContatoExtra};
 use crate::{
     externo::{
         LinhaService, StatusCivil, TypeContato,
@@ -463,6 +463,7 @@ pub async fn create_contato_pronaf(
     mut multipart: Multipart,
 ) -> impl IntoResponse {
     let service = ContatoService::new();
+    let service_linha = LinhaService::new();
 
     let mut data_contato = CreateContatoSchema {
         cpf_cnpj: String::new(),
@@ -659,7 +660,7 @@ pub async fn create_contato_pronaf(
     }
 
     //validar documentos importante enviados obrigatorios foram enviados
-    for (name, (file_name, data)) in arquivos {
+    for (name, (file_name, data)) in &arquivos {
         if let Some(doc) = DOC_PRONAF.iter().find(|d| d.id == name) {
             if doc.obrigatorio {
                 if data.is_empty() {
@@ -678,13 +679,17 @@ pub async fn create_contato_pronaf(
     /* println!("valor: {:?}", Some(&form_data.valor_estimado_imovel));
     println!("Form Data: {:?}", form_data); */
 
+    //obten linha
+    let linha = service_linha.get_by_id(&*state.db, 8).await.unwrap();
+
     match service
         .create(
             &*state.db,
+            TipoContatoExtra::PronafB(form_data),
+            linha,
             data_contato,
-            form_data,
-            list_item_recurso,
-            arquivos,
+            Some(list_item_recurso),
+            Some(arquivos),
         )
         .await
     {

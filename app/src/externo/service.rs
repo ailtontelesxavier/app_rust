@@ -7,7 +7,7 @@ use shared::{PaginatedResponse, Repository};
 use sqlx::{PgPool, Transaction};
 use uuid::Uuid;
 
-use crate::externo::schema::{AplicacaoRecursos, PronafB, TipoContatoExtra};
+use crate::externo::schema::{AplicacaoRecursos, CreateContatoSchema, PronafB, TipoContatoExtra};
 use crate::externo::{
     LinhaRepository,
     model::{Contato, Linha},
@@ -88,25 +88,24 @@ impl ContatoService {
         pool: &PgPool,
         tipo: TipoContatoExtra,
         linha: Linha,
-        data_contato: CreateContato,
-        form_data: PronafB,
-        list_item_recurso: Vec<AplicacaoRecursos>,
-        arquivos: Vec<(String, (String, Vec<u8>))>,
+        data_contato: CreateContatoSchema,
+        list_item_recurso: Option<Vec<AplicacaoRecursos>>,
+        arquivos: Option<Vec<(String, (String, Vec<u8>))>>,
     ) -> Result<Contato> {
         let mut tx: Transaction<'_, sqlx::Postgres> = pool.begin().await?;
 
         let result = async {
 
-            let campos = match tipo {
-                TipoContatoExtra::PronafB(p) => serde_json::to_value(form_data).unwrap(),
-                TipoContatoExtra::MicroCreditoOnline(m) => serde_json::to_value(form_data).unwrap(),
-                TipoContatoExtra::CreditoPopular(c) => serde_json::to_value(form_data).unwrap(),
-                TipoContatoExtra::MaosQueCriam(m) => serde_json::to_value(form_data).unwrap(),
-                TipoContatoExtra::CreditoOnline(c) => serde_json::to_value(form_data).unwrap()
+            let campos = match &tipo {
+                TipoContatoExtra::PronafB(p) => serde_json::to_value(p).unwrap(),
+                TipoContatoExtra::MicroCreditoOnline(m) => serde_json::to_value(m).unwrap(),
+                TipoContatoExtra::CreditoPopular(c) => serde_json::to_value(c).unwrap(),
+                TipoContatoExtra::MaosQueCriam(m) => serde_json::to_value(m).unwrap(),
+                TipoContatoExtra::CreditoOnline(c) => serde_json::to_value(c).unwrap()
             };
 
             //gerar protocolo
-            let protocolo = Contato::gerar_codigo_protocolo();
+            let mut protocolo = Contato::gerar_codigo_protocolo();
             loop {
                 if !Self::exists_by_protocolo(&self, pool, &protocolo).await? {
                     break;
@@ -137,17 +136,17 @@ impl ContatoService {
             .await?;
 
             //inserir recursos
-            for recurso in list_item_recurso {
+            for recurso in &list_item_recurso.unwrap_or_default() {
                 sqlx::query!(
                     r#"
                     INSERT INTO aplicacao_recurso(
 	                descricao, quantidade, valor_unitario, valor_total, contato_id)
 	                    VALUES ($1, $2, $3, $4, $5);
                     "#,
-                    recurso.descricao,
+                    recurso.descricao.clone(),
                     recurso.quantidade,
-                    recurso.valor_unitario,
-                    recurso.valor_total,
+                    recurso.valor_unitario.clone(),
+                    recurso.valor_total.clone(),
                     contato.id
                 )
                 .execute(&mut *tx)
@@ -155,7 +154,7 @@ impl ContatoService {
             }
 
             //inserir arquivos
-            for (tipo_arquivo, (nome_arquivo, dados_arquivo)) in arquivos {
+            for (tipo_arquivo, (nome_arquivo, dados_arquivo)) in arquivos.unwrap_or_default() {
                 // upload do arquivo
                 let end_arquivo = Self::upload_arquivo(contato.id, nome_arquivo, dados_arquivo).await;
                 sqlx::query!(
@@ -178,9 +177,9 @@ impl ContatoService {
         }.await;
 
         match result {
-            Ok(result) => {
+            std::result::Result::Ok(result) => {
                 tx.commit().await?;
-                result
+                Ok(result)
             }
             Err(e) => {
                 tx.rollback().await?;
@@ -256,7 +255,7 @@ impl ContatoService {
 
         // Salva o arquivo
         match fs::write(&filename, &data) {
-            Ok(_) => {
+            std::result::Result::Ok(_) => {
                 file_url = format!("/{}", filename);
             }
             Err(e) => {
