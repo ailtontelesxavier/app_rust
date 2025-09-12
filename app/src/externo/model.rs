@@ -219,15 +219,16 @@ pub struct ContatoAvalista {
     pub email_conj: String,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 #[sqlx(type_name = "emprestimo_regiao")] // nome da tabela no Postgres
 pub struct Regiao {
-    pub id: i32,          
-    pub name: String,     
+    pub id: i32,
+    pub name: String,
     pub municipio_id: i32,
-}
 
+    //campo extra nao exite na tabela
+    pub municipio_nome: Option<String>
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 #[sqlx(type_name = "emprestimo_regiao_cidades")]
@@ -252,4 +253,3 @@ pub struct UserLinha {
     pub user_id: i32,
     pub linha: i32,
 }
-

@@ -23,7 +23,7 @@
                     {% endif %}
                     <fieldset class="fieldset">
                         <legend class="fieldset-legend">Nome</legend>
-                        <input id="nome" name="nome" type="text" value="{% if row %}{{row.nome}}{% endif %}" class="input input-bordered"
+                        <input id="name" name="name" type="text" value="{% if row %}{{row.name}}{% endif %}" class="input input-bordered"
                             required />
                     </fieldset>
                 </div>
@@ -31,10 +31,10 @@
                     <label class="label">
                         <span class="label-text font-semibold">Cidade</span>
                     </label>
-                    {% set value_cidade = cidade.id if cidade else '' %}
-                    {% set title_cidade = cidade.title if cidade else '' %}
+                    {% set value_cidade = row.municipio_id if row else '' %}
+                    {% set title_cidade = row.municipio_nome if row else '' %}
                     {{ combobox(
-                        field_name="cidade_id",
+                        field_name="municipio_id",
                         field_label="nome", 
                         placeholder="Selecione a cidade do Tocantins",
                         endpoint="/core/cidades-to-api",

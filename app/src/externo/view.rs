@@ -1,6 +1,7 @@
 use std::collections::{BTreeMap, HashMap};
 use std::str::FromStr;
 
+use anyhow::Result;
 use axum::Json;
 use axum::{
     Extension, Form,
@@ -1097,13 +1098,13 @@ pub async fn get_regiao(
         }
     };
 
-    let linha = match service.get_by_id(&state.db, id).await {
+    let regiao = match service.get_by_id(&state.db, id).await {
         Ok(p) => p,
         Err(e) => {
-            debug!("Erro ao buscar linha: {}", e);
+            debug!("Erro ao buscar regiao: {}", e);
             let flash_url = helpers::create_flash_url(
-                "/externo/linha-form",
-                &format!("linha não encontrada: {}", e),
+                "/externo/regiao-form",
+                &format!("regiao não encontrada: {}", e),
                 FlashStatus::Error,
             );
             return Err(Redirect::to(&flash_url).into_response());
@@ -1112,7 +1113,7 @@ pub async fn get_regiao(
 
     // Preparar o contexto
     let ctx = context! {
-        row => linha,
+        row => regiao,
         flash_message => flash_message,
         flash_status => flash_status,
     };
@@ -1139,7 +1140,7 @@ pub async fn update_regiao(
     match service.update(&*state.db, id, input).await {
         Ok(_) => {
             let flash_url = helpers::create_flash_url(
-                &format!("/externo/regiao/{}", id),
+                &format!("/externo/regiao-form/{}", id),
                 &format!("Região atualizada com sucesso!"),
                 FlashStatus::Success,
             );
@@ -1147,7 +1148,7 @@ pub async fn update_regiao(
         }
         Err(err) => {
             let flash_url = helpers::create_flash_url(
-                &format!("/externo/regiao-form/{}", id),
+                &format!("/externo/regiao"),
                 &format!("Erro ao atualizar região: {}", err),
                 FlashStatus::Error,
             );

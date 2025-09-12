@@ -180,7 +180,6 @@ impl Repository<Contato, Uuid> for ContatoRepository {
     }
 }
 
-
 pub struct RegiaoRepository;
 
 #[async_trait]
@@ -206,12 +205,19 @@ impl Repository<Regiao, i32> for RegiaoRepository {
         "
     }
 
+    fn id_column(&self) -> &str {
+        "r.id"
+    }
+
     async fn create(&self, pool: &PgPool, input: Self::CreateInput) -> Result<Regiao> {
         Ok(sqlx::query_as!(
             Regiao,
-            "INSERT INTO emprestimo_regiao (name, municipio_id)
-            VALUES ($1, $2) RETURNING id, name, municipio_id",
-            input.name.to_string(),
+            r#"
+            INSERT INTO emprestimo_regiao (name, municipio_id)
+            VALUES ($1, $2)
+            RETURNING id, name, municipio_id, NULL as "municipio_nome?"
+            "#,
+            input.name,
             input.municipio_id
         )
         .fetch_one(pool)
@@ -227,7 +233,8 @@ impl Repository<Regiao, i32> for RegiaoRepository {
                 name = COALESCE($1, name),
                 municipio_id = COALESCE($2, municipio_id)
             WHERE id = $3
-            RETURNING *"#,
+            RETURNING id, name, municipio_id, NULL as "municipio_nome?"
+            "#,
             input.name,
             input.municipio_id,
             id

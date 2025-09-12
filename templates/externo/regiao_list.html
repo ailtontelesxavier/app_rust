@@ -60,13 +60,9 @@
                         {% for row in rows %}
                         <tr class="hover">
                             <td class="font-mono text-sm">{{ row.id }}</td>
-                            <td class="font-medium">{{ row.nome }}</td>
+                            <td class="font-medium">{{ row.name }}</td>
                             <td class="font-medium">
-                                {% if row.permite_cnpj %}
-                                    {{check_circle()}}
-                                {% else %}
-                                    {{circle_dashed()}}
-                                {% endif %}
+                                {{ row.municipio_nome }}
                             </td>
                             <td class="text-center">
                                 <div class="flex justify-center gap-2">
@@ -93,8 +89,8 @@
                     <div class="card-body p-4">
                         <div class="flex justify-between items-start">
                             <div class="flex-1">
-                                <h3 class="card-title text-lg">{{ row.nome }}</h3>
-                                <p class="text-sm text-gray-600">Cidade: {{ row.id }}</p>
+                                <h3 class="card-title text-lg">{{ row.name }}</h3>
+                                <p class="text-sm text-gray-600">Cidade: {{ row.municipio_nome }}</p>
                                 <div class="flex gap-2">
                                     <button class="btn btn-sm btn-primary updateRowButton" data-id="{{ row.id }}">
                                         {{pencil_line()}}
