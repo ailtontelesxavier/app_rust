@@ -17,7 +17,7 @@ use tracing::debug;
 use uuid::Uuid;
 use validator::Validate;
 
-use crate::externo::schema::{AplicacaoRecursos, TipoContatoExtra, UpdateRegiaoSchema};
+use crate::externo::schema::{AplicacaoRecursos, CreateRegiaoSchema, TipoContatoExtra, UpdateRegiaoSchema};
 use crate::externo::service::RegiaoService;
 use crate::{
     externo::{
