@@ -363,3 +363,17 @@ pub struct AplicacaoRecursos {
     pub valor_unitario: BigDecimal,
     pub valor_total: BigDecimal,
 }
+
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CreateRegiaoSchema {
+    pub name: String,
+    pub municipio_id: i32
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UpdateRegiaoSchema {
+    pub id: i32,
+    pub name: String,
+    pub municipio_id: i32
+}

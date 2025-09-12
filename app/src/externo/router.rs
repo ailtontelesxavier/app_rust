@@ -7,7 +7,10 @@ use shared::SharedState;
 use crate::externo::view;
 
 pub fn router() -> Router<SharedState> {
-    Router::new().merge(router_tipo()).merge(router_contato())
+    Router::new()
+        .merge(router_tipo())
+        .merge(router_contato())
+        .merge(router_regiao())
 }
 
 fn router_tipo() -> Router<SharedState> {
@@ -33,4 +36,16 @@ fn router_contato() -> Router<SharedState> {
             get(view::get_contato).post(view::update_contato),
         )
         .route("/contato/{id}", delete(view::delete_contato))
+}
+
+fn router_regiao() -> Router<SharedState> {
+    Router::new()
+        .route("/regiao", get(view::list_regiao))
+        .route("/regiao-form", get(view::regiao_form))
+        .route("/regiao-form", post(view::create_regiao))
+        .route(
+            "/regiao-form/{id}",
+            get(view::get_regiao).post(view::update_regiao),
+        )
+        .route("/regiao/{id}", delete(view::delete_regiao))
 }

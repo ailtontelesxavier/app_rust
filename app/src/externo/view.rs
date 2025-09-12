@@ -17,7 +17,8 @@ use tracing::debug;
 use uuid::Uuid;
 use validator::Validate;
 
-use crate::externo::schema::{AplicacaoRecursos, TipoContatoExtra};
+use crate::externo::schema::{AplicacaoRecursos, TipoContatoExtra, UpdateRegiaoSchema};
+use crate::externo::service::RegiaoService;
 use crate::{
     externo::{
         LinhaService, StatusCivil, TypeContato,
@@ -917,3 +918,269 @@ pub async fn delete_contato(
         }
     }
 }
+
+/*
+==========================================
+
+----------------- Regiao ---------------
+==========================================
+
+*/
+
+pub async fn list_regiao(
+    State(state): State<SharedState>,
+    Query(params): Query<ListParams>,
+) -> impl IntoResponse {
+    let service = RegiaoService::new();
+
+    // Extrair mensagens flash dos parâmetros da query
+    let flash_message = params
+        .msg
+        .as_ref()
+        .map(|msg| urlencoding::decode(msg).unwrap_or_default().to_string());
+    let flash_status = params.status.as_ref().and_then(|s| match s.as_str() {
+        "success" => Some("success"),
+        "error" => Some("error"),
+        _ => None,
+    });
+
+    // Usar o PermissionService para buscar dados paginados
+    let permissions_result = service
+        .get_paginated(
+            &state.db,
+            params.find.as_deref(),
+            params.page.unwrap_or(1),
+            params.page_size.unwrap_or(10),
+        )
+        .await;
+
+    match permissions_result {
+        Ok(paginated_response) => {
+            let context = minijinja::context! {
+                rows => paginated_response.data,
+                current_page => paginated_response.page,
+                total_pages => paginated_response.total_pages,
+                page_size => paginated_response.page_size,
+                total_records => paginated_response.total_records,
+                find => params.find.unwrap_or_default(),
+                flash_message => flash_message,
+                flash_status => flash_status,
+            };
+
+            match state.templates.get_template("externo/regiao_list.html") {
+                Ok(template) => match template.render(context) {
+                    Ok(html) => Html(html).into_response(),
+                    Err(err) => {
+                        debug!("Erro ao renderizar template: {}", err);
+                        StatusCode::INTERNAL_SERVER_ERROR.into_response()
+                    }
+                },
+                Err(err) => {
+                    debug!("Erro ao carregar template: {}", err);
+                    StatusCode::INTERNAL_SERVER_ERROR.into_response()
+                }
+            }
+        }
+        Err(err) => {
+            debug!("Erro ao buscar regiões: {}", err);
+            let redirect_url = helpers::create_flash_url(
+                "/",
+                &format!("Erro ao carregar regiões: {}", err),
+                FlashStatus::Error,
+            );
+            Redirect::to(&redirect_url).into_response()
+        }
+    }
+}
+
+
+pub async fn regiao_form(
+    State(state): State<SharedState>,
+    Query(params): Query<HashMap<String, String>>,
+) -> Result<Html<String>, impl IntoResponse> {
+    // Extrair mensagens flash dos parâmetros da query
+    let flash_message = params
+        .get("msg")
+        .map(|msg| urlencoding::decode(msg).unwrap_or_default().to_string());
+    let flash_status = params.get("status").and_then(|s| match s.as_str() {
+        "success" => Some("success"),
+        "error" => Some("error"),
+        _ => None,
+    });
+
+    let context = minijinja::context! {
+        flash_message => flash_message,
+        flash_status => flash_status,
+    };
+
+    match state.templates.get_template("externo/regiao_form.html") {
+        Ok(template) => match template.render(context) {
+            Ok(html) => Ok(Html(html)),
+            Err(err) => Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Erro ao renderizar template: {}", err),
+            )
+                .into_response()),
+        },
+        Err(err) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Erro ao carregar template: {}", err),
+        )
+            .into_response()),
+    }
+}
+
+pub async fn create_regiao(
+    State(state): State<SharedState>,
+    Extension(current_user): Extension<CurrentUser>,
+    Form(mut body): Form<CreateRegiaoSchema>,
+) -> impl IntoResponse {
+    if !current_user.current_user.is_superuser {
+        let flash_url = helpers::create_flash_url(
+            &format!("/externo/regiao"),
+            &"Você não tem permissão para criar uma região".to_string(),
+            FlashStatus::Error,
+        );
+        return Redirect::to(&flash_url).into_response();
+    }
+
+    let service = RegiaoService::new();
+
+    match service.create(&*state.db, body).await {
+        Ok(regiao) => {
+            let flash_url = helpers::create_flash_url(
+                &format!("/externo/regiao-form/{}", regiao.id),
+                "Região criada com sucesso!",
+                FlashStatus::Success,
+            );
+            Redirect::to(&flash_url).into_response()
+        }
+        Err(err) => {
+            let flash_url = helpers::create_flash_url(
+                "/externo/regiao-form",
+                &format!("Erro ao criar região: {}", err),
+                FlashStatus::Error,
+            );
+            Redirect::to(&flash_url).into_response()
+        }
+    }
+}
+
+
+pub async fn get_regiao(
+    State(state): State<SharedState>,
+    Path(id): Path<i32>,
+    Query(params): Query<HashMap<String, String>>,
+) -> Result<Html<String>, impl IntoResponse> {
+    let service = RegiaoService::new();
+
+    // Extrair mensagens flash dos parâmetros da query
+    let flash_message = params
+        .get("msg")
+        .map(|msg| urlencoding::decode(msg).unwrap_or_default().to_string());
+
+    let flash_status = params.get("status").and_then(|s| match s.as_str() {
+        "success" => Some("success"),
+        "error" => Some("error"),
+        _ => None,
+    });
+
+    // Carregar o template
+    let template = match state.templates.get_template("externo/regiao_form.html") {
+        Ok(t) => t,
+        Err(err) => {
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Falha ao carregar template: {}", err),
+            )
+                .into_response());
+        }
+    };
+
+    let linha = match service.get_by_id(&state.db, id).await {
+        Ok(p) => p,
+        Err(e) => {
+            debug!("Erro ao buscar linha: {}", e);
+            let flash_url = helpers::create_flash_url(
+                "/externo/linha-form",
+                &format!("linha não encontrada: {}", e),
+                FlashStatus::Error,
+            );
+            return Err(Redirect::to(&flash_url).into_response());
+        }
+    };
+
+    // Preparar o contexto
+    let ctx = context! {
+        row => linha,
+        flash_message => flash_message,
+        flash_status => flash_status,
+    };
+
+    // Renderizar o template
+    match template.render(&ctx) {
+        Ok(html) => Ok(Html(html)),
+        Err(err) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Falha ao renderizar template: {}", err),
+        )
+            .into_response()),
+    }
+}
+
+pub async fn update_regiao(
+    State(state): State<SharedState>,
+    Extension(current_user): Extension<CurrentUser>,
+    Path(id): Path<i32>,
+    Form(input): Form<UpdateRegiaoSchema>,
+) -> impl IntoResponse {
+    let service = RegiaoService::new();
+
+    match service.update(&*state.db, id, input).await {
+        Ok(_) => {
+            let flash_url = helpers::create_flash_url(
+                &format!("/externo/regiao/{}", id),
+                &format!("Região atualizada com sucesso!"),
+                FlashStatus::Success,
+            );
+            Redirect::to(&flash_url).into_response()
+        }
+        Err(err) => {
+            let flash_url = helpers::create_flash_url(
+                &format!("/externo/regiao-form/{}", id),
+                &format!("Erro ao atualizar região: {}", err),
+                FlashStatus::Error,
+            );
+            Redirect::to(&flash_url).into_response()
+        }
+    }
+}
+
+pub async fn delete_regiao(
+    State(state): State<SharedState>,
+    Extension(current_user): Extension<CurrentUser>,
+    Path(id): Path<i32>,
+) -> impl IntoResponse {
+    let service = RegiaoService::new();
+
+    match service.delete(&*state.db, id).await {
+        Ok(()) => {
+            let flash_url = helpers::create_flash_url(
+                "/externo/regiao",
+                "Região excluída com sucesso!",
+                FlashStatus::Success,
+            );
+            Redirect::to(&flash_url).into_response()
+        }
+        Err(err) => {
+            let flash_url = helpers::create_flash_url(
+                "/externo/regiao",
+                &format!("Erro ao excluir região: {}", err),
+                FlashStatus::Error,
+            );
+            Redirect::to(&flash_url).into_response()
+        }
+    }
+}
+
+

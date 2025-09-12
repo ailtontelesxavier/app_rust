@@ -2,17 +2,21 @@ use anyhow::{Ok, Result};
 use std::fs;
 
 use chrono::Datelike;
-use chrono::{DateTime, Local, Utc};
+use chrono::Local;
 use shared::{PaginatedResponse, Repository};
 use sqlx::{PgPool, Transaction};
 use uuid::Uuid;
 
-use crate::externo::schema::{AplicacaoRecursos, CreateContatoSchema, PronafB, TipoContatoExtra};
+use crate::externo::model::Regiao;
+use crate::externo::repository::RegiaoRepository;
+use crate::externo::schema::CreateRegiaoSchema;
+use crate::externo::schema::UpdateRegiaoSchema;
+use crate::externo::schema::{AplicacaoRecursos, CreateContatoSchema, TipoContatoExtra};
 use crate::externo::{
     LinhaRepository,
     model::{Contato, Linha},
     repository::ContatoRepository,
-    schema::{CreateContato, CreateLinhaSchema, UpdateContato, UpdateLinhaSchema},
+    schema::{CreateLinhaSchema, UpdateContato, UpdateLinhaSchema},
 };
 use crate::externo::{StatusDocumentoEnum, StatusTramitacaoEnum};
 
@@ -266,3 +270,50 @@ impl ContatoService {
         file_url
     }
 }
+
+/*
+==========================================
+
+----------------- Regiao ---------------
+==========================================
+
+*/
+
+pub struct RegiaoService {
+    repo: RegiaoRepository,
+}
+
+impl RegiaoService {
+    pub fn new() -> Self {
+        Self {
+            repo: RegiaoRepository,
+        }
+    }
+
+    pub async fn get_by_id(&self, pool: &PgPool, id: i32) -> Result<Regiao> {
+        Ok(self.repo.get_by_id(pool, id).await?)
+    }
+
+    pub async fn create(&self, pool: &PgPool, input: CreateRegiaoSchema) -> Result<Regiao> {
+        Ok(self.repo.create(pool, input).await?)
+    }
+
+    pub async fn update(&self, pool: &PgPool, id: i32, input: UpdateRegiaoSchema) -> Result<Regiao> {
+        Ok(self.repo.update(pool, id, input).await?)
+    }
+
+    pub async fn delete(&self, pool: &PgPool, id: i32) -> Result<()> {
+        Ok(self.repo.delete(pool, id).await?)
+    }
+
+    pub async fn get_paginated(
+        &self,
+        pool: &PgPool,
+        find: Option<&str>,
+        page: i32,
+        page_size: i32,
+    ) -> Result<PaginatedResponse<Regiao>> {
+        Ok(self.repo.get_paginated(pool, find, page, page_size).await?)
+    }
+}
+

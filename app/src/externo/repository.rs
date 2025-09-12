@@ -7,10 +7,12 @@ use anyhow::Ok;
 use anyhow::Result;
 use uuid::Uuid;
 
-use crate::externo::model::Campos;
 use crate::externo::model::Contato;
+use crate::externo::model::Regiao;
 use crate::externo::schema::CreateContato;
+use crate::externo::schema::CreateRegiaoSchema;
 use crate::externo::schema::UpdateContato;
+use crate::externo::schema::UpdateRegiaoSchema;
 use crate::externo::{
     model::Linha,
     schema::{CreateLinhaSchema, UpdateLinhaSchema},
@@ -172,6 +174,70 @@ impl Repository<Contato, Uuid> for ContatoRepository {
 
     async fn delete(&self, pool: &PgPool, id: Uuid) -> Result<()> {
         sqlx::query!("DELETE FROM contato WHERE id = $1", id)
+            .execute(pool)
+            .await?;
+        Ok(())
+    }
+}
+
+
+pub struct RegiaoRepository;
+
+#[async_trait]
+impl Repository<Regiao, i32> for RegiaoRepository {
+    type CreateInput = CreateRegiaoSchema;
+    type UpdateInput = UpdateRegiaoSchema;
+
+    fn table_name(&self) -> &str {
+        "emprestimo_regiao"
+    }
+
+    fn searchable_fields(&self) -> &[&str] {
+        &["r.name"]
+    }
+
+    fn select_clause(&self) -> &str {
+        "r.id, r.name, r.municipio_id, m.nome as municipio_nome"
+    }
+
+    fn from_clause(&self) -> &str {
+        "emprestimo_regiao r
+        INNER JOIN municipio m ON r.municipio_id = m.id
+        "
+    }
+
+    async fn create(&self, pool: &PgPool, input: Self::CreateInput) -> Result<Regiao> {
+        Ok(sqlx::query_as!(
+            Regiao,
+            "INSERT INTO emprestimo_regiao (name, municipio_id)
+            VALUES ($1, $2) RETURNING id, name, municipio_id",
+            input.name.to_string(),
+            input.municipio_id
+        )
+        .fetch_one(pool)
+        .await?)
+    }
+
+    async fn update(&self, pool: &PgPool, id: i32, input: Self::UpdateInput) -> Result<Regiao> {
+        Ok(sqlx::query_as!(
+            Regiao,
+            r#"
+            UPDATE emprestimo_regiao
+            SET
+                name = COALESCE($1, name),
+                municipio_id = COALESCE($2, municipio_id)
+            WHERE id = $3
+            RETURNING *"#,
+            input.name,
+            input.municipio_id,
+            id
+        )
+        .fetch_one(pool)
+        .await?)
+    }
+
+    async fn delete(&self, pool: &PgPool, id: i32) -> Result<()> {
+        sqlx::query!("DELETE FROM emprestimo_regiao WHERE id = $1", id)
             .execute(pool)
             .await?;
         Ok(())

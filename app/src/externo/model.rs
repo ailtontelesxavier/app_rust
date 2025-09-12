@@ -218,3 +218,38 @@ pub struct ContatoAvalista {
     pub telefone_conj: String,
     pub email_conj: String,
 }
+
+
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[sqlx(type_name = "emprestimo_regiao")] // nome da tabela no Postgres
+pub struct Regiao {
+    pub id: i32,          
+    pub name: String,     
+    pub municipio_id: i32,
+}
+
+
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[sqlx(type_name = "emprestimo_regiao_cidades")]
+pub struct RegiaoCidades {
+    pub id: i32,
+    pub regiao_id: i32,
+    pub municipio_id: i32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[sqlx(type_name = "emprestimo_user_regiao")]
+pub struct UserRegiao {
+    pub id: i32,
+    pub user_id: i32,
+    pub regiao_id: i32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[sqlx(type_name = "emprestimo_user_linha")]
+pub struct UserLinha {
+    pub id: i32,
+    pub user_id: i32,
+    pub linha: i32,
+}
+
