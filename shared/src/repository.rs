@@ -38,6 +38,11 @@ pub struct ListParams {
     pub page_size: Option<i32>,
 }
 
+#[derive(Deserialize)]
+pub struct IdParams {
+    pub id: Option<i64>,
+}
+
 #[async_trait]
 pub trait Repository<T, ID>
 where
@@ -61,6 +66,10 @@ where
     fn select_clause(&self) -> &str;
     fn from_clause(&self) -> &str;
     fn id_column(&self) -> &str {
+        "id"
+    }
+
+    fn order_by_column(&self) -> &str {
         "id"
     }
 
@@ -233,7 +242,7 @@ where
             self.select_clause_view(),
             self.from_clause_view(),
             where_clause,
-            self.id_column(),
+            self.order_by_column(),
             if params.is_empty() { 1 } else { 2 },
             if params.is_empty() { 2 } else { 3 }
         );

@@ -7,19 +7,20 @@ use axum::{
     Extension, Form,
     extract::{Multipart, Path, Query, State},
     http::StatusCode,
-    response::{Html, IntoResponse, Redirect},
+    response::{Html, IntoResponse, Redirect, Response},
 };
 use bigdecimal::BigDecimal;
 use minijinja::context;
 use regex::Regex;
 use serde_json::{Map, Value};
-use shared::{FlashStatus, ListParams, SharedState, helpers};
+use shared::{FlashStatus, ListParams, IdParams, PaginatedResponse, PaginationQuery, SharedState, helpers};
 use tracing::debug;
 use uuid::Uuid;
 use validator::Validate;
 
-use crate::externo::schema::{AplicacaoRecursos, CreateRegiaoSchema, TipoContatoExtra, UpdateRegiaoSchema};
-use crate::externo::service::RegiaoService;
+use crate::externo::model::Regiao;
+use crate::externo::schema::{AplicacaoRecursos, CreateRegiaoCidades, CreateRegiaoSchema, TipoContatoExtra, UpdateRegiaoSchema};
+use crate::externo::service::{RegiaoCidadesService, RegiaoService};
 use crate::{
     externo::{
         LinhaService, StatusCivil, TypeContato,
@@ -1185,3 +1186,169 @@ pub async fn delete_regiao(
 }
 
 
+/*
+api regiao
+
+*/
+pub async fn regiao_api(
+    Query(q): Query<PaginationQuery>,
+    State(state): State<SharedState>,
+) -> Result<Json<PaginatedResponse<Regiao>>, StatusCode> {
+    let service = RegiaoService::new();
+    let res = service
+        .get_paginated(
+            &state.db,
+            q.find.as_deref(),
+            q.page.unwrap_or(1) as i32,
+            q.page_size.unwrap_or(10) as i32,
+        )
+        .await
+        .map_err(|err| {
+            debug!("error:{}", err);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    Ok(Json(res))
+}
+
+//===========================
+// Gestão Regiao
+//===========================
+
+/* 
+id: id da regiao regiao
+*/
+pub async fn get_gestao_regiao(
+    Query(params): Query<ListParams>,
+    Query(form): Query<IdParams>,
+    State(state): State<SharedState>,
+) -> impl IntoResponse {
+    let service_regiao = RegiaoService::new();
+    let service = RegiaoCidadesService::new();
+
+    let regiao;
+
+    let mut context = minijinja::context! {};
+
+    // Extrair mensagens flash dos parâmetros da query
+    let flash_message = params
+        .msg
+        .as_ref()
+        .map(|msg| urlencoding::decode(msg).unwrap_or_default().to_string());
+    let flash_status = params.status.as_ref().and_then(|s| match s.as_str() {
+        "success" => Some("success"),
+        "error" => Some("error"),
+        _ => None,
+    });
+
+    match form.id {
+        Some(id) => {
+            regiao = Some(
+                service_regiao
+                    .get_by_id(&*state.db, id as i32)
+                    .await
+                    .unwrap(),
+            );
+            let result = service
+                .get_paginated_by_regiao_id(
+                    &state.db,
+                    regiao.clone().unwrap().id,
+                    params.page.unwrap_or(1),
+                    params.page_size.unwrap_or(10),
+                )
+                .await;
+
+            match result {
+                Ok(paginated_response) => {
+                    context = minijinja::context! {
+                        regiao => Some(regiao),
+                        rows => paginated_response.data,
+                        current_page => paginated_response.page,
+                        total_pages => paginated_response.total_pages,
+                        page_size => paginated_response.page_size,
+                        total_records => paginated_response.total_records,
+                        find => params.find.unwrap_or_default(),
+                        flash_message => flash_message,
+                        flash_status => flash_status,
+                    };
+                }
+                Err(_err) => {
+                    context = minijinja::context! {
+                        regiao => Some(regiao)
+                    };
+                }
+            }
+        }
+        None => (),
+    }
+
+    match state.templates.get_template("externo/regiao_gestao.html") {
+        Ok(template) => match template.render(context) {
+            Ok(html) => Ok(Html(html)),
+            Err(err) => Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Erro ao renderizar template: {}", err),
+            )
+                .into_response()),
+        },
+        Err(err) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Erro ao carregar template: {}", err),
+        )
+            .into_response()),
+    }
+}
+
+pub async fn create_gestao_regiao(
+    State(state): State<SharedState>,
+    Form(body): Form<CreateRegiaoCidades>,
+) -> Response {
+    let service = RegiaoCidadesService::new();
+
+    let id: i32 = body.regiao_id;
+
+    match service.create(&state.db, body).await {
+        Ok(regiao_cidades) => {
+            let flash_url = helpers::create_flash_url(
+                &format!("/externo/regiao-gestao?id={}", id.to_string()),
+                "Municipio adicionada com sucesso!",
+                FlashStatus::Success,
+            );
+            Redirect::to(&flash_url).into_response()
+        }
+        Err(err) => {
+            let flash_url = helpers::create_flash_url(
+                "/externo/regiao-gestao",
+                &format!("Erro ao adicionar municipio: {}", err),
+                FlashStatus::Error,
+            );
+            Redirect::to(&flash_url).into_response()
+        }
+    }
+}
+
+pub async fn delete_gestao_regiao(
+    State(state): State<SharedState>,
+    Path(id): Path<i64>,
+) -> Response {
+    let service = RegiaoCidadesService::new();
+
+    match service.delete(&state.db, id.try_into().unwrap()).await {
+        Ok(_) => {
+            let flash_url = helpers::create_flash_url(
+                "/externo/regiao-gestao",
+                "Municipio removido com sucesso!",
+                FlashStatus::Success,
+            );
+            Redirect::to(&flash_url).into_response()
+        }
+        Err(err) => {
+            let flash_url = helpers::create_flash_url(
+                "/externo/regiao-gestao",
+                &format!("Erro ao remover região: {}", err),
+                FlashStatus::Error,
+            );
+            Redirect::to(&flash_url).into_response()
+        }
+    }
+}

@@ -83,7 +83,7 @@
                     dropdown.classList.remove('hidden');
                     data.data.forEach(item => {
                         const li = document.createElement('li');
-                        li.className = 'cursor-pointer px-4 py-2 text-gray-900 hover:bg-cyan-200 hover:text-green-800 dark:text-white dark:hover:bg-primary-500 dark:hover:text-white';
+                        li.className = 'cursor-pointer px-4 py-2  hover:bg-cyan-200 hover:text-green-800 dark:text-white dark:hover:bg-primary-500 dark:hover:text-white';
                         li.textContent = item.title || item.name || item.{{ field_label }} ;
                         li.addEventListener('mousedown', () => {
                             document.getElementById('search_' + fieldName).value = item.title || item.name || item.{{ field_label }};

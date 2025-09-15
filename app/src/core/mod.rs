@@ -9,3 +9,4 @@ mod view;
 pub use handler::serve_upload;
 pub use router::{router, router_public};
 pub use schema::StatusOpt;
+pub use service::MunicipioService;

@@ -8,8 +8,12 @@ use sqlx::{PgPool, Transaction};
 use uuid::Uuid;
 
 use crate::externo::model::Regiao;
+use crate::externo::model::RegiaoCidades;
+use crate::externo::repository::RegiaoCidadesRepository;
 use crate::externo::repository::RegiaoRepository;
+use crate::externo::schema::CreateRegiaoCidades;
 use crate::externo::schema::CreateRegiaoSchema;
+use crate::externo::schema::UpdateRegiaoCidades;
 use crate::externo::schema::UpdateRegiaoSchema;
 use crate::externo::schema::{AplicacaoRecursos, CreateContatoSchema, TipoContatoExtra};
 use crate::externo::{
@@ -298,7 +302,12 @@ impl RegiaoService {
         Ok(self.repo.create(pool, input).await?)
     }
 
-    pub async fn update(&self, pool: &PgPool, id: i32, input: UpdateRegiaoSchema) -> Result<Regiao> {
+    pub async fn update(
+        &self,
+        pool: &PgPool,
+        id: i32,
+        input: UpdateRegiaoSchema,
+    ) -> Result<Regiao> {
         Ok(self.repo.update(pool, id, input).await?)
     }
 
@@ -317,3 +326,100 @@ impl RegiaoService {
     }
 }
 
+pub struct RegiaoCidadesService {
+    repo: RegiaoCidadesRepository,
+}
+
+impl RegiaoCidadesService {
+    pub fn new() -> Self {
+        Self {
+            repo: RegiaoCidadesRepository,
+        }
+    }
+
+    pub async fn get_by_id(&self, pool: &PgPool, id: i32) -> Result<RegiaoCidades> {
+        Ok(self.repo.get_by_id(pool, id).await?)
+    }
+
+    pub async fn create(&self, pool: &PgPool, input: CreateRegiaoCidades) -> Result<RegiaoCidades> {
+        Ok(self.repo.create(pool, input).await?)
+    }
+
+    pub async fn update(
+        &self,
+        pool: &PgPool,
+        id: i32,
+        input: UpdateRegiaoCidades,
+    ) -> Result<RegiaoCidades> {
+        Ok(self.repo.update(pool, id, input).await?)
+    }
+
+    pub async fn delete(&self, pool: &PgPool, id: i32) -> Result<()> {
+        Ok(self.repo.delete(pool, id).await?)
+    }
+
+    pub async fn get_paginated(
+        &self,
+        pool: &PgPool,
+        find: Option<&str>,
+        page: i32,
+        page_size: i32,
+    ) -> Result<PaginatedResponse<RegiaoCidades>> {
+        Ok(self.repo.get_paginated(pool, find, page, page_size).await?)
+    }
+
+    pub async fn get_paginated_by_regiao_id(
+        &self,
+        pool: &PgPool,
+        regiao_id: i32,
+        page: i32,
+        page_size: i32,
+    ) -> Result<PaginatedResponse<RegiaoCidades>>
+    where
+        RegiaoCidades: for<'r> sqlx::FromRow<'r, sqlx::postgres::PgRow> + Send + Unpin,
+    {
+        let page = page.max(1);
+        let page_size = page_size.min(100);
+        let offset = (page - 1) * page_size;
+
+        let where_str = format!("WHERE rc.regiao_id = {}", regiao_id);
+
+        // === COUNT ===
+        let count_query = format!(
+            "SELECT COUNT(*) FROM {} {}",
+            self.repo.from_clause(),
+            where_str
+        );
+
+        let total: (i64,) = sqlx::query_as(&count_query).fetch_one(pool).await?;
+
+        // === DATA ===
+        let data_query = format!(
+            "SELECT {} FROM {} {} ORDER BY {} DESC LIMIT $1 OFFSET $2",
+            self.repo.select_clause(),
+            self.repo.from_clause(),
+            where_str,
+            self.repo.order_by_column(),
+        );
+
+        let data: Vec<RegiaoCidades> = sqlx::query_as::<_, RegiaoCidades>(&data_query)
+                .bind(page_size as i64)
+                .bind(offset as i64)
+                .fetch_all(pool)
+                .await?;
+
+        let total_pages: i32 = if total.0 == 0 {
+            1
+        } else {
+            ((total.0 as f32) / (page_size as f32)).ceil() as i32
+        };
+
+        Ok(PaginatedResponse {
+            data,
+            total_records: total.0,
+            page,
+            page_size,
+            total_pages,
+        })
+    }
+}

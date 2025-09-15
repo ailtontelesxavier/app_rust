@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use minijinja::Value;
+use shared::PaginatedResponse;
 use shared::Repository;
 use sqlx::PgPool;
 
@@ -9,9 +9,12 @@ use uuid::Uuid;
 
 use crate::externo::model::Contato;
 use crate::externo::model::Regiao;
+use crate::externo::model::RegiaoCidades;
 use crate::externo::schema::CreateContato;
+use crate::externo::schema::CreateRegiaoCidades;
 use crate::externo::schema::CreateRegiaoSchema;
 use crate::externo::schema::UpdateContato;
+use crate::externo::schema::UpdateRegiaoCidades;
 use crate::externo::schema::UpdateRegiaoSchema;
 use crate::externo::{
     model::Linha,
@@ -245,6 +248,93 @@ impl Repository<Regiao, i32> for RegiaoRepository {
 
     async fn delete(&self, pool: &PgPool, id: i32) -> Result<()> {
         sqlx::query!("DELETE FROM emprestimo_regiao WHERE id = $1", id)
+            .execute(pool)
+            .await?;
+        Ok(())
+    }
+}
+
+pub struct RegiaoCidadesRepository;
+
+#[async_trait]
+impl Repository<RegiaoCidades, i32> for RegiaoCidadesRepository {
+    type CreateInput = CreateRegiaoCidades;
+    type UpdateInput = UpdateRegiaoCidades;
+
+    fn table_name(&self) -> &str {
+        "emprestimo_regiao_cidades"
+    }
+
+    fn searchable_fields(&self) -> &[&str] {
+        &["r.name", "m.nome"]
+    }
+
+    fn select_clause(&self) -> &str {
+        "rc.id,
+        rc.regiao_id,
+        r.name AS regiao_name,
+        rc.municipio_id,
+        m.nome AS municipio_name
+        "
+    }
+
+    fn from_clause(&self) -> &str {
+        "emprestimo_regiao_cidades rc
+        JOIN emprestimo_regiao r ON rc.regiao_id = r.id
+        JOIN municipio m ON rc.municipio_id = m.id
+        "
+    }
+
+    fn id_column(&self) -> &str {
+        "rc.id"
+    }
+
+    fn order_by_column(&self) -> &str {
+        "r.name, m.nome"
+    }
+
+    async fn create(&self, pool: &PgPool, input: Self::CreateInput) -> Result<RegiaoCidades> {
+        Ok(sqlx::query_as!(
+            RegiaoCidades,
+            r#"INSERT INTO emprestimo_regiao_cidades (regiao_id, municipio_id) VALUES ($1, $2)
+            RETURNING id, regiao_id, municipio_id,
+            NULL as "regiao_name?",
+            NULL as "municipio_name?"
+            "#,
+            input.regiao_id,
+            input.municipio_id
+        )
+        .fetch_one(pool)
+        .await?)
+    }
+
+    async fn update(
+        &self,
+        pool: &PgPool,
+        id: i32,
+        input: Self::UpdateInput,
+    ) -> Result<RegiaoCidades> {
+        Ok(sqlx::query_as!(
+            RegiaoCidades,
+            r#"
+            UPDATE emprestimo_regiao_cidades
+            SET
+                regiao_id = COALESCE($1, regiao_id),
+                municipio_id = COALESCE($2, municipio_id)
+            WHERE id = $3
+            RETURNING id, regiao_id, municipio_id, NULL as "regiao_name?",
+            NULL as "municipio_name?"
+            "#,
+            input.regiao_id,
+            input.municipio_id,
+            id
+        )
+        .fetch_one(pool)
+        .await?)
+    }
+
+    async fn delete(&self, pool: &PgPool, id: i32) -> Result<()> {
+        sqlx::query!("DELETE FROM emprestimo_regiao_cidades WHERE id = $1", id)
             .execute(pool)
             .await?;
         Ok(())

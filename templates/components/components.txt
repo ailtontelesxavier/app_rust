@@ -136,3 +136,21 @@ cidade br
     ) }}
 </div>
 ===============================================================
+regiao
+<div class="flex flex-col">
+    <label class="label">
+        <span class="label-text font-semibold">Região</span>
+    </label>
+    {% set value_regiao = regiao.id if regiao else '' %}
+    {% set title_regiao = regiao.name if regiao else '' %}
+    {{ combobox(
+        field_name="regiao_id",
+        field_label="nome", 
+        placeholder="Selecione a região",
+        endpoint="/externo/regiao-api",
+        attrs="required",
+        search=title_regiao,
+        value=value_regiao,
+    ) }}
+</div>
+===============================================================

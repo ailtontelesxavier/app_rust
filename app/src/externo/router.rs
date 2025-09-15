@@ -48,4 +48,16 @@ fn router_regiao() -> Router<SharedState> {
             get(view::get_regiao).post(view::update_regiao),
         )
         .route("/regiao/{id}", delete(view::delete_regiao))
+        .merge(api_regiao_router())
+        .route(
+            "/regiao-gestao",
+            get(view::get_gestao_regiao).post(view::create_gestao_regiao),
+        )
+        .route("/regiao-gestao/{id}", delete(view::delete_gestao_regiao))
 }
+
+fn api_regiao_router() -> Router<SharedState> {
+    Router::new()
+        .route("/regiao-api", get(view::regiao_api))
+}
+

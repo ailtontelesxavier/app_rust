@@ -377,3 +377,18 @@ pub struct UpdateRegiaoSchema {
     pub name: String,
     pub municipio_id: i32
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CreateRegiaoCidades {
+    pub regiao_id: i32,
+    pub municipio_id: i32,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UpdateRegiaoCidades {
+    pub id: i32,
+    pub regiao_id: i32,
+    pub municipio_id: i32,
+}
+
+

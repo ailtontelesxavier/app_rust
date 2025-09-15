@@ -258,7 +258,7 @@
 {% endmacro %}
 
 {% macro textarea(id, placeholder='', name='', value='', class='', attrs='',
-    textarea_class="block p-2.5 w-full shadow text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500") %}
+    textarea_class="block p-2.5 w-full shadow text-sm  bg-gray-50 rounded-lg border border-gray-300 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500") %}
     <textarea id="{{ id }}" rows="4"
     class="{{ textarea_class }} {{ class }}"
     name="{{ name }}"
@@ -278,7 +278,7 @@
             id="{{ id }}"
             placeholder="{{ placeholder }}"
             value="{{ value }}"
-            class="mt-1 px-3 py-2 border border-gray-300 text-gray-900 bg-gray-50 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+            class="mt-1 px-3 py-2 border border-gray-300  bg-gray-50 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
         >
         <!-- Ícone de limpar -->
         <span id="clear-{{ id }}" class="absolute right-2 top-1/2 transform -translate-y-1/2 cursor-pointer text-gray-400 hover:text-gray-600 hidden">

@@ -236,6 +236,10 @@ pub struct RegiaoCidades {
     pub id: i32,
     pub regiao_id: i32,
     pub municipio_id: i32,
+
+    //campo extra nao exite na tabela
+    pub regiao_name: Option<String>,
+    pub municipio_name: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
