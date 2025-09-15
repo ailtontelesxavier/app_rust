@@ -158,6 +158,7 @@ pub enum StatusTramitacaoEnum {
     Contratacao = 7 as i32,
     Reprovado = 8 as i32,
     EmAtendimento = 9 as i32,
+    EmAnaliseFinanceira = 10 as i32,
 }
 
 impl std::fmt::Display for StatusTramitacaoEnum {
@@ -174,6 +175,7 @@ impl std::fmt::Display for StatusTramitacaoEnum {
             StatusTramitacaoEnum::Contratacao => "Contratação",
             StatusTramitacaoEnum::Reprovado => "Reprovado",
             StatusTramitacaoEnum::EmAtendimento => "Em Atendimento",
+            StatusTramitacaoEnum::EmAnaliseFinanceira => "Em Análise Financeira",
         };
         write!(f, "{}", str)
     }
@@ -191,6 +193,7 @@ impl StatusTramitacaoEnum {
             7 => StatusTramitacaoEnum::Contratacao,
             8 => StatusTramitacaoEnum::Reprovado,
             9 => StatusTramitacaoEnum::EmAtendimento,
+            10 => StatusTramitacaoEnum::EmAnaliseFinanceira,
             _ => StatusTramitacaoEnum::AguardandoAtendimento,
         }
     }
