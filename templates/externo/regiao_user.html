@@ -92,11 +92,11 @@
                         {% for row in rows %}
                         <tr class="hover">
                             <td class="font-mono text-sm">{{ row.id }}</td>
-                            <td class="font-medium">{{ row.municipio_name }}</td>
+                            <td class="font-medium">{{ row.regiao_name }}</td>
                             <td class="text-center">
                                 <div class="flex justify-center gap-2">
                                     <button class="btn btn-sm btn-error deleteRowButton" data-id="{{ row.id }}"
-                                        title="Excluir" onclick="openDeleteModal({{ row.id }}, '{{ row.municipio_name }}')">
+                                        title="Excluir" onclick="openDeleteModal({{ row.id }}, '{{ row.regiao_name }}')">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                 d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
@@ -119,7 +119,7 @@
                         <div class="flex justify-between items-start">
                             <div class="flex-1">
                                 <h3 class="card-title text-lg">{{ row.id }}</h3>
-                                <p class="text-sm text-gray-600">Nome: {{ row.municipio_name }}</p>
+                                <p class="text-sm text-gray-600">Nome: {{ row.regiao_name }}</p>
                             </div>
                             <div class="flex gap-2">
                                 <button class="btn btn-sm btn-error deleteRowButton" data-id="{{ row.id }}"
@@ -155,7 +155,7 @@
 <dialog id="delete_modal" class="modal">
     <div class="modal-box">
         <h3 class="font-bold text-lg">Confirmar Exclusão</h3>
-        <p class="py-4">Tem certeza que deseja remover a Cidade "<span id="regiao_name_to_delete"></span>"?</p>
+        <p class="py-4">Tem certeza que deseja remover a região "<span id="regiao_name_to_delete"></span>"?</p>
         <p class="text-sm  mb-4">Esta ação não pode ser desfeita.</p>
         <div class="modal-action">
             <form method="dialog">
@@ -246,7 +246,7 @@
         if (moduleToDelete) {
             // Implementar lógica de exclusão aqui
             // Por exemplo, fazer uma requisição DELETE ou POST para excluir
-            fetch(`/externo/regiao-gestao/${moduleToDelete}`, {
+            fetch(`/externo/regiao-user/${moduleToDelete}`, {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json',
@@ -254,16 +254,16 @@
             })
                 .then(response => {
                     if (response.ok) {
-                        {% set param_regiao_id = regiao.id if regiao else 0 %}
-                        let param_regiao_id = {{ param_regiao_id }};
-                    window.location.href = `/externo/regiao-gestao?id=${param_regiao_id}`
+                        {% set param_usuario_id = usuario.id if usuario else 0 %}
+                        let param_usuario_id = {{ param_usuario_id }};
+                    window.location.href = `/externo/regiao-user?id=${param_usuario_id}`
                 } else {
-                    alert('Erro ao excluir mundicipio');
+                    alert('Erro ao excluir região');
                 }
             })
         .catch(error => {
             console.error('Erro:', error);
-            alert('Erro ao excluir municipio');
+            alert('Erro ao excluir região');
         });
         }
     document.getElementById('delete_modal').close();
@@ -275,7 +275,7 @@
         document.getElementById('find').value = '';
         {% set param_regiao_id = regiao.id if regiao else 0 %}
         let param_regiao_id = {{ param_regiao_id }}; //
-    window.location.href = `/externo/regiao-gestao?id=${param_regiao_id}`
+    window.location.href = `/externo/regiao-user?id=${param_regiao_id}`
     }
 </script>
 {% endblock %}
