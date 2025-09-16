@@ -25,6 +25,12 @@ fn router_tipo() -> Router<SharedState> {
             get(view::get_linha).post(view::update_linha),
         )
         .route("/linha/{id}", delete(view::delete_linha))
+        .merge(api_linha_router())
+}
+
+fn api_linha_router() -> Router<SharedState> {
+    Router::new()
+        .route("/linha-api", get(view::linha_api))
 }
 
 fn router_contato() -> Router<SharedState> {

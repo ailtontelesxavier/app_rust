@@ -13,14 +13,21 @@ use bigdecimal::BigDecimal;
 use minijinja::context;
 use regex::Regex;
 use serde_json::{Map, Value};
-use shared::{FlashStatus, ListParams, IdParams, PaginatedResponse, PaginationQuery, SharedState, helpers};
+use shared::{
+    FlashStatus, IdParams, ListParams, PaginatedResponse, PaginationQuery, SharedState, helpers,
+};
 use tracing::debug;
 use uuid::Uuid;
 use validator::Validate;
 
-use crate::externo::model::Regiao;
-use crate::externo::schema::{AplicacaoRecursos, CreateRegiaoCidades, CreateRegiaoSchema, CreateUserLinha, CreateUserRegiao, TipoContatoExtra, UpdateRegiaoSchema};
-use crate::externo::service::{RegiaoCidadesService, RegiaoService, UserLinhaService, UserRegiaoService};
+use crate::externo::model::{Linha, Regiao};
+use crate::externo::schema::{
+    AplicacaoRecursos, CreateRegiaoCidades, CreateRegiaoSchema, CreateUserLinha, CreateUserRegiao,
+    TipoContatoExtra, UpdateRegiaoSchema,
+};
+use crate::externo::service::{
+    RegiaoCidadesService, RegiaoService, UserLinhaService, UserRegiaoService,
+};
 use crate::permissao::UserService;
 use crate::{
     externo::{
@@ -51,6 +58,13 @@ pub async fn list_linha(
         "error" => Some("error"),
         _ => None,
     });
+
+    let mut context = minijinja::context! {};
+
+    context = minijinja::context! {
+        flash_message => flash_message,
+        flash_status => flash_status,
+    };
 
     // Usar o PermissionService para buscar dados paginados
     let permissions_result = service
@@ -287,6 +301,31 @@ pub async fn delete_linha(
             Redirect::to(&flash_url).into_response()
         }
     }
+}
+
+/*
+api regiao
+
+*/
+pub async fn linha_api(
+    Query(q): Query<PaginationQuery>,
+    State(state): State<SharedState>,
+) -> Result<Json<PaginatedResponse<Linha>>, StatusCode> {
+    let service = LinhaService::new();
+    let res = service
+        .get_paginated(
+            &state.db,
+            q.find.as_deref(),
+            q.page.unwrap_or(1) as i32,
+            q.page_size.unwrap_or(10) as i32,
+        )
+        .await
+        .map_err(|err| {
+            debug!("error:{}", err);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    Ok(Json(res))
 }
 
 /*
@@ -686,7 +725,7 @@ pub async fn create_contato_pronaf(
     //obten linha
     let linha;
 
-    match service_linha.get_by_id(&*state.db, 8).await{
+    match service_linha.get_by_id(&*state.db, 8).await {
         Ok(l) => linha = l,
         Err(err) => {
             return (
@@ -996,7 +1035,6 @@ pub async fn list_regiao(
     }
 }
 
-
 pub async fn regiao_form(
     State(state): State<SharedState>,
     Query(params): Query<HashMap<String, String>>,
@@ -1068,7 +1106,6 @@ pub async fn create_regiao(
         }
     }
 }
-
 
 pub async fn get_regiao(
     State(state): State<SharedState>,
@@ -1186,7 +1223,6 @@ pub async fn delete_regiao(
     }
 }
 
-
 /*
 api regiao
 
@@ -1216,7 +1252,7 @@ pub async fn regiao_api(
 // Gestão Regiao
 //===========================
 
-/* 
+/*
 id: id da regiao regiao
 */
 pub async fn get_gestao_regiao(
@@ -1275,7 +1311,9 @@ pub async fn get_gestao_regiao(
                 }
                 Err(_err) => {
                     context = minijinja::context! {
-                        regiao => Some(regiao)
+                        regiao => Some(regiao),
+                        flash_message => flash_message,
+                        flash_status => flash_status,
                     };
                 }
             }
@@ -1354,12 +1392,11 @@ pub async fn delete_gestao_regiao(
     }
 }
 
-
 //===========================
 // Regiao por usuario
 //===========================
 
-/* 
+/*
 id: id do usuario
 */
 pub async fn get_regiao_por_usuario(
@@ -1387,12 +1424,7 @@ pub async fn get_regiao_por_usuario(
 
     match form.id {
         Some(id) => {
-            usuario = Some(
-                service_user
-                    .get_by_id(&*state.db, id)
-                    .await
-                    .unwrap(),
-            );
+            usuario = Some(service_user.get_by_id(&*state.db, id).await.unwrap());
             let result = service
                 .get_paginated_by_user_id(
                     &state.db,
@@ -1418,7 +1450,9 @@ pub async fn get_regiao_por_usuario(
                 }
                 Err(_err) => {
                     context = minijinja::context! {
-                        usuario => Some(usuario)
+                        usuario => Some(usuario),
+                        flash_message => flash_message,
+                        flash_status => flash_status,
                     };
                 }
             }
@@ -1497,12 +1531,11 @@ pub async fn delete_regiao_por_usuario(
     }
 }
 
-
 //===========================
 // linha por usuario
 //===========================
 
-/* 
+/*
 id: id do usuario
 */
 pub async fn get_linha_por_usuario(
@@ -1528,14 +1561,14 @@ pub async fn get_linha_por_usuario(
         _ => None,
     });
 
+    context = minijinja::context! {
+        flash_message => flash_message,
+        flash_status => flash_status,
+    };
+
     match form.id {
         Some(id) => {
-            usuario = Some(
-                service_user
-                    .get_by_id(&*state.db, id)
-                    .await
-                    .unwrap(),
-            );
+            usuario = Some(service_user.get_by_id(&*state.db, id).await.unwrap());
             let result = service
                 .get_paginated_by_user_id(
                     &state.db,
@@ -1561,7 +1594,9 @@ pub async fn get_linha_por_usuario(
                 }
                 Err(_err) => {
                     context = minijinja::context! {
-                        usuario => Some(usuario)
+                        usuario => Some(usuario),
+                        flash_message => flash_message,
+                        flash_status => flash_status,
                     };
                 }
             }
@@ -1592,7 +1627,7 @@ pub async fn create_linha_por_usuario(
 ) -> Response {
     let service = UserLinhaService::new();
 
-    let id: i32 = body.linha_id;
+    let id: i32 = body.user_id;
 
     match service.create(&state.db, body).await {
         Ok(_) => {

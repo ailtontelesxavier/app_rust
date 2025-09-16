@@ -154,3 +154,21 @@ regiao
     ) }}
 </div>
 ===============================================================
+regiao
+<div class="flex flex-col">
+    <label class="label">
+        <span class="label-text font-semibold">Linha</span>
+    </label>
+    {% set value_linha = linha.id if linha else '' %}
+    {% set title_linha = linha.name if linha else '' %}
+    {{ combobox(
+        field_name="linha_id",
+        field_label="nome", 
+        placeholder="Selecione a linha",
+        endpoint="/externo/linha-api",
+        attrs="required",
+        search=title_linha,
+        value=value_linha,
+    ) }}
+</div>
+===============================================================

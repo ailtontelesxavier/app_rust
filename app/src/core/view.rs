@@ -72,6 +72,12 @@ pub async fn list_municipio(
         "error" => Some("error"),
         _ => None,
     });
+    let mut context = minijinja::context! {};
+
+    context = minijinja::context! {
+        flash_message => flash_message,
+        flash_status => flash_status,
+    };
 
     let permissions_result = service
         .get_paginated(

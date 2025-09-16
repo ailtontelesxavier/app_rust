@@ -51,6 +51,12 @@ pub async fn list_tipo_chamado(
         "error" => Some("error"),
         _ => None,
     });
+    let mut context = minijinja::context! {};
+
+    context = minijinja::context! {
+        flash_message => flash_message,
+        flash_status => flash_status,
+    };
 
     // Usar o PermissionService para buscar dados paginados
     let permissions_result = service
@@ -331,6 +337,13 @@ pub async fn list_categoria(
         "error" => Some("error"),
         _ => None,
     });
+
+    let mut context = minijinja::context! {};
+
+    context = minijinja::context! {
+        flash_message => flash_message,
+        flash_status => flash_status,
+    };
 
     // Usar o PermissionService para buscar dados paginados
     let permissions_result = service
@@ -614,6 +627,13 @@ pub async fn list_servico(
         "error" => Some("error"),
         _ => None,
     });
+
+    let mut context = minijinja::context! {};
+
+    context = minijinja::context! {
+        flash_message => flash_message,
+        flash_status => flash_status,
+    };
 
     let permissions_result = service
         .get_paginated_with_tipo(
@@ -903,6 +923,13 @@ pub async fn list_chamado(
         "error" => Some("error"),
         _ => None,
     });
+
+    let mut context = minijinja::context! {};
+
+    context = minijinja::context! {
+        flash_message => flash_message,
+        flash_status => flash_status,
+    };
 
     let permissions = current_user.permissions.clone();
 
