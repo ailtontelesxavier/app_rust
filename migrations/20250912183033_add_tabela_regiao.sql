@@ -23,6 +23,6 @@ CREATE TABLE emprestimo_user_regiao (
 CREATE TABLE emprestimo_user_linha (
     id SERIAL PRIMARY KEY,
     user_id INT NOT NULL REFERENCES users(id),
-    linha INT NOT NULL,
-    CONSTRAINT emprestimo_user_linha_unique UNIQUE (user_id, linha)
+    linha_id INT NOT NULL REFERENCES linha(id),
+    CONSTRAINT emprestimo_user_linha_unique UNIQUE (user_id, linha_id)
 );

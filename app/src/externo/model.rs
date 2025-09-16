@@ -248,6 +248,10 @@ pub struct UserRegiao {
     pub id: i32,
     pub user_id: i32,
     pub regiao_id: i32,
+
+    //campo extra nao exite na tabela
+    pub regiao_name: Option<String>,
+    pub user_name: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
@@ -255,5 +259,9 @@ pub struct UserRegiao {
 pub struct UserLinha {
     pub id: i32,
     pub user_id: i32,
-    pub linha: i32,
+    pub linha_id: i32,
+
+    //campo extra nao exite na tabela
+    pub linha_name: Option<String>,
+    pub user_name: Option<String>,
 }

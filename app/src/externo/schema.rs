@@ -392,3 +392,30 @@ pub struct UpdateRegiaoCidades {
 }
 
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CreateUserRegiao {
+    pub user_id: i32,
+    pub regiao_id: i32,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UpdateUserRegiao {
+    pub id: i32,
+    pub user_id: i32,
+    pub regiao_id: i32,
+}
+
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CreateUserLinha {
+    pub user_id: i32,
+    pub linha_id: i32,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UpdateUserLinha {
+    pub id: i32,
+    pub user_id: i32,
+    pub linha_id: i32,
+}
+

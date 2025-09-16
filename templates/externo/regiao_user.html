@@ -1,0 +1,281 @@
+{% extends 'principal.html' %}
+{% include "components/combobox.html"%}
+
+{% block title %}Gestão de Região por Usuario{% endblock %}
+
+{% block main %}
+<div class="container mx-auto p-4">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold">Gestão de Região por Usuario</h1>
+    </div>
+
+    {# Exibir mensagem flash se existir #}
+    {% if flash_message %}
+    <div
+        class="alert {% if flash_status == 'success' %}alert-success{% elif flash_status == 'error' %}alert-error{% else %}alert-info{% endif %} mb-4">
+        <span>{{ flash_message }}</span>
+    </div>
+    {% endif %}
+
+    <!-- Formulário de busca -->
+    <div class="card bg-base-100 shadow-xl mb-6">
+        <div class="card-body">
+            <form id="form_gestao" method="POST" class="flex gap-4 items-end">
+                <div class="form-control flex-1">
+                    <div class="relative flex flex-row gap-4">
+                        <div class="">
+                            <div class="flex flex-col">
+                                <label class="label">
+                                    <span class="label-text font-semibold">Usuario</span>
+                                </label>
+                                {% set value_user = usuario.id if usuario else '' %}
+                                {% set nome_user = usuario.full_name if usuario else '' %}
+                                {% set user_selected = 'user_id' %}
+                                {{ combobox(
+                                    field_name=user_selected,
+                                    placeholder="Selecione o usuario",
+                                    endpoint="/permissao/user-api",
+                                    attrs="required",
+                                    search=nome_user,
+                                    value=value_user,
+                                    field_label='full_name',
+                                ) }}
+                            </div>
+                        </div>
+                        <div class="flex flex-col">
+                                <label class="label">
+                                    <span class="label-text font-semibold">Região</span>
+                                </label>
+                                {% set value_regiao = regiao.id if regiao else '' %}
+                                {% set title_regiao = regiao.name if regiao else '' %}
+                                {{ combobox(
+                                field_name="regiao_id",
+                                field_label="nome",
+                                placeholder="Selecione a região",
+                                endpoint="/externo/regiao-api",
+                                attrs="required",
+                                search=title_regiao,
+                                value=value_regiao,
+                                ) }}
+                                {% set button_class="inline-flex items-center justify-center bg-blue-500 text-primary-foreground hover:bg-blue-600 h-9 px-4 py-2 cursor-pointer  rounded" %}
+                                <div id="div_add" class="hidden">
+                                    <span id="btn_add"
+                                            class="{{ button_class}} ml-4">
+                                        {{chevrons_down()}}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <input type="hidden" name="page" value="1">
+                <button type="button" onclick="clearSearch()" class="btn btn-ghost">Limpar</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tabela de perfils -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body p-0">
+            {% if rows and rows|length > 0 %}
+            <!-- Tabela para telas grandes -->
+            <div class="hidden lg:block overflow-x-auto">
+                <table class="table table-zebra w-full">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nome</th>
+                            <th class="text-center">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in rows %}
+                        <tr class="hover">
+                            <td class="font-mono text-sm">{{ row.id }}</td>
+                            <td class="font-medium">{{ row.municipio_name }}</td>
+                            <td class="text-center">
+                                <div class="flex justify-center gap-2">
+                                    <button class="btn btn-sm btn-error deleteRowButton" data-id="{{ row.id }}"
+                                        title="Excluir" onclick="openDeleteModal({{ row.id }}, '{{ row.municipio_name }}')">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
+                                            </path>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Cards para telas pequenas -->
+            <div class="lg:hidden p-4">
+                {% for row in rows %}
+                <div class="card bg-base-200 shadow-sm mb-4">
+                    <div class="card-body p-4">
+                        <div class="flex justify-between items-start">
+                            <div class="flex-1">
+                                <h3 class="card-title text-lg">{{ row.id }}</h3>
+                                <p class="text-sm text-gray-600">Nome: {{ row.municipio_name }}</p>
+                            </div>
+                            <div class="flex gap-2">
+                                <button class="btn btn-sm btn-error deleteRowButton" data-id="{{ row.id }}"
+                                    onclick="openDeleteModal({{ row.id }}, '{{ row.name }}')">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
+                                        </path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            {% else %}
+            <!-- Estado vazio -->
+            <div class="flex flex-col items-center justify-center py-12">
+                {{ heroicons() }}
+                <h3 class="text-lg font-medium  mb-2">Nenhum perfil encontrado</h3>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Paginação -->
+    {% include 'parts/paginacao.html' %}
+</div>
+
+<!-- Modal de confirmação de exclusão -->
+<dialog id="delete_modal" class="modal">
+    <div class="modal-box">
+        <h3 class="font-bold text-lg">Confirmar Exclusão</h3>
+        <p class="py-4">Tem certeza que deseja remover a Cidade "<span id="regiao_name_to_delete"></span>"?</p>
+        <p class="text-sm  mb-4">Esta ação não pode ser desfeita.</p>
+        <div class="modal-action">
+            <form method="dialog">
+                <button class="btn">Cancelar</button>
+            </form>
+            <button id="confirm_delete" class="btn btn-error">Excluir</button>
+        </div>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+        <button>close</button>
+    </form>
+</dialog>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    //{#  #}
+    //observer
+    document.addEventListener("DOMContentLoaded", function () {
+
+        const hiddenUserInput = document.getElementById("hidden_user_id_id");
+
+        //if (!hiddenPerfilInput) return;
+
+        let valorAnterior = hiddenUserInput.value;
+
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.type === "attributes" && mutation.attributeName === "value") {
+                    showLoader();
+                    const valorAtual = hiddenUserInput.value;
+                    const urlAtual = window.location.pathname;
+                    const novaUrl = urlAtual + (urlAtual.includes('?') ? '&' : '?') + `id=${valorAtual}`;
+                    window.location.href = novaUrl;
+                    hideLoader();
+                }
+            });
+        });
+
+        // Configurar o observer para observar mudanças nos atributos
+        observer.observe(hiddenUserInput, { attributes: true });
+    });
+</script>
+<script>
+    //{# observer para liberar botao de adicionar perfil #}
+    //observer
+    document.addEventListener("DOMContentLoaded", function () {
+
+        const hiddenPerfilInput = document.getElementById("hidden_regiao_id_id");
+
+        //if (!hiddenPerfilInput) return;
+
+        let valorAnterior = hiddenPerfilInput.value;
+
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.type === "attributes" && mutation.attributeName === "value") {
+                    //document.getElementById("div_add").classList.add("hidden");
+                    //classList.toggle("hidden");
+                    document.getElementById("div_add").classList.remove("hidden");
+                }
+            });
+        });
+
+        // Configurar o observer para observar mudanças nos atributos
+        observer.observe(hiddenPerfilInput, { attributes: true });
+    });
+</script>
+<script>
+    //{#cadastrar perfil ao usuario#}
+    document.getElementById("btn_add").addEventListener('click', async function () {
+        document.getElementById("form_gestao").submit();
+    });
+</script>
+<script>
+    let moduleToDelete = null;
+
+    // Função para abrir modal de exclusão
+    function openDeleteModal(id, name) {
+        moduleToDelete = id;
+        document.getElementById('regiao_name_to_delete').textContent = name;
+        document.getElementById('delete_modal').showModal();
+    }
+
+    // Confirmar exclusão
+    document.getElementById('confirm_delete').addEventListener('click', function () {
+        if (moduleToDelete) {
+            // Implementar lógica de exclusão aqui
+            // Por exemplo, fazer uma requisição DELETE ou POST para excluir
+            fetch(`/externo/regiao-gestao/${moduleToDelete}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+                .then(response => {
+                    if (response.ok) {
+                        {% set param_regiao_id = regiao.id if regiao else 0 %}
+                        let param_regiao_id = {{ param_regiao_id }};
+                    window.location.href = `/externo/regiao-gestao?id=${param_regiao_id}`
+                } else {
+                    alert('Erro ao excluir mundicipio');
+                }
+            })
+        .catch(error => {
+            console.error('Erro:', error);
+            alert('Erro ao excluir municipio');
+        });
+        }
+    document.getElementById('delete_modal').close();
+    });
+
+
+    // Função para limpar busca
+    function clearSearch() {
+        document.getElementById('find').value = '';
+        {% set param_regiao_id = regiao.id if regiao else 0 %}
+        let param_regiao_id = {{ param_regiao_id }}; //
+    window.location.href = `/externo/regiao-gestao?id=${param_regiao_id}`
+    }
+</script>
+{% endblock %}

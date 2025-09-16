@@ -19,8 +19,9 @@ use uuid::Uuid;
 use validator::Validate;
 
 use crate::externo::model::Regiao;
-use crate::externo::schema::{AplicacaoRecursos, CreateRegiaoCidades, CreateRegiaoSchema, TipoContatoExtra, UpdateRegiaoSchema};
-use crate::externo::service::{RegiaoCidadesService, RegiaoService};
+use crate::externo::schema::{AplicacaoRecursos, CreateRegiaoCidades, CreateRegiaoSchema, CreateUserLinha, CreateUserRegiao, TipoContatoExtra, UpdateRegiaoSchema};
+use crate::externo::service::{RegiaoCidadesService, RegiaoService, UserLinhaService, UserRegiaoService};
+use crate::permissao::UserService;
 use crate::{
     externo::{
         LinhaService, StatusCivil, TypeContato,
@@ -1352,3 +1353,290 @@ pub async fn delete_gestao_regiao(
         }
     }
 }
+
+
+//===========================
+// Regiao por usuario
+//===========================
+
+/* 
+id: id do usuario
+*/
+pub async fn get_regiao_por_usuario(
+    Query(params): Query<ListParams>,
+    Query(form): Query<IdParams>,
+    State(state): State<SharedState>,
+) -> impl IntoResponse {
+    let service_user = UserService::new();
+    let service = UserRegiaoService::new();
+
+    let usuario;
+
+    let mut context = minijinja::context! {};
+
+    // Extrair mensagens flash dos parâmetros da query
+    let flash_message = params
+        .msg
+        .as_ref()
+        .map(|msg| urlencoding::decode(msg).unwrap_or_default().to_string());
+    let flash_status = params.status.as_ref().and_then(|s| match s.as_str() {
+        "success" => Some("success"),
+        "error" => Some("error"),
+        _ => None,
+    });
+
+    match form.id {
+        Some(id) => {
+            usuario = Some(
+                service_user
+                    .get_by_id(&*state.db, id)
+                    .await
+                    .unwrap(),
+            );
+            let result = service
+                .get_paginated_by_user_id(
+                    &state.db,
+                    usuario.clone().unwrap().id as i32,
+                    params.page.unwrap_or(1),
+                    params.page_size.unwrap_or(10),
+                )
+                .await;
+
+            match result {
+                Ok(paginated_response) => {
+                    context = minijinja::context! {
+                        usuario => Some(usuario),
+                        rows => paginated_response.data,
+                        current_page => paginated_response.page,
+                        total_pages => paginated_response.total_pages,
+                        page_size => paginated_response.page_size,
+                        total_records => paginated_response.total_records,
+                        find => params.find.unwrap_or_default(),
+                        flash_message => flash_message,
+                        flash_status => flash_status,
+                    };
+                }
+                Err(_err) => {
+                    context = minijinja::context! {
+                        usuario => Some(usuario)
+                    };
+                }
+            }
+        }
+        None => (),
+    }
+
+    match state.templates.get_template("externo/regiao_user.html") {
+        Ok(template) => match template.render(context) {
+            Ok(html) => Ok(Html(html)),
+            Err(err) => Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Erro ao renderizar template: {}", err),
+            )
+                .into_response()),
+        },
+        Err(err) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Erro ao carregar template: {}", err),
+        )
+            .into_response()),
+    }
+}
+
+pub async fn create_regiao_por_usuario(
+    State(state): State<SharedState>,
+    Form(body): Form<CreateUserRegiao>,
+) -> Response {
+    let service = UserRegiaoService::new();
+
+    let id: i32 = body.regiao_id;
+
+    match service.create(&state.db, body).await {
+        Ok(_) => {
+            let flash_url = helpers::create_flash_url(
+                &format!("/externo/regiao-user?id={}", id.to_string()),
+                "Região adicionada com sucesso!",
+                FlashStatus::Success,
+            );
+            Redirect::to(&flash_url).into_response()
+        }
+        Err(err) => {
+            let flash_url = helpers::create_flash_url(
+                "/externo/regiao-user",
+                &format!("Erro ao adicionar região: {}", err),
+                FlashStatus::Error,
+            );
+            Redirect::to(&flash_url).into_response()
+        }
+    }
+}
+
+pub async fn delete_regiao_por_usuario(
+    State(state): State<SharedState>,
+    Path(id): Path<i64>,
+) -> Response {
+    let service = UserRegiaoService::new();
+
+    match service.delete(&state.db, id.try_into().unwrap()).await {
+        Ok(_) => {
+            let flash_url = helpers::create_flash_url(
+                "/externo/regiao-user",
+                "Região removida com sucesso!",
+                FlashStatus::Success,
+            );
+            Redirect::to(&flash_url).into_response()
+        }
+        Err(err) => {
+            let flash_url = helpers::create_flash_url(
+                "/externo/regiao-user",
+                &format!("Erro ao remover região: {}", err),
+                FlashStatus::Error,
+            );
+            Redirect::to(&flash_url).into_response()
+        }
+    }
+}
+
+
+//===========================
+// linha por usuario
+//===========================
+
+/* 
+id: id do usuario
+*/
+pub async fn get_linha_por_usuario(
+    Query(params): Query<ListParams>,
+    Query(form): Query<IdParams>,
+    State(state): State<SharedState>,
+) -> impl IntoResponse {
+    let service_user = UserService::new();
+    let service = UserLinhaService::new();
+
+    let usuario;
+
+    let mut context = minijinja::context! {};
+
+    // Extrair mensagens flash dos parâmetros da query
+    let flash_message = params
+        .msg
+        .as_ref()
+        .map(|msg| urlencoding::decode(msg).unwrap_or_default().to_string());
+    let flash_status = params.status.as_ref().and_then(|s| match s.as_str() {
+        "success" => Some("success"),
+        "error" => Some("error"),
+        _ => None,
+    });
+
+    match form.id {
+        Some(id) => {
+            usuario = Some(
+                service_user
+                    .get_by_id(&*state.db, id)
+                    .await
+                    .unwrap(),
+            );
+            let result = service
+                .get_paginated_by_user_id(
+                    &state.db,
+                    usuario.clone().unwrap().id as i32,
+                    params.page.unwrap_or(1),
+                    params.page_size.unwrap_or(10),
+                )
+                .await;
+
+            match result {
+                Ok(paginated_response) => {
+                    context = minijinja::context! {
+                        usuario => Some(usuario),
+                        rows => paginated_response.data,
+                        current_page => paginated_response.page,
+                        total_pages => paginated_response.total_pages,
+                        page_size => paginated_response.page_size,
+                        total_records => paginated_response.total_records,
+                        find => params.find.unwrap_or_default(),
+                        flash_message => flash_message,
+                        flash_status => flash_status,
+                    };
+                }
+                Err(_err) => {
+                    context = minijinja::context! {
+                        usuario => Some(usuario)
+                    };
+                }
+            }
+        }
+        None => (),
+    }
+
+    match state.templates.get_template("externo/linha_user.html") {
+        Ok(template) => match template.render(context) {
+            Ok(html) => Ok(Html(html)),
+            Err(err) => Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Erro ao renderizar template: {}", err),
+            )
+                .into_response()),
+        },
+        Err(err) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Erro ao carregar template: {}", err),
+        )
+            .into_response()),
+    }
+}
+
+pub async fn create_linha_por_usuario(
+    State(state): State<SharedState>,
+    Form(body): Form<CreateUserLinha>,
+) -> Response {
+    let service = UserLinhaService::new();
+
+    let id: i32 = body.linha_id;
+
+    match service.create(&state.db, body).await {
+        Ok(_) => {
+            let flash_url = helpers::create_flash_url(
+                &format!("/externo/linha-user?id={}", id.to_string()),
+                "Linha adicionada com sucesso!",
+                FlashStatus::Success,
+            );
+            Redirect::to(&flash_url).into_response()
+        }
+        Err(err) => {
+            let flash_url = helpers::create_flash_url(
+                "/externo/linha-user",
+                &format!("Erro ao adicionar linha: {}", err),
+                FlashStatus::Error,
+            );
+            Redirect::to(&flash_url).into_response()
+        }
+    }
+}
+
+pub async fn delete_linha_por_usuario(
+    State(state): State<SharedState>,
+    Path(id): Path<i64>,
+) -> Response {
+    let service = UserLinhaService::new();
+
+    match service.delete(&state.db, id.try_into().unwrap()).await {
+        Ok(_) => {
+            let flash_url = helpers::create_flash_url(
+                "/externo/linha-user",
+                "Linha removida com sucesso!",
+                FlashStatus::Success,
+            );
+            Redirect::to(&flash_url).into_response()
+        }
+        Err(err) => {
+            let flash_url = helpers::create_flash_url(
+                "/externo/linha-user",
+                &format!("Erro ao remover linha: {}", err),
+                FlashStatus::Error,
+            );
+            Redirect::to(&flash_url).into_response()
+        }
+    }
+}
+

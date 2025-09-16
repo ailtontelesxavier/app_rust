@@ -10,12 +10,18 @@ use uuid::Uuid;
 use crate::externo::model::Contato;
 use crate::externo::model::Regiao;
 use crate::externo::model::RegiaoCidades;
+use crate::externo::model::UserLinha;
+use crate::externo::model::UserRegiao;
 use crate::externo::schema::CreateContato;
 use crate::externo::schema::CreateRegiaoCidades;
 use crate::externo::schema::CreateRegiaoSchema;
+use crate::externo::schema::CreateUserLinha;
+use crate::externo::schema::CreateUserRegiao;
 use crate::externo::schema::UpdateContato;
 use crate::externo::schema::UpdateRegiaoCidades;
 use crate::externo::schema::UpdateRegiaoSchema;
+use crate::externo::schema::UpdateUserLinha;
+use crate::externo::schema::UpdateUserRegiao;
 use crate::externo::{
     model::Linha,
     schema::{CreateLinhaSchema, UpdateLinhaSchema},
@@ -340,3 +346,181 @@ impl Repository<RegiaoCidades, i32> for RegiaoCidadesRepository {
         Ok(())
     }
 }
+
+
+pub struct UserRegiaoRepository;
+
+#[async_trait]
+impl Repository<UserRegiao, i32> for UserRegiaoRepository {
+    type CreateInput = CreateUserRegiao;
+    type UpdateInput = UpdateUserRegiao;
+
+    fn table_name(&self) -> &str {
+        "emprestimo_user_regiao"
+    }
+
+    fn searchable_fields(&self) -> &[&str] {
+        &["r.name", "u.full_name", "u.username"]
+    }
+
+    fn select_clause(&self) -> &str {
+        "rc.id,
+        rc.regiao_id,
+        rc.user_id,
+        u.full_name AS user_name,
+        r.name AS regiao_name
+        "
+    }
+
+    fn from_clause(&self) -> &str {
+        "emprestimo_user_regiao rc
+        JOIN emprestimo_regiao r ON rc.regiao_id = r.id
+        JOIN users u ON rc.user_id = u.id
+        "
+    }
+
+    fn id_column(&self) -> &str {
+        "rc.id"
+    }
+
+    fn order_by_column(&self) -> &str {
+        "r.name, u.full_name"
+    }
+
+    async fn create(&self, pool: &PgPool, input: Self::CreateInput) -> Result<UserRegiao> {
+        Ok(sqlx::query_as!(
+            UserRegiao,
+            r#"INSERT INTO emprestimo_user_regiao (regiao_id, user_id) VALUES ($1, $2)
+            RETURNING id, regiao_id, user_id,
+            NULL as "regiao_name?",
+            NULL as "user_name?"
+            "#,
+            input.regiao_id,
+            input.user_id
+        )
+        .fetch_one(pool)
+        .await?)
+    }
+
+    async fn update(
+        &self,
+        pool: &PgPool,
+        id: i32,
+        input: Self::UpdateInput,
+    ) -> Result<UserRegiao> {
+        Ok(sqlx::query_as!(
+            UserRegiao,
+            r#"
+            UPDATE emprestimo_user_regiao
+            SET
+                regiao_id = COALESCE($1, regiao_id),
+                user_id = COALESCE($2, user_id)
+            WHERE id = $3
+            RETURNING id, regiao_id, user_id, NULL as "regiao_name?",
+            NULL as "user_name?"
+            "#,
+            input.regiao_id,
+            input.user_id,
+            id
+        )
+        .fetch_one(pool)
+        .await?)
+    }
+
+    async fn delete(&self, pool: &PgPool, id: i32) -> Result<()> {
+        sqlx::query!("DELETE FROM emprestimo_user_regiao WHERE id = $1", id)
+            .execute(pool)
+            .await?;
+        Ok(())
+    }
+}
+
+
+pub struct UserLinhaRepository;
+
+#[async_trait]
+impl Repository<UserLinha, i32> for UserLinhaRepository {
+    type CreateInput = CreateUserLinha;
+    type UpdateInput = UpdateUserLinha;
+
+    fn table_name(&self) -> &str {
+        "emprestimo_user_linha"
+    }
+
+    fn searchable_fields(&self) -> &[&str] {
+        &["l.nome", "u.full_name", "u.username"]
+    }
+
+    fn select_clause(&self) -> &str {
+        "rc.id,
+        rc.linha_id,
+        rc.user_id,
+        u.full_name AS user_name,
+        l.nome AS linha_name
+        "
+    }
+
+    fn from_clause(&self) -> &str {
+        "emprestimo_user_linha rc
+        JOIN linha l ON rc.linha_id = l.id
+        JOIN users u ON rc.user_id = u.id
+        "
+    }
+
+    fn id_column(&self) -> &str {
+        "rc.id"
+    }
+
+    fn order_by_column(&self) -> &str {
+        "l.nome, u.full_name"
+    }
+
+    async fn create(&self, pool: &PgPool, input: Self::CreateInput) -> Result<UserLinha> {
+        Ok(sqlx::query_as!(
+            UserLinha,
+            r#"INSERT INTO emprestimo_user_linha (linha_id, user_id) VALUES ($1, $2)
+            RETURNING id, linha_id, user_id,
+            NULL as "linha_name?",
+            NULL as "user_name?"
+            "#,
+            input.linha_id,
+            input.user_id
+        )
+        .fetch_one(pool)
+        .await?)
+    }
+
+    async fn update(
+        &self,
+        pool: &PgPool,
+        id: i32,
+        input: Self::UpdateInput,
+    ) -> Result<UserLinha> {
+        Ok(sqlx::query_as!(
+            UserLinha,
+            r#"
+            UPDATE emprestimo_user_linha
+            SET
+                linha_id = COALESCE($1, linha_id),
+                user_id = COALESCE($2, user_id)
+            WHERE id = $3
+            RETURNING id, linha_id, user_id, NULL as "linha_name?",
+            NULL as "user_name?"
+            "#,
+            input.linha_id,
+            input.user_id,
+            id
+        )
+        .fetch_one(pool)
+        .await?)
+    }
+
+    async fn delete(&self, pool: &PgPool, id: i32) -> Result<()> {
+        sqlx::query!("DELETE FROM emprestimo_user_linha WHERE id = $1", id)
+            .execute(pool)
+            .await?;
+        Ok(())
+    }
+}
+
+

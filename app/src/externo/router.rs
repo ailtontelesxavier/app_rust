@@ -11,6 +11,8 @@ pub fn router() -> Router<SharedState> {
         .merge(router_tipo())
         .merge(router_contato())
         .merge(router_regiao())
+        .merge(router_regiao_user())
+        .merge(router_linha_user())
 }
 
 fn router_tipo() -> Router<SharedState> {
@@ -61,3 +63,21 @@ fn api_regiao_router() -> Router<SharedState> {
         .route("/regiao-api", get(view::regiao_api))
 }
 
+fn router_regiao_user() -> Router<SharedState> {
+    Router::new()
+        .route(
+            "/regiao-user",
+            get(view::get_regiao_por_usuario).post(view::create_regiao_por_usuario),
+        )
+        .route("/regiao-user/{id}", delete(view::delete_regiao_por_usuario))
+}
+
+
+fn router_linha_user() -> Router<SharedState> {
+    Router::new()
+        .route(
+            "/linha-user",
+            get(view::get_linha_por_usuario).post(view::create_linha_por_usuario),
+        )
+        .route("/linha-user/{id}", delete(view::delete_linha_por_usuario))
+}
