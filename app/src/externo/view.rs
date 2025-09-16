@@ -1632,11 +1632,10 @@ pub async fn delete_linha_por_usuario(
         Err(err) => {
             let flash_url = helpers::create_flash_url(
                 "/externo/linha-user",
-                &format!("Erro ao remover linha: {}", err),
+                &format!("Erro ao remover região: {}", err),
                 FlashStatus::Error,
             );
             Redirect::to(&flash_url).into_response()
         }
     }
 }
-
