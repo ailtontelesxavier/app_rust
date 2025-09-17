@@ -176,6 +176,28 @@
 {% endblock %}
 
 {% block extra_js %}
+
+<script>
+//corrige links da paginação para manter parametros
+function updatePageLinks() {
+    const links = document.querySelectorAll('a[href^="?page"]');
+    
+    links.forEach(link => {
+        // Extrair a parte da query string
+        const [base, query] = link.href.split('?');
+        const params = new URLSearchParams(query || '');
+        
+        // Adicionar os parâmetros desejados
+        params.set('id', '{{ regiao.id if regiao else ''}}');
+        
+        // Reconstruir o link
+        link.href = (base || '') + '?' + params.toString();
+    });
+}
+
+// Executar quando a página carregar
+document.addEventListener('DOMContentLoaded', updatePageLinks);
+</script>
 <script>
     //{#  #}
     //observer
