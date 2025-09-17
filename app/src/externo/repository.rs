@@ -1,7 +1,8 @@
 use async_trait::async_trait;
-use shared::PaginatedResponse;
 use shared::Repository;
 use sqlx::PgPool;
+
+use regex::Regex;
 
 use anyhow::Ok;
 use anyhow::Result;
@@ -122,6 +123,8 @@ impl Repository<Contato, Uuid> for ContatoRepository {
     }
 
     async fn create(&self, pool: &PgPool, input: Self::CreateInput) -> Result<Contato> {
+        let re = Regex::new(r"[\.\-/]").unwrap();
+        let cpf_cnpj_clean = re.replace_all(&input.cpf_cnpj, "").to_string();
         Ok(sqlx::query_as!(
             Contato,
             "INSERT INTO contato (linha_id, protocolo, status_atendimento, cpf_cnpj, nome, telefone, email,
@@ -130,7 +133,7 @@ impl Repository<Contato, Uuid> for ContatoRepository {
             input.linha_id,
             input.protocolo,
             input.status_atendimento,
-            input.cpf_cnpj,
+            cpf_cnpj_clean,
             input.nome,
             input.telefone,
             input.email,
@@ -347,7 +350,6 @@ impl Repository<RegiaoCidades, i32> for RegiaoCidadesRepository {
     }
 }
 
-
 pub struct UserRegiaoRepository;
 
 #[async_trait]
@@ -402,12 +404,7 @@ impl Repository<UserRegiao, i32> for UserRegiaoRepository {
         .await?)
     }
 
-    async fn update(
-        &self,
-        pool: &PgPool,
-        id: i32,
-        input: Self::UpdateInput,
-    ) -> Result<UserRegiao> {
+    async fn update(&self, pool: &PgPool, id: i32, input: Self::UpdateInput) -> Result<UserRegiao> {
         Ok(sqlx::query_as!(
             UserRegiao,
             r#"
@@ -434,7 +431,6 @@ impl Repository<UserRegiao, i32> for UserRegiaoRepository {
         Ok(())
     }
 }
-
 
 pub struct UserLinhaRepository;
 
@@ -490,12 +486,7 @@ impl Repository<UserLinha, i32> for UserLinhaRepository {
         .await?)
     }
 
-    async fn update(
-        &self,
-        pool: &PgPool,
-        id: i32,
-        input: Self::UpdateInput,
-    ) -> Result<UserLinha> {
+    async fn update(&self, pool: &PgPool, id: i32, input: Self::UpdateInput) -> Result<UserLinha> {
         Ok(sqlx::query_as!(
             UserLinha,
             r#"
@@ -522,5 +513,3 @@ impl Repository<UserLinha, i32> for UserLinhaRepository {
         Ok(())
     }
 }
-
-
