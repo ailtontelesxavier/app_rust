@@ -5,14 +5,13 @@ use sqlx::{Pool, Postgres};
 use std::time::Duration;
 use testcontainers::GenericImage;
 use testcontainers::ImageExt;
-<<<<<<< HEAD
 use testcontainers::runners::AsyncRunner;
 use tracing::info;
-=======
+
 use std::sync::Arc;
 use std::time::Duration;
 use dotenv::dotenv;
->>>>>>> 1fd4121 (configura dockerfile)
+
 
 #[fixture]
 pub async fn postgres_pool() -> Pool<Postgres> {
@@ -77,14 +76,11 @@ async fn test_select_1(#[future] postgres_pool: Pool<Postgres>) {
     println!("Database configured successfully");
 
     // Abordagem direta - obtém uma conexão do pool explicitamente
-<<<<<<< HEAD
     let mut connection = pool.acquire().await.expect("Failed to acquire connection");
 
-=======
     //let mut connection = pool.acquire().await.expect("Failed to acquire connection");
     println!("conectando novamente");
     
->>>>>>> 1fd4121 (configura dockerfile)
     let row: (i32,) = sqlx::query_as("SELECT 1")
         .fetch_one(&pool)
         .await
@@ -94,13 +90,10 @@ async fn test_select_1(#[future] postgres_pool: Pool<Postgres>) {
     println!("{:?}", row);
 
     // Libera a conexão explicitamente
-<<<<<<< HEAD
+
     drop(connection);
 
-=======
     //drop(connection);
-    
->>>>>>> 1fd4121 (configura dockerfile)
     assert_eq!(row.0, 1);
     println!("Test completed successfully");
 }
