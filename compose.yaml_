@@ -1,0 +1,227 @@
+services:
+  app:
+    #user: "1000:1000"
+    entrypoint: ./entrypoint.sh
+    build: .
+    restart: always
+    ports:
+      - "8004:8004"
+    depends_on:
+    #  - database
+      - graylog
+    networks:
+      backend:
+        ipv4_address: 172.16.238.11
+    volumes:
+      #- .:/app
+      - ./certs/app.fomento.to.gov.br.crt:/etc/ssl/app.fomento.to.gov.br.crt
+      - ./certs/app.fomento.to.gov.br.key:/etc/ssl/app.fomento.to.gov.br.key
+      - uploads:/app/uploads
+      - ./app/static:/app/static
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+    environment:
+      TZ: America/Sao_Paulo
+      ENV: production # ou development
+      UVICORN_CMD: uvicorn
+      WORKERS: 10
+      DATABASE_URL: ${DATABASE_URL}
+      SECRET_KEY: ${SECRET_KEY}
+      ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES} 
+      NAME: ${NAME}
+      USER: ${USER}
+      PASSWORD: ${PASSWORD}
+      HOST: ${HOST}  # host.docker.internal
+      PORT: ${PORT}
+      GRAYLOG_HOST: ${GRAYLOG_HOST}
+      GRAYLOG_PORT_UDP: ${GRAYLOG_PORT_UDP}
+      WSDL_SPAC_TEST: ${WSDL_SPAC_TEST}
+      USER_SPC_TEST: ${USER_SPC_TEST}
+      PASSWORD_SPC_TEST: ${PASSWORD_SPC_TEST}
+      WSDL_SPAC: ${WSDL_SPAC}
+      USER_SPC: ${USER_SPC}
+      PASSWORD_SPC: ${PASSWORD_SPC}
+      FACIL_OPERADOR: ${FACIL_OPERADOR}
+      FACIL_SENHA: ${FACIL_SENHA}
+      FACIL_URL_FOMENTO: ${FACIL_URL_FOMENTO}
+      FACIL_URL_FUNDO: ${FACIL_URL_FUNDO}
+      FACIL_OPERADOR_TEST: ${FACIL_OPERADOR_TEST}
+      FACIL_SENHA_TEST: ${FACIL_SENHA_TEST}
+      FACIL_URL_FOMENTO_TEST: ${FACIL_URL_FOMENTO_TEST}
+      FACIL_URL_FUNDO_TEST: ${FACIL_URL_FUNDO_TEST}
+    #command: ["python", "-m", "debugpy", "--listen", "0.0.0.0:5678", "--wait-for-client", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+
+  nginx:
+    #user: "1000:1000"
+    image: nginx:latest
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx:/etc/nginx/conf.d
+      - nginx_cache:/var/cache/nginx
+      #- ./nginx/ssl:/etc/nginx/ssl:ro
+      - ./certs/app.fomento.to.gov.br.crt:/etc/ssl/app.fomento.to.gov.br.crt
+      - ./certs/app.fomento.to.gov.br.key:/etc/ssl/app.fomento.to.gov.br.key
+      - uploads:/app/uploads
+      - ./app/static:/app/static
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+    environment:
+      TZ: America/Sao_Paulo
+    depends_on:
+      - app
+    links:
+      - app
+    networks:
+      backend:
+        ipv4_address: 172.16.238.8
+  
+  portainer:
+    image: portainer/portainer-ce
+    container_name: portainer
+    restart: always
+    ports:
+      - "8000:8000"   # Endpoint Edge Agent
+      - "9443:9443"   # Interface Web com HTTPS
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+      - /etc/localtime:/etc/localtime:ro   # Sincroniza fuso horário
+      - /etc/timezone:/etc/timezone:ro     # Sincroniza timezone
+    environment:
+      - TZ=America/Sao_Paulo
+  
+#  database:
+#    image: postgres:17
+#    networks:
+#      backend:
+#        ipv4_address: 172.16.238.10
+#    volumes:
+#      - pgdata:/var/lib/postgresql/data
+#      - /etc/localtime:/etc/localtime:ro   # Sincroniza fuso horário
+#      - /etc/timezone:/etc/timezone:ro     # Sincroniza timezone
+#    environment:
+#      #TZ: America/Sao_Paulo
+#      POSTGRES_USER: ${POSTGRES_USER}
+#      POSTGRES_DB: ${POSTGRES_DB}
+#      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+#      TZ: America/Sao_Paulo
+#      PGTZ: America/Sao_Paulo
+#    ports:
+#      - "5434:5432"
+#    command: ["postgres", "-c", "log_timezone=America/Sao_Paulo", "-c", "timezone=America/Sao_Paulo"]
+  
+  # Service for Prometheus
+  prometheus:
+    user: "1000:1000"
+    # Use the official Prometheus image
+    image: prom/prometheus
+    # Expose ports for Prometheus
+    ports:
+      - "9090:9090"
+    # Mount the local Prometheus configuration file
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    # Command to start Prometheus with the specified configuration file
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+
+  # Service for Grafana
+  grafana:
+    user: "1000:1000"
+    # Use the official Grafana image
+    image: grafana/grafana
+    # Set environment variables for Grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GF_SECURITY_ADMIN_USER}
+      - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    # Expose ports for Grafana
+    ports:
+      - "3000:3000"
+    # Mount a volume for persistent data storage
+    volumes:
+      - grafana_data:/var/lib/grafana
+
+  # Service for MongoDB
+  mongo:
+    user: "1000:1000"
+    # Use the official MongoDB image
+    image: mongo:3
+    # Mount a volume for persistent data storage
+    volumes:
+      - mongodb_data:/data/db
+
+  # Service for Elasticsearch
+  elasticsearch:
+    user: "1000:1000"
+    # Use the official Elasticsearch 6.8.10 image
+    image: docker.elastic.co/elasticsearch/elasticsearch-oss:6.8.10
+    # Set environment variables for Elasticsearch
+    environment:
+      - http.host=0.0.0.0
+      - transport.host=localhost
+      - network.host=0.0.0.0
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    # Set ulimits for Elasticsearch
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    # Deployment configuration for Elasticsearch
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+
+  # Service for Graylog
+  graylog:
+    user: "1000:1000"
+    # Use the official Graylog 3.3 image
+    image: graylog/graylog:3.3
+    # Set environment variables for Graylog
+    environment:
+      #- GRAYLOG_PASSWORD_SECRET=${GRAYLOG_PASSWORD}
+      - GRAYLOG_PASSWORD_SECRET=${GRAYLOG_PASSWORD}
+      - GRAYLOG_ROOT_PASSWORD_SHA2=${GRAYLOG_ROOT_PASSWORD}
+      - GRAYLOG_HTTP_BIND_ADDRESS=0.0.0.0:9001
+      - GRAYLOG_HTTP_EXTERNAL_URI=http://localhost:9001/
+    # Dependencies for Graylog
+    depends_on:
+      - mongo
+      - elasticsearch
+    # Expose ports for Graylog
+    ports:
+      # Graylog web interface and REST API
+      - 9001:9001
+      # Syslog TCP
+      - 1514:1514
+      # Syslog UDP
+      - 1514:1514/udp
+      # GELF TCP
+      - 12201:12201
+      # GELF UDP
+      - 12201:12201/udp
+
+networks:
+  backend:
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.16.238.0/24
+
+volumes:
+  portainer_data:
+#  pgdata:
+  mongodb_data:
+  grafana_data:
+  nginx_cache:
+  uploads:
+    driver: local
+    driver_opts:
+      type: none
+      device: /var/www/uploads
+      o: bind

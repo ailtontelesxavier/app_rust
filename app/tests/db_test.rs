@@ -5,31 +5,44 @@ use sqlx::{Pool, Postgres};
 use std::time::Duration;
 use testcontainers::GenericImage;
 use testcontainers::ImageExt;
+<<<<<<< HEAD
 use testcontainers::runners::AsyncRunner;
 use tracing::info;
+=======
+use std::sync::Arc;
+use std::time::Duration;
+use dotenv::dotenv;
+>>>>>>> 1fd4121 (configura dockerfile)
 
 #[fixture]
 pub async fn postgres_pool() -> Pool<Postgres> {
+
+    dotenv().ok();
+
+    let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    
+
+
     // Use a imagem oficial do PostgreSQL com configuração mais simples
-    let image = GenericImage::new("postgres", "16-alpine") // alpine é mais leve
+    let image: testcontainers::ContainerRequest<GenericImage> = GenericImage::new("postgres", "16") // alpine é mais leve
         .with_exposed_port(testcontainers::core::ContainerPort::Tcp(5432))
         .with_env_var("POSTGRES_USER", "postgres") // usuário padrão
         .with_env_var("POSTGRES_PASSWORD", "password")
         .with_env_var("POSTGRES_DB", "test_db");
 
+    println!("iniciando container");
     let container = image.start().await.unwrap();
+    println!("iniciado container");
 
     let port = container.get_host_port_ipv4(5432).await.unwrap();
     let connection_string = format!("postgres://postgres:password@localhost:{}/test_db", port);
 
     // Aguarda um pouco mais
-    tokio::time::sleep(Duration::from_secs(3)).await;
+    tokio::time::sleep(Duration::from_secs(5)).await;
 
-    let pool = PgPoolOptions::new()
-        .max_connections(2) // Número menor de conexões para testes
-        .acquire_timeout(Duration::from_secs(10)) // Timeout para adquirir conexão
-        .idle_timeout(Duration::from_secs(30)) // Timeout para conexões idle
-        .max_lifetime(Duration::from_secs(30)) // Tempo máximo de vida da conexão
+    println!("iniciando conecção");
+    let pool: Pool<Postgres> =   PgPoolOptions::new()
+        .max_connections(5) // Número menor de conexões para testes
         .connect(&connection_string)
         .await
         .expect("Failed to connect to PostgreSQL");
@@ -64,16 +77,30 @@ async fn test_select_1(#[future] postgres_pool: Pool<Postgres>) {
     println!("Database configured successfully");
 
     // Abordagem direta - obtém uma conexão do pool explicitamente
+<<<<<<< HEAD
     let mut connection = pool.acquire().await.expect("Failed to acquire connection");
 
+=======
+    //let mut connection = pool.acquire().await.expect("Failed to acquire connection");
+    println!("conectando novamente");
+    
+>>>>>>> 1fd4121 (configura dockerfile)
     let row: (i32,) = sqlx::query_as("SELECT 1")
-        .fetch_one(&mut *connection)
+        .fetch_one(&pool)
         .await
         .expect("Query failed");
+    println!("conectado");
+
+    println!("{:?}", row);
 
     // Libera a conexão explicitamente
+<<<<<<< HEAD
     drop(connection);
 
+=======
+    //drop(connection);
+    
+>>>>>>> 1fd4121 (configura dockerfile)
     assert_eq!(row.0, 1);
     println!("Test completed successfully");
 }
