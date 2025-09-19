@@ -9,6 +9,7 @@ ENV SQLX_OFFLINE=true
 
 # 1. Copia manifesto do projeto para build de dependências em cache
 COPY Cargo.toml Cargo.lock ./
+COPY .sqlx .sqlx
 
 # cria dummy src para não quebrar o build
 RUN mkdir src && echo "fn main() {}" > src/main.rs

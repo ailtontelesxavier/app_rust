@@ -1,7 +1,7 @@
 -- Add migration script here
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- linha
-CREATE TABLE linha (
+CREATE TABLE IF NOT EXISTS linha (
     id SERIAL PRIMARY KEY,
     nome VARCHAR(255) NOT NULL,
     permite_cnpj BOOLEAN NOT NULL DEFAULT false,
@@ -11,7 +11,7 @@ CREATE TABLE linha (
 );
 
 -- contato
-CREATE TABLE contato (
+CREATE TABLE IF NOT EXISTS contato (
     id UUID PRIMARY KEY NOT NULL DEFAULT (uuid_generate_v4()),
     linha_id INT NOT NULL REFERENCES linha(id),
     protocolo VARCHAR(100) NOT NULL,
@@ -30,7 +30,7 @@ CREATE TABLE contato (
 );
 
 -- aplicacao_recurso
-CREATE TABLE aplicacao_recurso (
+CREATE TABLE IF NOT EXISTS aplicacao_recurso (
     id BIGSERIAL PRIMARY KEY,
     descricao TEXT NOT NULL,
     quantidade INT NOT NULL,
@@ -40,7 +40,7 @@ CREATE TABLE aplicacao_recurso (
 );
 
 -- doc_solicitante
-CREATE TABLE doc_solicitante (
+CREATE TABLE IF NOT EXISTS doc_solicitante (
     id BIGSERIAL PRIMARY KEY,
     contato_id UUID NOT NULL REFERENCES contato(id) ON DELETE CASCADE,
     arquivo TEXT NOT NULL, -- caminho ou hash do arquivo
@@ -50,14 +50,14 @@ CREATE TABLE doc_solicitante (
 );
 
 -- tipo_documento
-CREATE TABLE tipo_documento (
+CREATE TABLE IF NOT EXISTS tipo_documento (
     id SERIAL PRIMARY KEY,
     nome VARCHAR(255) NOT NULL,
     descricao TEXT
 );
 
 -- tipo_doc_contato
-CREATE TABLE tipo_doc_contato (
+CREATE TABLE IF NOT EXISTS tipo_doc_contato (
     id SERIAL PRIMARY KEY,
     tipo_documento_id INT NOT NULL REFERENCES tipo_documento(id), -- ON DELETE CASCADE,
     contato_id UUID NOT NULL REFERENCES contato(id) ON DELETE CASCADE,
@@ -66,7 +66,7 @@ CREATE TABLE tipo_doc_contato (
 );
 
 -- contato_socio
-CREATE TABLE contato_socio (
+CREATE TABLE IF NOT EXISTS contato_socio (
     id BIGSERIAL PRIMARY KEY,
     contato_id UUID NOT NULL REFERENCES contato(id) ON DELETE CASCADE,
     nome VARCHAR(255) NOT NULL,
@@ -81,7 +81,7 @@ CREATE TABLE contato_socio (
 );
 
 --contato_avalista
-CREATE TABLE contato_avalista (
+CREATE TABLE IF NOT EXISTS contato_avalista (
     id BIGSERIAL PRIMARY KEY,
     contato_id UUID NOT NULL REFERENCES contato(id) ON DELETE CASCADE,
     nome VARCHAR(255) NOT NULL,
