@@ -4,6 +4,9 @@
 FROM rust:1.87 AS builder
 WORKDIR /app
 
+# evita conexão com o banco durante o build
+ENV SQLX_OFFLINE=true
+
 # 1. Copia manifesto do projeto para build de dependências em cache
 COPY Cargo.toml Cargo.lock ./
 
